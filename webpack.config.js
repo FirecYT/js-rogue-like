@@ -16,7 +16,7 @@ module.exports = {
 		warnings: true,
 		colors: true,
 	},
-	mode: 'development',
+	mode: process.env.NODE_ENV || 'development',
 	entry: './src/index.ts',
 	output: {
 		path: path.resolve(__dirname, 'build'),
