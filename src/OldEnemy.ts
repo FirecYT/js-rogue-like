@@ -1,12 +1,14 @@
-import GameObject from "./components/GameObject";
+import GameObject from './components/GameObject';
 
 export default class Enemy extends GameObject {
 	private speed = 1;
 	private target: GameObject;
+	public experience: number;
 
 	constructor(x: number, y: number, target: GameObject) {
-		super(x, y);
+		super(x, y, 100);
 		this.target = target;
+		this.experience = this.getHP();
 	}
 
 	update() {

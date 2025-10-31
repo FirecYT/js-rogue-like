@@ -2,28 +2,23 @@ export default class Engine {
 	public canvas: HTMLCanvasElement;
 	public context: CanvasRenderingContext2D;
 
-	constructor (canvas: HTMLCanvasElement) {
+	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
 
 		const context = canvas.getContext('2d');
 
 		if (!context) {
-			throw new Error('Can\'t get context');
+			throw new Error("Can't get context");
 		}
 
 		this.context = context;
 
-		this.canvas.width = 640;
-		this.canvas.height = 480;
+		this.canvas.width = document.body.clientWidth;
+		this.canvas.height = document.body.clientHeight;
 	}
 
-	clear () {
-		this.context.clearRect(
-			0,
-			0,
-			this.canvas.width,
-			this.canvas.height
-		);
+	clear() {
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	}
 
 	// update () {

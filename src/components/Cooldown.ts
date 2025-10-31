@@ -1,34 +1,34 @@
 export default class Cooldown {
-	private maximumValue: number;
-	private value = 0;
+	private maxFrames: number;
+	private currentFrames = 0;
 
-	constructor(seconds: number) {
-		this.maximumValue = seconds * 60;
+	constructor(frames: number) {
+		this.maxFrames = frames;
 	}
 
 	getMaximum() {
-		return this.maximumValue;
+		return this.maxFrames;
 	}
 
-	edit(frames: number) {
-		this.maximumValue = frames;
+	setDuration(frames: number) {
+		this.maxFrames = frames;
 	}
 
-	set() {
-		this.value = this.maximumValue;
+	start() {
+		this.currentFrames = this.maxFrames;
 	}
 
-	get() {
-		return this.value == 0;
+	isReady() {
+		return this.currentFrames == 0;
 	}
 
-	val() {
-		return this.value / this.maximumValue;
+	progress() {
+		return this.currentFrames / this.maxFrames;
 	}
 
 	update() {
-		if (this.value > 0) {
-			this.value--;
+		if (this.currentFrames > 0) {
+			this.currentFrames--;
 		}
 	}
 }

@@ -1,17 +1,19 @@
 export function pir(
 	point: {
-		x: number,
-		y: number
+		x: number;
+		y: number;
 	},
 	rect: {
-		x: number,
-		y: number,
-		width: number,
-		height: number
+		x: number;
+		y: number;
+		width: number;
+		height: number;
 	}
 ) {
-	return point.x > rect.x &&
+	return (
+		point.x > rect.x &&
 		point.y > rect.y &&
 		point.x < rect.x + rect.width &&
-		point.y < rect.y + rect.height;
+		point.y < rect.y + rect.height
+	);
 }
