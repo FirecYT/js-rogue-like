@@ -1,4 +1,4 @@
-// world/Pathfinding.ts
+import { CHUNK_CONFIG } from "./Types";
 import { WorldManager } from "./WorldManager";
 
 interface Node {
@@ -90,7 +90,9 @@ export class Pathfinder {
 	}
 
 	private static heuristic(x1: number, y1: number, x2: number, y2: number): number {
-		return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+		const dx = Math.abs(x1 - x2);
+		const dy = Math.abs(y1 - y2);
+		return Math.max(dx, dy);
 	}
 
 	private static buildPath(endNode: Node, worldManager: WorldManager): { x: number, y: number }[] {
@@ -100,8 +102,8 @@ export class Pathfinder {
 		while (currentNode) {
 			const worldPos = worldManager.gridToWorld(currentNode.x, currentNode.y);
 			path.unshift({
-				x: worldPos.x + 25,
-				y: worldPos.y + 25
+				x: worldPos.x + CHUNK_CONFIG.TILE_SIZE / 2,
+				y: worldPos.y + CHUNK_CONFIG.TILE_SIZE / 2
 			});
 			currentNode = currentNode.parent;
 		}

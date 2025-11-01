@@ -73,22 +73,22 @@ export default class Enemy extends GameObject {
 		ctx.fillRect(this.x - 4, this.y - 4, 8, 8);
 
 		// Отладочная отрисовка пути
-		if (this.path.length > 0) {
-			ctx.strokeStyle = '#f002';
-			ctx.lineWidth = 2;
-			ctx.beginPath();
-			ctx.moveTo(this.x, this.y);
+		// if (this.path.length > 0) {
+		// 	ctx.strokeStyle = '#f002';
+		// 	ctx.lineWidth = 2;
+		// 	ctx.beginPath();
+		// 	ctx.moveTo(this.x, this.y);
 
-			for (const point of this.path) {
-				ctx.lineTo(point.x, point.y);
-			}
-			ctx.stroke();
+		// 	for (const point of this.path) {
+		// 		ctx.lineTo(point.x, point.y);
+		// 	}
+		// 	ctx.stroke();
 
-			// Рисуем точки пути
-			ctx.fillStyle = '#0f0';
-			for (const point of this.path) {
-				ctx.fillRect(point.x - 2, point.y - 2, 4, 4);
-			}
-		}
+		// 	// Рисуем точки пути
+		// 	ctx.fillStyle = '#0f04';
+		// 	for (const point of this.path) {
+		// 		ctx.fillRect(point.x - 2, point.y - 2, 4, 4);
+		// 	}
+		// }
 	}
 }

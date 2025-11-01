@@ -1,4 +1,3 @@
-// world/WorldManager.ts
 import { Chunk, RegionType, CHUNK_CONFIG } from './Types';
 import { VoidGenerator } from './generators/VoidGenerator';
 import { RuinsGenerator } from './generators/RuinsGenerator';
@@ -102,8 +101,13 @@ export class WorldManager {
 	gridToWorld(globalTileX: number, globalTileY: number) {
 		const chunkX = Math.floor(globalTileX / CHUNK_CONFIG.SIZE);
 		const chunkY = Math.floor(globalTileY / CHUNK_CONFIG.SIZE);
-		const localX = globalTileX % CHUNK_CONFIG.SIZE;
-		const localY = globalTileY % CHUNK_CONFIG.SIZE;
+
+		// Исправляем для отрицательных координат
+		let localX = globalTileX % CHUNK_CONFIG.SIZE;
+		let localY = globalTileY % CHUNK_CONFIG.SIZE;
+
+		if (localX < 0) localX += CHUNK_CONFIG.SIZE;
+		if (localY < 0) localY += CHUNK_CONFIG.SIZE;
 
 		return {
 			x: chunkX * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE + localX * CHUNK_CONFIG.TILE_SIZE,
@@ -114,8 +118,13 @@ export class WorldManager {
 	isTilePassable(globalTileX: number, globalTileY: number): boolean {
 		const chunkX = Math.floor(globalTileX / CHUNK_CONFIG.SIZE);
 		const chunkY = Math.floor(globalTileY / CHUNK_CONFIG.SIZE);
-		const localX = globalTileX % CHUNK_CONFIG.SIZE;
-		const localY = globalTileY % CHUNK_CONFIG.SIZE;
+
+		// Исправляем для отрицательных координат
+		let localX = globalTileX % CHUNK_CONFIG.SIZE;
+		let localY = globalTileY % CHUNK_CONFIG.SIZE;
+
+		if (localX < 0) localX += CHUNK_CONFIG.SIZE;
+		if (localY < 0) localY += CHUNK_CONFIG.SIZE;
 
 		const chunk = this.getChunk(chunkX, chunkY);
 		if (!chunk) return false;
@@ -123,7 +132,6 @@ export class WorldManager {
 		return chunk.passableGrid[localX]?.[localY] || false;
 	}
 
-	// Новая функция для проверки проходимости по мировым координатам
 	isWorldPositionPassable(worldX: number, worldY: number): boolean {
 		const gridPos = this.worldToGrid(worldX, worldY);
 		if (!gridPos) return false;
@@ -146,17 +154,28 @@ export class WorldManager {
 		return Array.from(this.chunks.values());
 	}
 
-	// Новый метод для получения всех проходимых соседей (для A*)
 	getPassableNeighbors(globalTileX: number, globalTileY: number): { x: number, y: number }[] {
 		const neighbors = [];
 		const directions = [
 			{ dx: -1, dy: 0 }, { dx: 1, dy: 0 },
-			{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }
+			{ dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+			{ dx: -1, dy: -1 }, { dx: 1, dy: -1 },
+			{ dx: -1, dy: 1 }, { dx: 1, dy: 1 }
 		];
 
 		for (const dir of directions) {
 			const newX = globalTileX + dir.dx;
 			const newY = globalTileY + dir.dy;
+
+			if (dir.dx !== 0 && dir.dy !== 0) {
+				const horX = globalTileX + dir.dx;
+				const horY = globalTileY;
+				const verX = globalTileX;
+				const verY = globalTileY + dir.dy;
+				if (!this.isTilePassable(horX, horY) || !this.isTilePassable(verX, verY)) {
+					continue;
+				}
+			}
 
 			if (this.isTilePassable(newX, newY)) {
 				neighbors.push({ x: newX, y: newY });

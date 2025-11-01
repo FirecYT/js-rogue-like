@@ -19,7 +19,8 @@ if (!canvas) {
 
 const engine = new Engine(canvas);
 const worldManager = new WorldManager();
-const player = new Player();
+const player = new Player(CHUNK_CONFIG.TILE_SIZE * CHUNK_CONFIG.SIZE / 2, CHUNK_CONFIG.TILE_SIZE * CHUNK_CONFIG.SIZE / 2, worldManager);
+let scale = 0;
 
 let state = 0;
 let score = 0;
@@ -66,6 +67,10 @@ canvas.addEventListener('mouseup', (event) => {
 	mouse.y = event.offsetY;
 
 	mouse.pressed = false;
+});
+
+canvas.addEventListener('wheel', (event) => {
+	scale -= Math.sign(event.deltaY);
 });
 
 function update() {
@@ -224,7 +229,7 @@ function update() {
 
 			const angle = Math.atan2(_m.y - player.y, _m.x - player.x);
 
-			for (let i = 0; i < 1000; i++) {
+			for (let i = 0; i < 100; i++) {
 				bullets.push(new Bullet(player.x, player.y, angle, player.damage));
 			}
 		}
@@ -334,23 +339,23 @@ function drawWorld() {
 	}
 
 	// Рендерим границы чанков (для отладки)
-	engine.context.strokeStyle = '#ff04';
-	engine.context.lineWidth = 2;
+	// engine.context.strokeStyle = '#ff04';
+	// engine.context.lineWidth = 2;
 
-	for (const chunk of chunks) {
-		const worldX = chunk.x * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
-		const worldY = chunk.y * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
+	// for (const chunk of chunks) {
+	// 	const worldX = chunk.x * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
+	// 	const worldY = chunk.y * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
 
-		engine.context.strokeRect(worldX, worldY, CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE);
+	// 	engine.context.strokeRect(worldX, worldY, CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE);
 
-		// Подписываем тип региона
-		engine.context.fillStyle = '#fff';
-		engine.context.fillText(
-			chunk.regionType,
-			worldX + 10,
-			worldY + 20
-		);
-	}
+	// 	// Подписываем тип региона
+	// 	engine.context.fillStyle = '#fff';
+	// 	engine.context.fillText(
+	// 		chunk.regionType,
+	// 		worldX + 10,
+	// 		worldY + 20
+	// 	);
+	// }
 }
 
 function drawLvlUpScreen() {
@@ -439,8 +444,13 @@ function render() {
 
 	engine.context.save();
 	engine.context.translate(
-		-player.x + engine.canvas.width / 2,
-		-player.y + engine.canvas.height / 2
+		engine.canvas.width / 2,
+		engine.canvas.height / 2
+	);
+	engine.context.scale(2 ** scale, 2 ** scale);
+	engine.context.translate(
+		-player.x,
+		-player.y
 	);
 
 	drawWorld();

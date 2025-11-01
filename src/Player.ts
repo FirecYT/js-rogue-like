@@ -1,19 +1,25 @@
 import Cooldown from './components/Cooldown';
 import GameObject from './components/GameObject';
 import Keyboard from './components/Keyboard';
+import { WorldManager } from './world/WorldManager';
 
 export default class Player extends GameObject {
 	public fireCooldown = new Cooldown(120);
 	public dashCooldown = new Cooldown(120);
 
-	private move_speed = 6;
-	private dash_speed = 12;
+	private move_speed = 3;
+	private dash_speed = 6;
 	public damage = 1;
 
 	private dashActive = new Cooldown(30);
+	private worldManager: WorldManager;
 
-	constructor() {
-		super(0, 0, 3);
+	public width = 10;
+	public height = 10;
+
+	constructor(x: number, y: number, worldManager: WorldManager) {
+		super(x, y, 3);
+		this.worldManager = worldManager;
 	}
 
 	update() {
@@ -62,7 +68,7 @@ export default class Player extends GameObject {
 			ctx.fillStyle = '#ccf';
 		}
 
-		ctx.fillRect(this.x - 5, this.y - 5, 10, 10);
+		ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
 	}
 
 	move() {
