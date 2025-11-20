@@ -1,48 +1,62 @@
-// entities/Enemy.ts
+import Cooldown from '../components/Cooldown';
 import GameObject from '../components/GameObject';
 import { Pathfinder } from '../world/Pathfinding';
 import { WorldManager } from '../world/WorldManager';
 
 export default class Enemy extends GameObject {
-	private speed = 1;
-	private target: GameObject;
-	public experience: number;
-	private path: { x: number, y: number }[] = [];
-	private pathUpdateCooldown = 0;
-	private worldManager: WorldManager;
+	protected speed = 1;
+	protected target: GameObject;
+	public experience = 5;
+	protected path: { x: number, y: number }[] = [];
+	protected pathUpdateCooldownTime = 60;
+	protected pathUpdateCooldown: Cooldown;
+	protected worldManager: WorldManager;
 
 	constructor(x: number, y: number, target: GameObject, worldManager: WorldManager) {
-		super(x, y, 100);
+		super(x, y, 5);
 		this.target = target;
-		this.experience = this.getHP();
 		this.worldManager = worldManager;
+
+		this.pathUpdateCooldown = new Cooldown(this.pathUpdateCooldownTime).onReady(() => {
+			this.updatePath();
+			this.pathUpdateCooldown.start();
+		}).start();
 	}
 
 	update() {
-		this.pathUpdateCooldown--;
-		if (this.pathUpdateCooldown <= 0 || this.path.length === 0) {
-			this.updatePath();
-			this.pathUpdateCooldown = 60;
-		}
-
+		this.pathUpdateCooldown.update();
 		this.followPath();
 	}
 
-	private updatePath() {
+	protected updatePath() {
+		let targetX: number;
+		let targetY: number;
+
+		if (!this.target.isDead()) {
+			targetX = this.target.x;
+			targetY = this.target.y;
+		} else {
+			const angle = 2 * Math.PI * Math.random();
+
+			targetX = this.x + Math.cos(angle) * 500;
+			targetY = this.y + Math.sin(angle) * 500;
+
+			this.pathUpdateCooldown.setDuration(300);
+		}
+
 		this.path = Pathfinder.findPath(
 			this.x, this.y,
-			this.target.x, this.target.y,
+			targetX, targetY,
 			this.worldManager
 		);
 
 		if (this.path.length > 0) {
-			this.path.shift(); // Убираем первую точку (текущую позицию)
+			this.path.shift();
 		}
 	}
 
-	private followPath() {
+	protected followPath() {
 		if (this.path.length === 0) {
-			// Если пути нет, двигаемся напрямую к цели
 			const dx = this.target.x - this.x;
 			const dy = this.target.y - this.y;
 			const distance = Math.sqrt(dx * dx + dy * dy);

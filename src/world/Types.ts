@@ -23,5 +23,7 @@ export interface Chunk {
 
 export const CHUNK_CONFIG = {
 	SIZE: 20,
-	TILE_SIZE: 32
+	TILE_SIZE: 32,
+	FULL_SIZE: 640,
+	HALF_SIZE: 16
 };

@@ -1,25 +1,23 @@
 import Cooldown from './components/Cooldown';
 import GameObject from './components/GameObject';
 import Keyboard from './components/Keyboard';
-import { WorldManager } from './world/WorldManager';
+import { interpolateColor } from './utils';
 
 export default class Player extends GameObject {
-	public fireCooldown = new Cooldown(120);
+	public fireCooldown = new Cooldown(40);
 	public dashCooldown = new Cooldown(120);
 
-	private move_speed = 3;
-	private dash_speed = 6;
-	public damage = 1;
+	private move_speed = 2;
+	private dash_speed = 4;
+	public damage = 10;
 
 	private dashActive = new Cooldown(30);
-	private worldManager: WorldManager;
 
 	public width = 10;
 	public height = 10;
 
-	constructor(x: number, y: number, worldManager: WorldManager) {
-		super(x, y, 3);
-		this.worldManager = worldManager;
+	constructor(x: number, y: number) {
+		super(x, y, 100);
 	}
 
 	update() {
@@ -62,12 +60,14 @@ export default class Player extends GameObject {
 	}
 
 	render(ctx: CanvasRenderingContext2D): void {
-		if (this.dashActive.isReady()) {
-			ctx.fillStyle = '#99f';
-		} else {
-			ctx.fillStyle = '#ccf';
-		}
+		const hpPercent = this.getHP() / this.maxHP;
 
+		const normalColor = this.dashActive.isReady() ? '#99f' : '#ccf';
+		const damageColor = '#f00';
+
+		const color = interpolateColor(normalColor, damageColor, 1 - hpPercent);
+
+		ctx.fillStyle = color;
 		ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
 	}
 

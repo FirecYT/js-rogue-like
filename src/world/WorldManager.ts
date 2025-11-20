@@ -1,11 +1,12 @@
-import { Chunk, RegionType, CHUNK_CONFIG } from './Types';
+import { Chunk, RegionType, CHUNK_CONFIG, TileType } from './Types';
 import { VoidGenerator } from './generators/VoidGenerator';
 import { RuinsGenerator } from './generators/RuinsGenerator';
 import { BossAltarGenerator } from './generators/BossAltarGenerator';
 
 export class WorldManager {
 	private chunks = new Map<string, Chunk>();
-	private loadDistance = 3;
+	private loadDistanceX = 2;
+	private loadDistanceY = 1;
 
 	private generators = {
 		[RegionType.VOID]: new VoidGenerator(),
@@ -17,18 +18,22 @@ export class WorldManager {
 		const playerChunk = this.worldToChunk(playerX, playerY);
 
 		// Загружаем чанки вокруг игрока
-		for (let x = playerChunk.x - this.loadDistance; x <= playerChunk.x + this.loadDistance; x++) {
-			for (let y = playerChunk.y - this.loadDistance; y <= playerChunk.y + this.loadDistance; y++) {
+		for (let x = playerChunk.x - this.loadDistanceX; x <= playerChunk.x + this.loadDistanceX; x++) {
+			for (let y = playerChunk.y - this.loadDistanceY; y <= playerChunk.y + this.loadDistanceY; y++) {
 				this.loadChunk(x, y);
 			}
 		}
 
 		// Выгружаем дальние чанки
 		for (const [key, chunk] of this.chunks.entries()) {
-			const distance = Math.sqrt(
-				(chunk.x - playerChunk.x) ** 2 + (chunk.y - playerChunk.y) ** 2
-			);
-			if (distance > this.loadDistance + 2) {
+			const distanceX = chunk.x - playerChunk.x;
+			const distanceY = chunk.y - playerChunk.y;
+
+			if (distanceX > this.loadDistanceX + 2) {
+				this.chunks.delete(key);
+			}
+
+			if (distanceY > this.loadDistanceY + 2) {
 				this.chunks.delete(key);
 			}
 		}
@@ -54,7 +59,8 @@ export class WorldManager {
 		// Алтари боссов в определённых позициях
 		const bossAltars = [
 			{ x: 3, y: 0 }, { x: 0, y: 3 },
-			{ x: -3, y: 0 }, { x: 0, y: -3 }
+			{ x: -3, y: 0 }, { x: 0, y: -3 },
+			{ x: 16, y: 16 },
 		];
 
 		for (const altar of bossAltars) {
@@ -183,5 +189,61 @@ export class WorldManager {
 		}
 
 		return neighbors;
+	}
+
+	getWallTextureIndex(
+		chunk: Chunk,
+		x: number,
+		y: number,
+		tileType: TileType
+	): number {
+		// Проверяем соседей в 4 направлениях
+		const hasTop = this.hasWallNeighbor(chunk, x, y, 0, -1, tileType);
+		const hasRight = this.hasWallNeighbor(chunk, x, y, 1, 0, tileType);
+		const hasBottom = this.hasWallNeighbor(chunk, x, y, 0, 1, tileType);
+		const hasLeft = this.hasWallNeighbor(chunk, x, y, -1, 0, tileType);
+
+		// Вычисляем индекс по битовой маске
+		let index = 0;
+		if (hasTop) index |= 1;
+		if (hasRight) index |= 2;
+		if (hasBottom) index |= 4;
+		if (hasLeft) index |= 8;
+
+		return index;
+	}
+
+	hasWallNeighbor(
+		chunk: Chunk,
+		x: number,
+		y: number,
+		dx: number,
+		dy: number,
+		tileType: TileType
+	): boolean {
+		const neighborX = x + dx;
+		const neighborY = y + dy;
+
+		// Проверяем в пределах текущего чанка
+		if (neighborX >= 0 && neighborX < CHUNK_CONFIG.SIZE &&
+			neighborY >= 0 && neighborY < CHUNK_CONFIG.SIZE) {
+			return chunk.tiles[neighborX][neighborY] === tileType;
+		}
+
+		// Если сосед за пределами чанка, проверяем через WorldManager
+		const globalTileX = chunk.x * CHUNK_CONFIG.SIZE + neighborX;
+		const globalTileY = chunk.y * CHUNK_CONFIG.SIZE + neighborY;
+
+		const neighborChunk = this.getChunk(
+			Math.floor(globalTileX / CHUNK_CONFIG.SIZE),
+			Math.floor(globalTileY / CHUNK_CONFIG.SIZE)
+		);
+
+		if (!neighborChunk) return false;
+
+		const localX = ((globalTileX % CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.SIZE) % CHUNK_CONFIG.SIZE;
+		const localY = ((globalTileY % CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.SIZE) % CHUNK_CONFIG.SIZE;
+
+		return neighborChunk.tiles[localX][localY] === tileType;
 	}
 }

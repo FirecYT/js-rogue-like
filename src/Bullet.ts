@@ -1,9 +1,8 @@
 import GameObject from './components/GameObject';
-import Enemy from './entities/Enemy';
 import { pir } from './utils';
 
 export default class Bullet extends GameObject {
-	private angle: number;
+	protected angle: number;
 	public target: GameObject | undefined;
 
 	constructor(
@@ -14,11 +13,11 @@ export default class Bullet extends GameObject {
 	) {
 		super(x, y, hp);
 
-		this.angle = angle + Math.PI * (0.25 * Math.random() - 0.125);
+		this.angle = angle; // + Math.PI * (0.25 * Math.random() - 0.125);
 	}
 
-	isCollidingWith(enemy: Enemy) {
-		const radius = 2;
+	isCollidingWith(enemy: GameObject) {
+		const radius = 4;
 
 		return pir(
 			{ x: this.x, y: this.y },
@@ -32,34 +31,34 @@ export default class Bullet extends GameObject {
 	}
 
 	update() {
-		if (this.target) {
-			const targetAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+		// if (this.target) {
+		// 	const targetAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
 
-			// Нормализуем углы в диапазон [0, 2π]
-			const currentAngle = this.angle % (2 * Math.PI);
-			const normalizedTargetAngle = targetAngle % (2 * Math.PI);
+		// 	// Нормализуем углы в диапазон [0, 2π]
+		// 	const currentAngle = this.angle % (2 * Math.PI);
+		// 	const normalizedTargetAngle = targetAngle % (2 * Math.PI);
 
-			// Находим разницу углов, учитывая переход через 0
-			let angleDiff = normalizedTargetAngle - currentAngle;
+		// 	// Находим разницу углов, учитывая переход через 0
+		// 	let angleDiff = normalizedTargetAngle - currentAngle;
 
-			// Корректируем разницу для выбора кратчайшего пути
-			if (angleDiff > Math.PI) {
-				angleDiff -= 2 * Math.PI;
-			} else if (angleDiff < -Math.PI) {
-				angleDiff += 2 * Math.PI;
-			}
+		// 	// Корректируем разницу для выбора кратчайшего пути
+		// 	if (angleDiff > Math.PI) {
+		// 		angleDiff -= 2 * Math.PI;
+		// 	} else if (angleDiff < -Math.PI) {
+		// 		angleDiff += 2 * Math.PI;
+		// 	}
 
-			const rotationSpeed = 0.01 * Math.abs(1 / angleDiff);
+		// 	const rotationSpeed = 0.01 * Math.abs(1 / angleDiff);
 
-			if (Math.abs(angleDiff) < rotationSpeed) {
-				this.angle = targetAngle;
-			} else {
-				this.angle += Math.sign(angleDiff) * rotationSpeed;
-			}
+		// 	if (Math.abs(angleDiff) < rotationSpeed) {
+		// 		this.angle = targetAngle;
+		// 	} else {
+		// 		this.angle += Math.sign(angleDiff) * rotationSpeed;
+		// 	}
 
-			// Нормализуем угол
-			this.angle = this.angle % (2 * Math.PI);
-		}
+		// 	// Нормализуем угол
+		// 	this.angle = this.angle % (2 * Math.PI);
+		// }
 
 		this.x += Math.cos(this.angle) * 4;
 		this.y += Math.sin(this.angle) * 4;

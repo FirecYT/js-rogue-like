@@ -2,10 +2,16 @@
 
 import Bullet from './Bullet';
 import Engine from './components/Engine';
+import FloatingText from './components/FloatingText';
+import GameObject from './components/GameObject';
 import Enemy from './entities/Enemy';
+import StrongEnemy from './entities/StrongEnemy';
+import SpiderBoss from './entities/trash/SpiderBoss';
+import WormBoss from './entities/trash/WormBoss';
+import MechanicalWormBoss from './entities/MechanicalWormBoss';
 import Player from './Player';
 import { pir } from './utils';
-import { CHUNK_CONFIG } from './world/Types';
+import { CHUNK_CONFIG, TileType } from './world/Types';
 import { WorldManager } from './world/WorldManager';
 
 // Init
@@ -19,23 +25,34 @@ if (!canvas) {
 
 const engine = new Engine(canvas);
 const worldManager = new WorldManager();
-const player = new Player(CHUNK_CONFIG.TILE_SIZE * CHUNK_CONFIG.SIZE / 2, CHUNK_CONFIG.TILE_SIZE * CHUNK_CONFIG.SIZE / 2, worldManager);
+const player = new Player(CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE, CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE);
+
+await engine.loadImages([
+	'images/trash_0.png',
+	'images/trash_1.png',
+	'images/trash_2.png',
+	'images/floor_0.png',
+	'images/floor_1.png',
+	'images/floor_2.png',
+	'images/floor_3.png',
+	'images/floor_4.png',
+	'images/floor_5.png',
+	'images/floor_6.png',
+	'images/walls.png',
+]);
+
 let scale = 0;
 
 let state = 0;
-let score = 0;
 
-interface FloatingText {
-	x: number;
-	y: number;
-	text: string;
-	lifetime: number;
-}
+let playerLevel = 1;
+let playerExperience = 0;
+let experienceToNextLevel = 100;
 
 const floatingTexts: FloatingText[] = [];
 
 const bullets: Bullet[] = [];
-const enemies: Enemy[] = [];
+const entities: (Player | Enemy | StrongEnemy | WormBoss | SpiderBoss)[] = [player];
 
 const mouse = {
 	x: 0,
@@ -73,37 +90,80 @@ canvas.addEventListener('wheel', (event) => {
 	scale -= Math.sign(event.deltaY);
 });
 
+function addExperience(amount: number) {
+	playerExperience += amount;
+
+	if (playerExperience >= experienceToNextLevel) {
+		playerLevel++;
+		playerExperience -= experienceToNextLevel;
+		experienceToNextLevel = Math.floor(playerLevel * 100);
+		state |= 1;
+
+		floatingTexts.push(new FloatingText(player.x, player.y - 20, `LEVEL UP! ${playerLevel}`, 120));
+	}
+}
+
+const isBossesExists = new Map<new (x: number, y: number, target: GameObject, worldManager: WorldManager) => (Player | Enemy | StrongEnemy | WormBoss | SpiderBoss), boolean>();
+
+function spawnBoss(
+	triggerX: number,
+	triggerY: number,
+	spawnX: number,
+	spawnY: number,
+	bossClass: new (x: number, y: number, target: GameObject, worldManager: WorldManager) => (Player | Enemy | StrongEnemy | WormBoss | SpiderBoss)
+): void {
+	const isBossExists = isBossesExists.get(bossClass) || false;
+
+	if (!isBossExists && Math.abs(player.x - triggerX * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE) < 300 && Math.abs(player.y - triggerY * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE) < 300) {
+		const boss = new bossClass(spawnX * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE, spawnY * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE, player, worldManager);
+		entities.push(boss);
+
+		floatingTexts.push(new FloatingText(player.x, player.y, 'BOSS APPEARED!', 180));
+
+		isBossesExists.set(bossClass, true);
+	}
+}
+
 function update() {
 	worldManager.update(player.x, player.y);
 
+	spawnBoss(3.5, 0.5, 3.5, 0.5, SpiderBoss);
+	spawnBoss(-2.5, 0.5, -2.5, 0.5, MechanicalWormBoss);
+	spawnBoss(16.5, 16.5, -15.5, -15.5, WormBoss);
+
 	if (!(state & 1)) {
-		player.update();
+		entities.forEach(entity => {
+			if (!entity.isDead()) {
+				entity.update();
+			}
+		});
 
 		bullets.forEach((bullet) => {
-			let target = enemies[0];
+			if (bullet.isDead()) return;
 
-			enemies.forEach((enemy) => {
-				const target_dx = target.x - bullet.x;
-				const target_dy = target.y - bullet.y;
+			entities.forEach(entity => {
+				if (entity instanceof Player || entity.isDead()) return;
 
-				const current_dx = enemy.x - bullet.x;
-				const current_dy = enemy.y - bullet.y;
+				if (bullet.isCollidingWith(entity)) {
+					const enemyDMG = entity.getHP();
+					const bulletDMG = bullet.getHP();
 
-				const target_distSq = target_dx * target_dx + target_dy * target_dy;
-				const current_distSq = current_dx * current_dx + current_dy * current_dy;
+					entity.takeDamage(bulletDMG);
+					bullet.takeDamage(enemyDMG);
 
-				if (current_distSq < target_distSq) {
-					target = enemy;
+					if (entity.isDead()) {
+						addExperience(entity.experience);
+						floatingTexts.push(new FloatingText(entity.x, entity.y, `+${entity.experience}`, 60));
+					}
 				}
 			});
-
-			bullet.target = target;
 
 			bullet.update();
 		});
 
 		for (let i = 0; i <= 10; i++) {
-			const chance = 1 / (enemies.length || 1);
+			const enemyCount = entities.filter(entity => (entity instanceof Enemy || entity instanceof StrongEnemy) && !entity.isDead()).length;
+			const chance = 1 / (enemyCount || 1);
 
 			if (Math.random() < chance * chance * chance) {
 				const angle = Math.random() * Math.PI * 2;
@@ -112,43 +172,47 @@ function update() {
 				const x = player.x + Math.cos(angle) * distance;
 				const y = player.y + Math.sin(angle) * distance;
 
-				if (worldManager.isWorldPositionPassable(x, y)) {
-					enemies.push(new Enemy(x, y, player, worldManager));
+				let newEnemy: Enemy;
+
+				if (Math.random() < 0.05) {
+					newEnemy = new StrongEnemy(x, y, player, worldManager);
+				} else {
+					newEnemy = new Enemy(x, y, player, worldManager);
 				}
+
+				entities.push(newEnemy);
 			}
 		}
 
-		// Обновление позиции врагов
-		enemies.forEach((enemy) => {
-			enemy.update();
-		});
-
 		for (let i = floatingTexts.length - 1; i >= 0; i--) {
-			floatingTexts[i].lifetime--;
-			floatingTexts[i].y -= 0.5;
+			floatingTexts[i].update();
 
-			if (floatingTexts[i].lifetime <= 0) {
+			if (floatingTexts[i].isDead()) {
 				floatingTexts.splice(i, 1);
 			}
 		}
 
 		const minDistSq = 10 * 10;
 
-		for (let i = 0; i < enemies.length; i++) {
-			for (let j = i + 1; j < enemies.length; j++) {
-				const dx = enemies[i].x - enemies[j].x;
-				const dy = enemies[i].y - enemies[j].y;
+		for (let i = 0; i < entities.length; i++) {
+			if (entities[i].isDead()) continue;
+
+			for (let j = i + 1; j < entities.length; j++) {
+				if (entities[j].isDead()) continue;
+
+				const dx = entities[i].x - entities[j].x;
+				const dy = entities[i].y - entities[j].y;
 				const distSq = dx * dx + dy * dy;
 
 				if (distSq < minDistSq && distSq > 0) {
 					const dist = Math.sqrt(distSq);
 					const force = 10 / dist;
 
-					enemies[i].x += (dx / dist) * force;
-					enemies[i].y += (dy / dist) * force;
+					entities[i].x += (dx / dist) * force;
+					entities[i].y += (dy / dist) * force;
 
-					enemies[j].x -= (dx / dist) * force;
-					enemies[j].y -= (dy / dist) * force;
+					entities[j].x -= (dx / dist) * force;
+					entities[j].y -= (dy / dist) * force;
 				}
 			}
 		}
@@ -176,50 +240,16 @@ function update() {
 		// 	}
 		// }
 
-		let bulletsToDelete: number[] = [];
-		let enemiesToDelete: number[] = [];
-
-		bullets.forEach((bullet, bulletIndex) => {
-			enemies.forEach((enemy, enemyIndex) => {
-				if (!bullet.isDead() && !enemy.isDead() && bullet.isCollidingWith(enemy)) {
-					const enemyDMG = enemy.getHP();
-					const bulletDMG = bullet.getHP();
-
-					enemy.takeDamage(bulletDMG);
-					bullet.takeDamage(enemyDMG);
-
-					if (enemy.isDead()) {
-						enemiesToDelete.push(enemyIndex);
-						score += enemy.experience || 1;
-
-						if (Math.log2(score) == Math.floor(Math.log2(score))) {
-							state |= 1;
-						}
-
-						floatingTexts.push({
-							x: enemy.x,
-							y: enemy.y,
-							text: `+${enemy.experience}`,
-							lifetime: 60,
-						});
-					}
-
-					if (bullet.isDead()) {
-						bulletsToDelete.push(bulletIndex);
-					}
-				}
-			});
-		});
-
-		bulletsToDelete = [...new Set(bulletsToDelete.sort((a, b) => a - b))];
-		enemiesToDelete = [...new Set(enemiesToDelete.sort((a, b) => a - b))];
-
-		for (let i = enemiesToDelete.length - 1; i >= 0; i--) {
-			enemies.splice(enemiesToDelete[i], 1);
+		for (let i = entities.length - 1; i >= 0; i--) {
+			if (entities[i].isDead() && entities[i] !== player) {
+				entities.splice(i, 1);
+			}
 		}
 
-		for (let i = bulletsToDelete.length - 1; i >= 0; i--) {
-			bullets.splice(bulletsToDelete[i], 1);
+		for (let i = bullets.length - 1; i >= 0; i--) {
+			if (bullets[i].isDead()) {
+				bullets.splice(i, 1);
+			}
 		}
 
 		if (player.fireCooldown.isReady() && mouse.pressed) {
@@ -229,7 +259,7 @@ function update() {
 
 			const angle = Math.atan2(_m.y - player.y, _m.x - player.x);
 
-			for (let i = 0; i < 100; i++) {
+			for (let i = 0; i < 1; i++) {
 				bullets.push(new Bullet(player.x, player.y, angle, player.damage));
 			}
 		}
@@ -270,6 +300,15 @@ function update() {
 			) {
 				updates[i]();
 				state ^= 1;
+
+				if (playerExperience >= experienceToNextLevel) {
+					playerLevel++;
+					playerExperience -= experienceToNextLevel;
+					experienceToNextLevel = Math.floor(experienceToNextLevel * 1.5);
+					state |= 1;
+
+					floatingTexts.push(new FloatingText(player.x, player.y - 20, `LEVEL UP! ${playerLevel}`, 120));
+				}
 				break;
 			}
 		}
@@ -308,20 +347,50 @@ function drawWorld() {
 					chunk.y * CHUNK_CONFIG.SIZE + y
 				);
 
+				const screenPos = {
+					x: worldPos.x - player.x + Math.floor(engine.canvas.width / 2),
+					y: worldPos.y - player.y + Math.floor(engine.canvas.height / 2),
+				}
+
+				if (screenPos.x + CHUNK_CONFIG.TILE_SIZE < 0 || screenPos.y + CHUNK_CONFIG.TILE_SIZE < 0) continue;
+				if (screenPos.x > engine.canvas.width || screenPos.y > engine.canvas.height) continue;
+
+				let image = "";
+				let seed = x;
+				for (let i = 0; i < y; i++) {
+					seed = (seed * 73129 + 95121) % 12345;
+				}
+
 				switch (tileType) {
-					case 0: // EMPTY
-						engine.context.fillStyle = '#333';
+					case TileType.EMPTY:
+						image = `images/floor_${seed%4 + 3}.png`;
+						engine.context.fillStyle = '#333'; //'#444';
 						break;
-					case 1: // WALL
+					case TileType.WALL: {
+						const wallIndex = worldManager.getWallTextureIndex(chunk, x, y, TileType.WALL);
+
+						const spriteX = (wallIndex % 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
+						const spriteY = Math.floor(wallIndex / 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
+
+						engine.drawSprite(
+							'images/walls.png',
+							spriteX, spriteY, CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE,
+							worldPos.x, worldPos.y,
+							CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE
+						);
+
 						engine.context.fillStyle = '#666';
+						continue;
+					}
+					case TileType.ROCK:
+						image = `images/trash_${(x+y)%3}.png`;
+						engine.context.fillStyle = '#333'; //'#888';
 						break;
-					case 2: // ROCK
-						engine.context.fillStyle = '#888';
+					case TileType.BUILDING:
+						image = `images/floor_${seed%3}.png`;
+						engine.context.fillStyle = '#333'; //'#444';
 						break;
-					case 3: // BUILDING
-						engine.context.fillStyle = '#444';
-						break;
-					case 4: // WATER
+					case TileType.WATER:
 						engine.context.fillStyle = '#369';
 						break;
 					default:
@@ -334,28 +403,19 @@ function drawWorld() {
 					CHUNK_CONFIG.TILE_SIZE,
 					CHUNK_CONFIG.TILE_SIZE
 				);
+
+				if (image) {
+					engine.drawImage(
+						image,
+						worldPos.x,
+						worldPos.y,
+						CHUNK_CONFIG.TILE_SIZE,
+						CHUNK_CONFIG.TILE_SIZE
+					);
+				}
 			}
 		}
 	}
-
-	// Рендерим границы чанков (для отладки)
-	// engine.context.strokeStyle = '#ff04';
-	// engine.context.lineWidth = 2;
-
-	// for (const chunk of chunks) {
-	// 	const worldX = chunk.x * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
-	// 	const worldY = chunk.y * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
-
-	// 	engine.context.strokeRect(worldX, worldY, CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE);
-
-	// 	// Подписываем тип региона
-	// 	engine.context.fillStyle = '#fff';
-	// 	engine.context.fillText(
-	// 		chunk.regionType,
-	// 		worldX + 10,
-	// 		worldY + 20
-	// 	);
-	// }
 }
 
 function drawLvlUpScreen() {
@@ -444,8 +504,8 @@ function render() {
 
 	engine.context.save();
 	engine.context.translate(
-		engine.canvas.width / 2,
-		engine.canvas.height / 2
+		Math.floor(engine.canvas.width / 2),
+		Math.floor(engine.canvas.height / 2)
 	);
 	engine.context.scale(2 ** scale, 2 ** scale);
 	engine.context.translate(
@@ -455,33 +515,34 @@ function render() {
 
 	drawWorld();
 
-	drawCrosshair();
+	if (!player.isDead()) {
+		drawCrosshair();
+	}
 
 	bullets.forEach((bullet) => {
 		bullet.render(engine.context);
 	});
 
-	player.render(engine.context);
-
-	enemies.forEach((enemy) => {
-		enemy.render(engine.context);
+	entities.forEach(entity => {
+		if (!entity.isDead()) {
+			entity.render(engine.context);
+		}
 	});
 
-	engine.context.fillStyle = '#ff0';
-	floatingTexts.forEach(text => {
-		engine.context.fillText(text.text, text.x, text.y);
+	floatingTexts.forEach((floatingText) => {
+		floatingText.render(engine.context);
 	});
 
 	engine.context.restore();
 
 	engine.context.fillStyle = '#fff';
-	engine.context.fillText(`Score: ${score}`, 10, 20);
+	engine.context.fillText(`Score: ${playerExperience}`, 10, 20);
 
 	engine.context.fillStyle = '#060';
 	engine.context.fillRect(0, 0, engine.canvas.width, 5);
 
 	engine.context.fillStyle = '#494';
-	engine.context.fillRect(0, 0, engine.canvas.width * (Math.log2(score) - Math.floor(Math.log2(score))), 5);
+	engine.context.fillRect(0, 0, engine.canvas.width * (playerExperience / experienceToNextLevel), 5);
 
 	drawCooldowns();
 
@@ -493,6 +554,8 @@ function render() {
 		engine.context.fillText(`Player chunk: (${playerGrid.chunkX}, ${playerGrid.chunkY}) tile: (${playerGrid.tileX}, ${playerGrid.tileY})`, 10, 55);
 	}
 
+	engine.context.fillText(`Player HP: ${player.getHP()}`, 10, 70);
+
 	if (state & 1) {
 		drawLvlUpScreen();
 	}
@@ -501,7 +564,6 @@ function render() {
 function tick() {
 	update();
 	render();
-
 	requestAnimationFrame(tick);
 }
 
