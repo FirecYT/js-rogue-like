@@ -1,18 +1,31 @@
 'use strict';
 
-import Bullet from './Bullet';
 import Engine from './components/Engine';
 import FloatingText from './components/FloatingText';
-import GameObject from './components/GameObject';
-import Enemy from './entities/Enemy';
-import StrongEnemy from './entities/StrongEnemy';
-import SpiderBoss from './entities/trash/SpiderBoss';
-import WormBoss from './entities/trash/WormBoss';
-import MechanicalWormBoss from './entities/MechanicalWormBoss';
 import Player from './Player';
-import { pir } from './utils';
 import { CHUNK_CONFIG, TileType } from './world/Types';
 import { WorldManager } from './world/WorldManager';
+import MouseInput from './components/MouseInput';
+import { PlayerProgression } from './systems/PlayerProgression';
+import { BossSpawnSystem } from './systems/BossSpawnSystem';
+import { EnemySpawnerSystem } from './systems/EnemySpawnerSystem';
+import { UISystem } from './systems/UISystem';
+import { PlayerController } from './controllers/PlayerController';
+import Entity from './entities/Entity';
+import Cooldown from './components/Cooldown';
+import { BasicPistol } from './items/weapons/BasicPistol';
+import { TeleportChip } from './items/chips/TeleportChip';
+import { ControlSwitchSystem } from './systems/ControlSwitchSystem';
+import { InventorySystem } from './systems/InventorySystem';
+import { EffectSystem } from './systems/EffectSystem';
+import { eventBus } from './events/EventBus';
+import Enemy from './entities/Enemy';
+import Keyboard from './components/Keyboard';
+import { Camera } from './components/Camera';
+import { ExplosiveModifier } from './items/modifiers/ExplosiveModifier';
+import { SinusoidalModifier } from './items/modifiers/SinusoidalModifier';
+import { PierceModifier } from './items/modifiers/PierceModifier';
+import { DamageBoostModifier } from './items/modifiers/DamageBoostModifier';
 
 // Init
 const canvas = document.querySelector<HTMLCanvasElement>(
@@ -23,9 +36,18 @@ if (!canvas) {
 	throw new Error('Canvas not found');
 }
 
+const mouse = new MouseInput(canvas);
 const engine = new Engine(canvas);
 const worldManager = new WorldManager();
-const player = new Player(CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE, CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE);
+const keyboard = Keyboard.getInstance();
+const camera = new Camera(canvas);
+
+const player = new Player(
+	CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE,
+	CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE
+);
+
+player.controller = new PlayerController(mouse);
 
 await engine.loadImages([
 	'images/trash_0.png',
@@ -45,144 +67,130 @@ let scale = 0;
 
 let state = 0;
 
-let playerLevel = 1;
-let playerExperience = 0;
-let experienceToNextLevel = 100;
+const playerProgression = new PlayerProgression();
 
 const floatingTexts: FloatingText[] = [];
+const entities: Entity[] = [player];
 
-const bullets: Bullet[] = [];
-const entities: (Player | Enemy | StrongEnemy | WormBoss | SpiderBoss)[] = [player];
-
-const mouse = {
-	x: 0,
-	y: 0,
-	pressed: false,
-};
-
-function getMousePosition() {
-	return {
-		x: mouse.x + player.x - engine.canvas.width / 2,
-		y: mouse.y + player.y - engine.canvas.height / 2,
-	};
-}
-
-canvas.addEventListener('mousemove', (event) => {
-	mouse.x = event.offsetX;
-	mouse.y = event.offsetY;
-});
-
-canvas.addEventListener('mousedown', (event) => {
-	mouse.x = event.offsetX;
-	mouse.y = event.offsetY;
-
-	mouse.pressed = true;
-});
-
-canvas.addEventListener('mouseup', (event) => {
-	mouse.x = event.offsetX;
-	mouse.y = event.offsetY;
-
-	mouse.pressed = false;
-});
+const enemySpawner = new EnemySpawnerSystem(player, entities, worldManager);
 
 canvas.addEventListener('wheel', (event) => {
 	scale -= Math.sign(event.deltaY);
 });
 
 function addExperience(amount: number) {
-	playerExperience += amount;
-
-	if (playerExperience >= experienceToNextLevel) {
-		playerLevel++;
-		playerExperience -= experienceToNextLevel;
-		experienceToNextLevel = Math.floor(playerLevel * 100);
+	if (playerProgression.add(amount)) {
 		state |= 1;
 
-		floatingTexts.push(new FloatingText(player.x, player.y - 20, `LEVEL UP! ${playerLevel}`, 120));
+		floatingTexts.push(new FloatingText(controlled.x, controlled.y - 20, `LEVEL UP! ${playerProgression.level}`, 120));
 	}
 }
 
-const isBossesExists = new Map<new (x: number, y: number, target: GameObject, worldManager: WorldManager) => (Player | Enemy | StrongEnemy | WormBoss | SpiderBoss), boolean>();
+eventBus.on('enemyKilled', ({ killer, victim }) => {
+	if (killer === controlled) {
+		let experience = 0;
 
-function spawnBoss(
-	triggerX: number,
-	triggerY: number,
-	spawnX: number,
-	spawnY: number,
-	bossClass: new (x: number, y: number, target: GameObject, worldManager: WorldManager) => (Player | Enemy | StrongEnemy | WormBoss | SpiderBoss)
-): void {
-	const isBossExists = isBossesExists.get(bossClass) || false;
+		if (victim instanceof Enemy) {
+			experience = victim.experience;
+		}
 
-	if (!isBossExists && Math.abs(player.x - triggerX * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE) < 300 && Math.abs(player.y - triggerY * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE) < 300) {
-		const boss = new bossClass(spawnX * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE, spawnY * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE, player, worldManager);
-		entities.push(boss);
-
-		floatingTexts.push(new FloatingText(player.x, player.y, 'BOSS APPEARED!', 180));
-
-		isBossesExists.set(bossClass, true);
+		addExperience(experience);
+		floatingTexts.push(new FloatingText(victim.x, victim.y, `+${experience}`, 60));
 	}
+});
+
+const bossSpawnSystem = new BossSpawnSystem(
+	worldManager,
+	entities,
+	player,
+	floatingTexts,
+	[
+		// { triggerX: 3.5, triggerY: 0.5, spawnX: 3.5, spawnY: 0.5, bossClass: SpiderBoss },
+		// { triggerX: -2.5, triggerY: 0.5, spawnX: -2.5, spawnY: 0.5, bossClass: MechanicalWormBoss },
+		// { triggerX: 16.5, triggerY: 16.5, spawnX: -15.5, spawnY: -15.5, bossClass: WormBoss },
+	]
+);
+
+const uiSystem = new UISystem(
+	engine,
+	player,
+	mouse,
+	playerProgression,
+	floatingTexts,
+	() => state,
+	(newState) => { state = newState; },
+);
+
+const controlSwitchSystem = new ControlSwitchSystem(
+	entities,
+	new PlayerController(mouse),
+	mouse
+);
+
+const inventorySystem = new InventorySystem(
+	engine,
+	() => controlSwitchSystem.getCurrentControlled()
+);
+
+const effectSystem = new EffectSystem();
+
+let controlled = controlSwitchSystem.getCurrentControlled();
+
+function getMousePosition() {
+	return {
+		x: mouse.x + controlled.x - engine.canvas.width / 2,
+		y: mouse.y + controlled.y - engine.canvas.height / 2,
+	};
 }
+
+const bestWeapon = new BasicPistol();
+
+const damageBoost = new DamageBoostModifier(2.0);
+const pierce = new PierceModifier();
+const sinusoidal = new SinusoidalModifier();
+const explosive = new ExplosiveModifier(effectSystem);
+
+player.inventory.setWeapon(bestWeapon);
+
+player.inventory.addModifier(damageBoost);
+player.inventory.addModifier(pierce);
+player.inventory.addModifier(sinusoidal);
+player.inventory.addModifier(explosive);
+
+player.inventory.addChip(TeleportChip);
+
+player.cooldowns.set('fire', new Cooldown(bestWeapon.fireRate));
 
 function update() {
-	worldManager.update(player.x, player.y);
+	controlled = controlSwitchSystem.getCurrentControlled();
 
-	spawnBoss(3.5, 0.5, 3.5, 0.5, SpiderBoss);
-	spawnBoss(-2.5, 0.5, -2.5, 0.5, MechanicalWormBoss);
-	spawnBoss(16.5, 16.5, -15.5, -15.5, WormBoss);
+	camera.update();
+
+	if (controlSwitchSystem.isDebugMode()) {
+		const speed = 10 / (2 ** scale);
+		if (keyboard.isKeyDown('KeyW')) camera.setFreeMode(camera.x, camera.y - speed);
+		if (keyboard.isKeyDown('KeyS')) camera.setFreeMode(camera.x, camera.y + speed);
+		if (keyboard.isKeyDown('KeyA')) camera.setFreeMode(camera.x - speed, camera.y);
+		if (keyboard.isKeyDown('KeyD')) camera.setFreeMode(camera.x + speed, camera.y);
+	} else {
+		camera.follow(controlled);
+	}
+
+	worldManager.update(controlled.x, controlled.y);
+	bossSpawnSystem.update();
+	controlSwitchSystem.update();
+	inventorySystem.update();
 
 	if (!(state & 1)) {
-		entities.forEach(entity => {
-			if (!entity.isDead()) {
-				entity.update();
+		entities.forEach(e => {
+			if (!e.isDead()) {
+				e.cooldowns.update();
+				e.controller?.update(e, worldManager, effectSystem);
+				e.inventory.update();
 			}
 		});
 
-		bullets.forEach((bullet) => {
-			if (bullet.isDead()) return;
-
-			entities.forEach(entity => {
-				if (entity instanceof Player || entity.isDead()) return;
-
-				if (bullet.isCollidingWith(entity)) {
-					const enemyDMG = entity.getHP();
-					const bulletDMG = bullet.getHP();
-
-					entity.takeDamage(bulletDMG);
-					bullet.takeDamage(enemyDMG);
-
-					if (entity.isDead()) {
-						addExperience(entity.experience);
-						floatingTexts.push(new FloatingText(entity.x, entity.y, `+${entity.experience}`, 60));
-					}
-				}
-			});
-
-			bullet.update();
-		});
-
-		for (let i = 0; i <= 10; i++) {
-			const enemyCount = entities.filter(entity => (entity instanceof Enemy || entity instanceof StrongEnemy) && !entity.isDead()).length;
-			const chance = 1 / (enemyCount || 1);
-
-			if (Math.random() < chance * chance * chance) {
-				const angle = Math.random() * Math.PI * 2;
-				const distance = 200 + Math.random() * 300;
-
-				const x = player.x + Math.cos(angle) * distance;
-				const y = player.y + Math.sin(angle) * distance;
-
-				let newEnemy: Enemy;
-
-				if (Math.random() < 0.05) {
-					newEnemy = new StrongEnemy(x, y, player, worldManager);
-				} else {
-					newEnemy = new Enemy(x, y, player, worldManager);
-				}
-
-				entities.push(newEnemy);
-			}
-		}
+		enemySpawner.update();
 
 		for (let i = floatingTexts.length - 1; i >= 0; i--) {
 			floatingTexts[i].update();
@@ -217,118 +225,38 @@ function update() {
 			}
 		}
 
-		// ==========
-		// СМЕРТИ НЕТ
-		// ==========
-		//
-		// for (let i = enemies.length - 1; i >= 0; i--) {
-		// 	const enemy = enemies[i];
-		//
-		// 	if (
-		// 		pir(
-		// 			{ x: enemy.x, y: enemy.y },
-		// 			{
-		// 				x: player.x,
-		// 				y: player.y,
-		// 				width: 10,
-		// 				height: 10,
-		// 			}
-		// 		)
-		// 	) {
-		// 		state = 2;
-		// 		console.log('Game Over');
-		// 	}
-		// }
-
 		for (let i = entities.length - 1; i >= 0; i--) {
-			if (entities[i].isDead() && entities[i] !== player) {
+			if (entities[i].isDead() && entities[i] !== controlled) {
 				entities.splice(i, 1);
 			}
 		}
 
-		for (let i = bullets.length - 1; i >= 0; i--) {
-			if (bullets[i].isDead()) {
-				bullets.splice(i, 1);
-			}
-		}
-
-		if (player.fireCooldown.isReady() && mouse.pressed) {
-			player.fireCooldown.start();
-
-			const _m = getMousePosition();
-
-			const angle = Math.atan2(_m.y - player.y, _m.x - player.x);
-
-			for (let i = 0; i < 1; i++) {
-				bullets.push(new Bullet(player.x, player.y, angle, player.damage));
-			}
-		}
+		effectSystem.update(entities);
 	}
 
-	if (state & 1) {
-		const updates = [
-			() => {
-				player.dashCooldown.setDuration(
-					Math.max(0, player.dashCooldown.getMaximum() - 10)
-				);
-			},
-			() => {
-				console.log('Dash speed +');
-			},
-			() => {
-				player.fireCooldown.setDuration(
-					Math.max(
-						0,
-						Math.floor((player.fireCooldown.getMaximum() / 4) * 3)
-					)
-				);
-			},
-			() => {
-				player.damage++;
-			},
-		];
+	uiSystem.update();
 
-		for (let i = 0; i < updates.length; i++) {
-			if (
-				mouse.pressed &&
-				pir(mouse, {
-					x: 45,
-					y: 43 + 20 * i,
-					width: 100,
-					height: 14,
-				})
-			) {
-				updates[i]();
-				state ^= 1;
-
-				if (playerExperience >= experienceToNextLevel) {
-					playerLevel++;
-					playerExperience -= experienceToNextLevel;
-					experienceToNextLevel = Math.floor(experienceToNextLevel * 1.5);
-					state |= 1;
-
-					floatingTexts.push(new FloatingText(player.x, player.y - 20, `LEVEL UP! ${playerLevel}`, 120));
-				}
-				break;
-			}
-		}
+	if (controlSwitchSystem.isDebugMode()) {
+		controlSwitchSystem.restoreControllers();
 	}
+
+	keyboard.update();
 }
 
 function drawCrosshair() {
 	const _m = getMousePosition();
 
-	const angle = Math.atan2(_m.y - player.y, _m.x - player.x);
+	const angle = Math.atan2(_m.y - controlled.y, _m.x - controlled.x);
 
 	const length = 1500;
 
-	const lineX = length * Math.cos(angle) + player.x;
-	const lineY = length * Math.sin(angle) + player.y;
+	const lineX = length * Math.cos(angle) + controlled.x;
+	const lineY = length * Math.sin(angle) + controlled.y;
 
 	engine.context.strokeStyle = '#f992';
 	engine.context.lineWidth = 4;
 	engine.context.beginPath();
-	engine.context.moveTo(player.x, player.y);
+	engine.context.moveTo(controlled.x, controlled.y);
 	engine.context.lineTo(lineX, lineY);
 	engine.context.stroke();
 	engine.context.fillRect(_m.x - 1, _m.y - 1, 2, 2);
@@ -337,7 +265,6 @@ function drawCrosshair() {
 function drawWorld() {
 	const chunks = worldManager.getActiveChunks();
 
-	// Рендерим тайлы
 	for (const chunk of chunks) {
 		for (let x = 0; x < chunk.tiles.length; x++) {
 			for (let y = 0; y < chunk.tiles[x].length; y++) {
@@ -348,8 +275,8 @@ function drawWorld() {
 				);
 
 				const screenPos = {
-					x: worldPos.x - player.x + Math.floor(engine.canvas.width / 2),
-					y: worldPos.y - player.y + Math.floor(engine.canvas.height / 2),
+					x: worldPos.x - controlled.x + Math.floor(engine.canvas.width / 2),
+					y: worldPos.y - controlled.y + Math.floor(engine.canvas.height / 2),
 				}
 
 				if (screenPos.x + CHUNK_CONFIG.TILE_SIZE < 0 || screenPos.y + CHUNK_CONFIG.TILE_SIZE < 0) continue;
@@ -363,7 +290,7 @@ function drawWorld() {
 
 				switch (tileType) {
 					case TileType.EMPTY:
-						image = `images/floor_${seed%4 + 3}.png`;
+						image = `images/floor_${seed % 4 + 3}.png`;
 						engine.context.fillStyle = '#333'; //'#444';
 						break;
 					case TileType.WALL: {
@@ -383,11 +310,11 @@ function drawWorld() {
 						continue;
 					}
 					case TileType.ROCK:
-						image = `images/trash_${(x+y)%3}.png`;
+						image = `images/trash_${(x + y) % 3}.png`;
 						engine.context.fillStyle = '#333'; //'#888';
 						break;
 					case TileType.BUILDING:
-						image = `images/floor_${seed%3}.png`;
+						image = `images/floor_${seed % 3}.png`;
 						engine.context.fillStyle = '#333'; //'#444';
 						break;
 					case TileType.WATER:
@@ -418,84 +345,6 @@ function drawWorld() {
 	}
 }
 
-function drawLvlUpScreen() {
-	engine.context.fillStyle = '#0006';
-	engine.context.fillRect(0, 0, engine.canvas.width, engine.canvas.height);
-
-	const texts = [
-		'Dash cooldown -',
-		'Dash speed +',
-		'Rate of fire +',
-		'Damage +',
-	];
-
-	engine.context.fillStyle = '#0006';
-	engine.context.fillRect(0, 0, engine.canvas.width, engine.canvas.height);
-
-	engine.context.fillStyle = '#ccc';
-
-	for (let i = 0; i < texts.length; i++) {
-		if (
-			pir(mouse, {
-				x: 45,
-				y: 43 + 20 * i,
-				width: 100,
-				height: 14,
-			})
-		) {
-			engine.context.fillRect(50, 43 + 20 * i, 100, 14);
-		} else {
-			engine.context.fillRect(45, 43 + 20 * i, 100, 14);
-		}
-	}
-
-	engine.context.fillStyle = '#000';
-	engine.context.textBaseline = 'middle';
-
-	for (let i = 0; i < texts.length; i++) {
-		if (
-			pir(mouse, {
-				x: 45,
-				y: 43 + 20 * i,
-				width: 100,
-				height: 14,
-			})
-		) {
-			engine.context.fillText(texts[i], 55, 50 + 20 * i);
-		} else {
-			engine.context.fillText(texts[i], 50, 50 + 20 * i);
-		}
-	}
-}
-
-function drawCooldowns() {
-	const cooldowns = player.getCooldowns();
-
-	engine.context.fillStyle = '#ccc';
-
-	for (let i = 0; i < cooldowns.length; i++) {
-		engine.context.fillRect(5, engine.canvas.height - 10 - 10 * i, 100, 5);
-	}
-
-	engine.context.fillStyle = '#f99';
-
-	for (let i = 0; i < cooldowns.length; i++) {
-		engine.context.fillRect(
-			5,
-			engine.canvas.height - 10 - 10 * i,
-			100 * cooldowns[i].val,
-			5
-		);
-	}
-
-	engine.context.fillStyle = '#fff';
-	engine.context.textBaseline = 'middle';
-
-	for (let i = 0; i < cooldowns.length; i++) {
-		engine.context.fillText(cooldowns[i].name, 110, engine.canvas.height - 5 - 2 - 10 * i);
-	}
-}
-
 function render() {
 	engine.clear();
 
@@ -508,20 +357,16 @@ function render() {
 		Math.floor(engine.canvas.height / 2)
 	);
 	engine.context.scale(2 ** scale, 2 ** scale);
-	engine.context.translate(
-		-player.x,
-		-player.y
-	);
+	const { offsetX, offsetY } = camera.getOffset();
+	engine.context.translate(offsetX, offsetY);
 
 	drawWorld();
 
-	if (!player.isDead()) {
+	if (!controlled.isDead()) {
 		drawCrosshair();
 	}
 
-	bullets.forEach((bullet) => {
-		bullet.render(engine.context);
-	});
+	effectSystem.render(engine.context);
 
 	entities.forEach(entity => {
 		if (!entity.isDead()) {
@@ -535,30 +380,9 @@ function render() {
 
 	engine.context.restore();
 
-	engine.context.fillStyle = '#fff';
-	engine.context.fillText(`Score: ${playerExperience}`, 10, 20);
+	uiSystem.render();
 
-	engine.context.fillStyle = '#060';
-	engine.context.fillRect(0, 0, engine.canvas.width, 5);
-
-	engine.context.fillStyle = '#494';
-	engine.context.fillRect(0, 0, engine.canvas.width * (playerExperience / experienceToNextLevel), 5);
-
-	drawCooldowns();
-
-	engine.context.fillStyle = '#fff';
-	engine.context.fillText(`Player: (${Math.round(player.x)}, ${Math.round(player.y)})`, 10, 40);
-
-	const playerGrid = worldManager.worldToGrid(player.x, player.y);
-	if (playerGrid) {
-		engine.context.fillText(`Player chunk: (${playerGrid.chunkX}, ${playerGrid.chunkY}) tile: (${playerGrid.tileX}, ${playerGrid.tileY})`, 10, 55);
-	}
-
-	engine.context.fillText(`Player HP: ${player.getHP()}`, 10, 70);
-
-	if (state & 1) {
-		drawLvlUpScreen();
-	}
+	inventorySystem.render();
 }
 
 function tick() {

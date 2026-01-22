@@ -9,13 +9,7 @@ export default abstract class GameObject {
 		this.maxHP = hp;
 	}
 
-	abstract update(): void;
 	abstract render(ctx: CanvasRenderingContext2D): void;
-
-	protected initHP(hp: number) {
-		this.hp = hp;
-		this.maxHP = hp;
-	}
 
 	isDead(): boolean {
 		return this.hp <= 0;

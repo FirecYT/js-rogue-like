@@ -1,108 +1,39 @@
+import Entity from "./Entity";
+import { HasPosition, HasSpeed } from '../types/EntityTraits';
+import { AiController } from '../controllers/AiController';
+import { BasicPistol } from '../items/weapons/BasicPistol';
 import Cooldown from '../components/Cooldown';
-import GameObject from '../components/GameObject';
-import { Pathfinder } from '../world/Pathfinding';
-import { WorldManager } from '../world/WorldManager';
 
-export default class Enemy extends GameObject {
-	protected speed = 1;
-	protected target: GameObject;
+export default class Enemy extends Entity implements HasPosition, HasSpeed {
+	public speed = 1;
 	public experience = 5;
-	protected path: { x: number, y: number }[] = [];
-	protected pathUpdateCooldownTime = 60;
-	protected pathUpdateCooldown: Cooldown;
-	protected worldManager: WorldManager;
 
-	constructor(x: number, y: number, target: GameObject, worldManager: WorldManager) {
+	constructor(x: number, y: number, private player: Entity) {
 		super(x, y, 5);
-		this.target = target;
-		this.worldManager = worldManager;
 
-		this.pathUpdateCooldown = new Cooldown(this.pathUpdateCooldownTime).onReady(() => {
-			this.updatePath();
-			this.pathUpdateCooldown.start();
-		}).start();
-	}
-
-	update() {
-		this.pathUpdateCooldown.update();
-		this.followPath();
-	}
-
-	protected updatePath() {
-		let targetX: number;
-		let targetY: number;
-
-		if (!this.target.isDead()) {
-			targetX = this.target.x;
-			targetY = this.target.y;
-		} else {
-			const angle = 2 * Math.PI * Math.random();
-
-			targetX = this.x + Math.cos(angle) * 500;
-			targetY = this.y + Math.sin(angle) * 500;
-
-			this.pathUpdateCooldown.setDuration(300);
+		if (Math.random() > 0.07) {
+			this.inventory.setWeapon(new BasicPistol());
+			this.cooldowns.set('fire', new Cooldown(120));
 		}
 
-		this.path = Pathfinder.findPath(
-			this.x, this.y,
-			targetX, targetY,
-			this.worldManager
-		);
-
-		if (this.path.length > 0) {
-			this.path.shift();
-		}
-	}
-
-	protected followPath() {
-		if (this.path.length === 0) {
-			const dx = this.target.x - this.x;
-			const dy = this.target.y - this.y;
-			const distance = Math.sqrt(dx * dx + dy * dy);
-
-			if (distance > 0) {
-				this.x += (dx / distance) * this.speed;
-				this.y += (dy / distance) * this.speed;
-			}
-			return;
-		}
-
-		const nextPoint = this.path[0];
-		const dx = nextPoint.x - this.x;
-		const dy = nextPoint.y - this.y;
-		const distance = Math.sqrt(dx * dx + dy * dy);
-
-		if (distance < 10) {
-			this.path.shift();
-		} else {
-			const angle = Math.atan2(dy, dx);
-			this.x += Math.cos(angle) * this.speed;
-			this.y += Math.sin(angle) * this.speed;
-		}
+		this.controller = new AiController(this.player);
 	}
 
 	render(ctx: CanvasRenderingContext2D): void {
-		ctx.fillStyle = '#f00';
+		const color = this.inventory.weapon ? '#f90' : '#f00';
+		ctx.fillStyle = color;
 		ctx.fillRect(this.x - 4, this.y - 4, 8, 8);
 
-		// Отладочная отрисовка пути
-		// if (this.path.length > 0) {
-		// 	ctx.strokeStyle = '#f002';
-		// 	ctx.lineWidth = 2;
-		// 	ctx.beginPath();
-		// 	ctx.moveTo(this.x, this.y);
+		if (this.inventory.weapon) {
+			ctx.strokeStyle = '#ff0';
+			ctx.lineWidth = 1;
+			ctx.strokeRect(this.x - 5, this.y - 5, 10, 10);
+		}
 
-		// 	for (const point of this.path) {
-		// 		ctx.lineTo(point.x, point.y);
-		// 	}
-		// 	ctx.stroke();
-
-		// 	// Рисуем точки пути
-		// 	ctx.fillStyle = '#0f04';
-		// 	for (const point of this.path) {
-		// 		ctx.fillRect(point.x - 2, point.y - 2, 4, 4);
-		// 	}
-		// }
+		const hpPercent = this.getHP() / this.maxHP;
+		ctx.fillStyle = '#0f0';
+		ctx.fillRect(this.x - 10, this.y - 12, hpPercent * 20, 2);
+		ctx.strokeStyle = '#000';
+		ctx.strokeRect(this.x - 10, this.y - 12, 20, 2);
 	}
 }

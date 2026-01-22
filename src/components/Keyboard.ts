@@ -1,16 +1,17 @@
 export default class Keyboard {
 	private static instance: Keyboard;
-	private keys: Set<string> = new Set<string>();
+	private keysDown = new Set<string>();
+	private keysPressed = new Set<string>();
 
 	constructor() {
-		// Инициализация событий нажатия клавиш
-		document.addEventListener('keydown', (event) => {
-			this.keys.add(event.code);
+		document.addEventListener('keydown', (e) => {
+			if (!this.keysDown.has(e.code)) {
+				this.keysDown.add(e.code);
+				this.keysPressed.add(e.code);
+			}
 		});
-
-		// Инициализация событий отпускания клавиш
-		document.addEventListener('keyup', (event) => {
-			this.keys.delete(event.code);
+		document.addEventListener('keyup', (e) => {
+			this.keysDown.delete(e.code);
 		});
 	}
 
@@ -21,7 +22,15 @@ export default class Keyboard {
 		return Keyboard.instance;
 	}
 
-	public isKeyPressed(key: string): boolean {
-		return this.keys.has(key);
+	public isKeyPressedOnce(key: string): boolean {
+		return this.keysPressed.has(key);
+	}
+
+	public isKeyDown(key: string): boolean {
+		return this.keysDown.has(key);
+	}
+
+	public update(): void {
+		this.keysPressed.clear();
 	}
 }

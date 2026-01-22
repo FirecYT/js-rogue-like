@@ -61,3 +61,7 @@ export function interpolateColor(color1: string, color2: string, factor: number)
 
 	return rgbToHex(r, g, b);
 }
+
+export function getAngleBetweenPoints(x1: number, y1: number, x2: number, y2: number): number {
+  return Math.atan2(y2 - y1, x2 - x1);
+}

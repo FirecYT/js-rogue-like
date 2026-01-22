@@ -1,104 +1,46 @@
-import Cooldown from './components/Cooldown';
-import GameObject from './components/GameObject';
-import Keyboard from './components/Keyboard';
+import Entity from './entities/Entity';
 import { interpolateColor } from './utils';
+import { HasStats, HasPosition } from './types/EntityTraits';
 
-export default class Player extends GameObject {
-	public fireCooldown = new Cooldown(40);
-	public dashCooldown = new Cooldown(120);
-
-	private move_speed = 2;
-	private dash_speed = 4;
+export default class Player extends Entity implements HasPosition, HasStats {
 	public damage = 10;
-
-	private dashActive = new Cooldown(30);
-
 	public width = 10;
 	public height = 10;
 
 	constructor(x: number, y: number) {
-		super(x, y, 100);
-	}
-
-	update() {
-		this.move();
-
-		this.fireCooldown.update();
-		this.dashCooldown.update();
-		this.dashActive.update();
-	}
-
-	getCooldowns(): {
-		name: string;
-		val: number;
-	}[] {
-		const cooldowns: {
-			name: string;
-			val: number;
-		}[] = [];
-
-		if (!this.fireCooldown.isReady()) {
-			cooldowns.push({
-				name: 'fireCooldown',
-				val: this.fireCooldown.progress(),
-			});
-		}
-		if (!this.dashCooldown.isReady()) {
-			cooldowns.push({
-				name: 'dashCooldown',
-				val: this.dashCooldown.progress(),
-			});
-		}
-		if (!this.dashActive.isReady()) {
-			cooldowns.push({
-				name: 'dashActive',
-				val: this.dashActive.progress(),
-			});
-		}
-
-		return cooldowns;
+		super(x, y, 1000);
 	}
 
 	render(ctx: CanvasRenderingContext2D): void {
 		const hpPercent = this.getHP() / this.maxHP;
-
-		const normalColor = this.dashActive.isReady() ? '#99f' : '#ccf';
+		const normalColor = this.cooldowns.get('dashActive')?.isReady() ? '#99f' : '#ccf';
 		const damageColor = '#f00';
-
 		const color = interpolateColor(normalColor, damageColor, 1 - hpPercent);
 
 		ctx.fillStyle = color;
 		ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
 	}
 
-	move() {
-		const keyboard = Keyboard.getInstance();
-
-		let speed = this.move_speed;
-
-		if (this.dashCooldown.isReady() && keyboard.isKeyPressed('ShiftLeft')) {
-			this.dashCooldown.start();
-			this.dashActive.start();
+	getCooldowns(): { name: string; val: number; }[] {
+		const cooldowns = [];
+		if (!this.cooldowns.isReady('fire')) {
+			cooldowns.push({
+				name: 'fire',
+				val: this.cooldowns.get('fire')?.progress() || 0,
+			});
 		}
-
-		if (!this.dashActive.isReady()) {
-			speed = this.dash_speed;
+		if (!this.cooldowns.isReady('dash')) {
+			cooldowns.push({
+				name: 'dash',
+				val: this.cooldowns.get('dash')?.progress() || 0,
+			});
 		}
-
-		if (keyboard.isKeyPressed('KeyW')) {
-			this.y -= speed;
+		if (!this.cooldowns.isReady('dashActive')) {
+			cooldowns.push({
+				name: 'dashActive',
+				val: this.cooldowns.get('dashActive')?.progress() || 0,
+			});
 		}
-
-		if (keyboard.isKeyPressed('KeyS')) {
-			this.y += speed;
-		}
-
-		if (keyboard.isKeyPressed('KeyA')) {
-			this.x -= speed;
-		}
-
-		if (keyboard.isKeyPressed('KeyD')) {
-			this.x += speed;
-		}
+		return cooldowns;
 	}
 }
