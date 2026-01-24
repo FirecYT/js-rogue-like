@@ -13,7 +13,6 @@ export default class Enemy extends Entity implements HasPosition, HasSpeed {
 
 		if (Math.random() > 0.07) {
 			this.inventory.setWeapon(new BasicPistol());
-			this.cooldowns.set('fire', new Cooldown(120));
 		}
 
 		this.controller = new AiController(this.player);

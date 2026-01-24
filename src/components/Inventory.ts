@@ -30,12 +30,44 @@ export class Inventory {
 	}
 
 	fire(angle: number, effectSystem: EffectSystem): void {
-		if (!this.weapon || !this.entity.cooldowns.isReady('fire')) return;
-		this.entity.cooldowns.start('fire');
+		if (!this.weapon || !this.isWeaponReady()) return;
+		if (this.weapon.cooldown) {
+			this.weapon.cooldown.start();
+		}
 		this.weapon.fire(this.entity, angle, effectSystem);
 	}
 
+	isWeaponReady(): boolean {
+		if (!this.weapon) return false;
+		return !this.weapon.cooldown || this.weapon.cooldown.isReady();
+	}
+
+	isChipReady(index: number): boolean {
+		const chip = this.chips[index];
+		if (!chip) return false;
+		return !chip.cooldown || chip.cooldown.isReady();
+	}
+
+	useChip(index: number): void {
+		const chip = this.chips[index];
+		if (!chip || !chip.isActive || !this.isChipReady(index)) return;
+		
+		if (chip.cooldown) {
+			chip.cooldown.start();
+		}
+		
+		chip.use?.(this.entity);
+	}
+
 	update(): void {
+		// Update chip cooldowns
+		for (const chip of this.chips) {
+			if (chip?.cooldown) {
+				chip.cooldown.update();
+			}
+		}
+		
+		// Run onUpdate for active chips
 		this.chips.forEach(chip => {
 			if (chip?.onUpdate) chip.onUpdate(this.entity);
 		});

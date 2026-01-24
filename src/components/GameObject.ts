@@ -1,3 +1,5 @@
+import Cooldown from './Cooldown';
+
 export default abstract class GameObject {
 	public maxHP: number;
 

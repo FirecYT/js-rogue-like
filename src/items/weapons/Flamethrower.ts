@@ -18,9 +18,9 @@ export class Flamethrower implements Weapon {
     }
 
     onEquip?(entity: Entity): void {
-        const fireCd = entity.cooldowns.get('fire');
-        if (fireCd) {
-            fireCd.setDuration(this.fireRate);
+        // Set the weapon's cooldown duration when equipped
+        if (entity.inventory.weapon && entity.inventory.weapon.cooldown) {
+            entity.inventory.weapon.cooldown.setDuration(this.fireRate);
         }
     }
 }

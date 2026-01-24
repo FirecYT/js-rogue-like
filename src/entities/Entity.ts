@@ -1,4 +1,3 @@
-import { CooldownManager } from '../components/CooldownManager';
 import GameObject from '../components/GameObject';
 import { Inventory } from '../components/Inventory';
 import { Controller } from '../controllers/Controller';
@@ -6,8 +5,8 @@ import { eventBus } from '../events/EventBus';
 
 export default abstract class Entity extends GameObject {
 	public controller: Controller<Entity> | null = null;
-	public cooldowns = new CooldownManager();
 	public inventory: Inventory;
+	public speed = 2; // Base movement speed
 
 	constructor(
 		x: number,

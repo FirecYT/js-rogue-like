@@ -13,15 +13,16 @@ export class PlayerController extends Controller<Entity> {
 
 	update(entity: Entity, world: WorldManager, effectSystem: EffectSystem): void {
 		const keyboard = Keyboard.getInstance();
-		let speed = 2;
+		let speed = entity.speed;
 
-		if (entity.cooldowns.isReady('dash') && keyboard.isKeyDown('ShiftLeft')) {
-			entity.cooldowns.start('dash');
-			entity.cooldowns.get('dashActive')?.start();
-		}
-
-		if (!entity.cooldowns.get('dashActive')?.isReady()) {
-			speed = 4;
+		// Handle dashing - now managed by DashChip's onUpdate method
+		// We still need to trigger the dash when Shift is pressed
+		if (keyboard.isKeyDown('ShiftLeft')) {
+			// Find the dash chip and use it if available and ready
+			const dashChipIndex = entity.inventory.chips.findIndex(chip => chip?.id === 'dash');
+			if (dashChipIndex !== -1 && entity.inventory.isChipReady(dashChipIndex)) {
+				entity.inventory.useChip(dashChipIndex);
+			}
 		}
 
 		if (keyboard.isKeyDown('KeyW')) entity.y -= speed;
@@ -35,18 +36,24 @@ export class PlayerController extends Controller<Entity> {
 			const mouseWorldY = this.mouse.y + entity.y - window.innerHeight / 2;
 			const angle = getAngleBetweenPoints(entity.x, entity.y, mouseWorldX, mouseWorldY);
 
-			if (this.mouse.pressed && entity.cooldowns.isReady('fire')) {
+			if (this.mouse.pressed && entity.inventory.isWeaponReady()) {
 				entity.inventory.fire(angle, effectSystem);
 			}
 		}
 
 		// Использование чипов
 		if (keyboard.isKeyPressedOnce('KeyQ') && entity.inventory.chips[0]) {
-			const chip = entity.inventory.chips[0];
-			if (chip.isActive && entity.cooldowns.isReady('chip_0')) {
-				entity.cooldowns.start('chip_0');
-				chip.use?.(entity);
-			}
+			entity.inventory.useChip(0);
+		} else if (keyboard.isKeyPressedOnce('Digit1') && entity.inventory.chips[0]) {
+			entity.inventory.useChip(0);
+		} else if (keyboard.isKeyPressedOnce('Digit2') && entity.inventory.chips[1]) {
+			entity.inventory.useChip(1);
+		} else if (keyboard.isKeyPressedOnce('Digit3') && entity.inventory.chips[2]) {
+			entity.inventory.useChip(2);
+		} else if (keyboard.isKeyPressedOnce('Digit4') && entity.inventory.chips[3]) {
+			entity.inventory.useChip(3);
+		} else if (keyboard.isKeyPressedOnce('Digit5') && entity.inventory.chips[4]) {
+			entity.inventory.useChip(4);
 		}
 	}
 }

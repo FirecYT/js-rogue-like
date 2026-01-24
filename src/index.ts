@@ -15,6 +15,7 @@ import Entity from './entities/Entity';
 import Cooldown from './components/Cooldown';
 import { BasicPistol } from './items/weapons/BasicPistol';
 import { TeleportChip } from './items/chips/TeleportChip';
+import { DashChip } from './items/chips/DashChip';
 import { ControlSwitchSystem } from './systems/ControlSwitchSystem';
 import { InventorySystem } from './systems/InventorySystem';
 import { EffectSystem } from './systems/EffectSystem';
@@ -158,8 +159,9 @@ player.inventory.addModifier(sinusoidal);
 player.inventory.addModifier(explosive);
 
 player.inventory.addChip(TeleportChip);
+player.inventory.addChip(DashChip);
 
-player.cooldowns.set('fire', new Cooldown(bestWeapon.fireRate));
+
 
 function update() {
 	controlled = controlSwitchSystem.getCurrentControlled();
@@ -184,7 +186,6 @@ function update() {
 	if (!(state & 1)) {
 		entities.forEach(e => {
 			if (!e.isDead()) {
-				e.cooldowns.update();
 				e.controller?.update(e, worldManager, effectSystem);
 				e.inventory.update();
 			}
