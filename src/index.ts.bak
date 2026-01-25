@@ -264,7 +264,6 @@ function update() {
 	}
 
 	uiSystem.update();
-\t	pickupUISystem.update();
 
 	if (controlSwitchSystem.isDebugMode()) {
 		controlSwitchSystem.restoreControllers();
@@ -413,8 +412,6 @@ function render() {
 	uiSystem.render();
 
 	inventorySystem.render();
-		
-		pickupUISystem.render();
 }
 
 function tick() {
