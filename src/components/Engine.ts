@@ -270,4 +270,11 @@ export default class Engine {
 
 	// 	requestAnimationFrame(this.tick);
 	// }
+
+	multiline(text: string, x: number, y: number): void {
+		const lines = text.split('\n');
+		for (let i = 0; i < lines.length; i++) {
+			this.context.fillText(lines[i], x, y + i * 16);
+		}
+	}
 }

@@ -4,11 +4,11 @@ import { BulletEffect } from '../../effects/BulletEffect';
 import { EffectSystem } from '../../systems/EffectSystem';
 import { EffectFactory } from '../../systems/EffectFactory';
 
-export class BasicPistol implements Weapon {
+export class BasicPistol extends Weapon {
 	id = 'basic_pistol';
 	name = 'Basic Pistol';
 	type = 'weapon' as const;
-	fireRate = 1;
+	fireRate = 50;
 	damage = 10;
 	projectileCount = 1;
 	modifiersSlots = 5;
@@ -20,7 +20,6 @@ export class BasicPistol implements Weapon {
 	}
 
 	onEquip(entity: Entity): void {
-		// Set the weapon's cooldown duration when equipped
 		if (entity.inventory.weapon && entity.inventory.weapon.cooldown) {
 			entity.inventory.weapon.cooldown.setDuration(this.fireRate);
 		}

@@ -12,7 +12,6 @@ import { EnemySpawnerSystem } from './systems/EnemySpawnerSystem';
 import { UISystem } from './systems/UISystem';
 import { PlayerController } from './controllers/PlayerController';
 import Entity from './entities/Entity';
-import Cooldown from './components/Cooldown';
 import { BasicPistol } from './items/weapons/BasicPistol';
 import { TeleportChip } from './items/chips/TeleportChip';
 import { DashChip } from './items/chips/DashChip';
@@ -28,7 +27,6 @@ import { SinusoidalModifier } from './items/modifiers/SinusoidalModifier';
 import { PierceModifier } from './items/modifiers/PierceModifier';
 import { DamageBoostModifier } from './items/modifiers/DamageBoostModifier';
 
-// Init
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
 ) as HTMLCanvasElement;
@@ -159,9 +157,7 @@ player.inventory.addModifier(sinusoidal);
 player.inventory.addModifier(explosive);
 
 player.inventory.addChip(TeleportChip);
-player.inventory.addChip(DashChip);
-
-
+player.inventory.addChip(new DashChip);
 
 function update() {
 	controlled = controlSwitchSystem.getCurrentControlled();

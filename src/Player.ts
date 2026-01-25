@@ -13,8 +13,7 @@ export default class Player extends Entity implements HasPosition, HasStats {
 
 	render(ctx: CanvasRenderingContext2D): void {
 		const hpPercent = this.getHP() / this.maxHP;
-		
-		// Check if any dash chip is active by looking at chip cooldowns
+
 		let isDashActive = false;
 		for (const chip of this.inventory.chips) {
 			if (chip && chip.id === 'dash' && chip.cooldown && !chip.cooldown.isReady()) {
@@ -22,7 +21,7 @@ export default class Player extends Entity implements HasPosition, HasStats {
 				break;
 			}
 		}
-		
+
 		const normalColor = !isDashActive ? '#99f' : '#ccf';
 		const damageColor = '#f00';
 		const color = interpolateColor(normalColor, damageColor, 1 - hpPercent);
@@ -33,10 +32,8 @@ export default class Player extends Entity implements HasPosition, HasStats {
 
 	getCooldowns(): { name: string; val: number; }[] {
 		const cooldowns = [];
-		
-		// Add chip cooldowns
-		for (let i = 0; i < this.inventory.chips.length; i++) {
-			const chip = this.inventory.chips[i];
+
+		for (const chip of this.inventory.chips) {
 			if (chip && chip.cooldown && !chip.cooldown.isReady()) {
 				cooldowns.push({
 					name: `${chip.name}`,
@@ -44,15 +41,14 @@ export default class Player extends Entity implements HasPosition, HasStats {
 				});
 			}
 		}
-		
-		// Add weapon cooldown if weapon exists
+
 		if (this.inventory.weapon && this.inventory.weapon.cooldown && !this.inventory.weapon.cooldown.isReady()) {
 			cooldowns.push({
 				name: 'fire',
 				val: this.inventory.weapon.cooldown.progress(),
 			});
 		}
-		
+
 		return cooldowns;
 	}
 }

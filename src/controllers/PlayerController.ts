@@ -13,12 +13,9 @@ export class PlayerController extends Controller<Entity> {
 
 	update(entity: Entity, world: WorldManager, effectSystem: EffectSystem): void {
 		const keyboard = Keyboard.getInstance();
-		let speed = entity.speed;
+		const speed = entity.speed;
 
-		// Handle dashing - now managed by DashChip's onUpdate method
-		// We still need to trigger the dash when Shift is pressed
 		if (keyboard.isKeyDown('ShiftLeft')) {
-			// Find the dash chip and use it if available and ready
 			const dashChipIndex = entity.inventory.chips.findIndex(chip => chip?.id === 'dash');
 			if (dashChipIndex !== -1 && entity.inventory.isChipReady(dashChipIndex)) {
 				entity.inventory.useChip(dashChipIndex);
@@ -30,7 +27,6 @@ export class PlayerController extends Controller<Entity> {
 		if (keyboard.isKeyDown('KeyA')) entity.x -= speed;
 		if (keyboard.isKeyDown('KeyD')) entity.x += speed;
 
-		// Стрельба
 		if (entity.inventory.weapon) {
 			const mouseWorldX = this.mouse.x + entity.x - window.innerWidth / 2;
 			const mouseWorldY = this.mouse.y + entity.y - window.innerHeight / 2;
@@ -41,7 +37,6 @@ export class PlayerController extends Controller<Entity> {
 			}
 		}
 
-		// Использование чипов
 		if (keyboard.isKeyPressedOnce('KeyQ') && entity.inventory.chips[0]) {
 			entity.inventory.useChip(0);
 		} else if (keyboard.isKeyPressedOnce('Digit1') && entity.inventory.chips[0]) {

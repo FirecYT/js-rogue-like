@@ -7,7 +7,8 @@ export const TeleportChip: Chip = {
 	name: 'Quantum Leap',
 	type: 'chip',
 	isActive: true,
-	cooldown: new Cooldown(120), // 120 frames cooldown
+	cooldown: new Cooldown(120),
+
 	use(entity: Entity) {
 		const angle = Math.random() * Math.PI * 2;
 		entity.x += Math.cos(angle) * 100;

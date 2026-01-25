@@ -13,6 +13,7 @@ export class Inventory {
 
 	setWeapon(weapon: Weapon | null): void {
 		this.weapon = weapon;
+		this.weapon?.onEquip?.(this.entity);
 	}
 
 	addChip(chip: Chip): boolean {
@@ -51,25 +52,25 @@ export class Inventory {
 	useChip(index: number): void {
 		const chip = this.chips[index];
 		if (!chip || !chip.isActive || !this.isChipReady(index)) return;
-		
+
 		if (chip.cooldown) {
 			chip.cooldown.start();
 		}
-		
+
 		chip.use?.(this.entity);
 	}
 
 	update(): void {
-		// Update chip cooldowns
 		for (const chip of this.chips) {
 			if (chip?.cooldown) {
 				chip.cooldown.update();
 			}
 		}
-		
-		// Run onUpdate for active chips
+
 		this.chips.forEach(chip => {
 			if (chip?.onUpdate) chip.onUpdate(this.entity);
 		});
+
+		this.weapon?.cooldown.update();
 	}
 }
