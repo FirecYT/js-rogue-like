@@ -24,7 +24,7 @@ export class AiController extends Controller<Entity> {
 			this.pathUpdateCooldown = 60;
 		}
 
-		if (entity.inventory.weapon && entity.cooldowns.isReady('fire')) {
+		if (entity.inventory.weapon && entity.inventory.isWeaponReady()) {
 			const distance = Math.hypot(this.target.x - entity.x, this.target.y - entity.y);
 
 			if (distance < 400) {

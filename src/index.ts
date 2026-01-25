@@ -12,9 +12,9 @@ import { EnemySpawnerSystem } from './systems/EnemySpawnerSystem';
 import { UISystem } from './systems/UISystem';
 import { PlayerController } from './controllers/PlayerController';
 import Entity from './entities/Entity';
-import Cooldown from './components/Cooldown';
 import { BasicPistol } from './items/weapons/BasicPistol';
 import { TeleportChip } from './items/chips/TeleportChip';
+import { DashChip } from './items/chips/DashChip';
 import { ControlSwitchSystem } from './systems/ControlSwitchSystem';
 import { InventorySystem } from './systems/InventorySystem';
 import { EffectSystem } from './systems/EffectSystem';
@@ -27,7 +27,6 @@ import { SinusoidalModifier } from './items/modifiers/SinusoidalModifier';
 import { PierceModifier } from './items/modifiers/PierceModifier';
 import { DamageBoostModifier } from './items/modifiers/DamageBoostModifier';
 
-// Init
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
 ) as HTMLCanvasElement;
@@ -158,8 +157,7 @@ player.inventory.addModifier(sinusoidal);
 player.inventory.addModifier(explosive);
 
 player.inventory.addChip(TeleportChip);
-
-player.cooldowns.set('fire', new Cooldown(bestWeapon.fireRate));
+player.inventory.addChip(new DashChip);
 
 function update() {
 	controlled = controlSwitchSystem.getCurrentControlled();
@@ -184,7 +182,6 @@ function update() {
 	if (!(state & 1)) {
 		entities.forEach(e => {
 			if (!e.isDead()) {
-				e.cooldowns.update();
 				e.controller?.update(e, worldManager, effectSystem);
 				e.inventory.update();
 			}

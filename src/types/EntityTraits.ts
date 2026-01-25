@@ -1,4 +1,3 @@
-import Cooldown from "../components/Cooldown";
 import Entity from "../entities/Entity";
 
 export interface HasSpeed {
@@ -8,12 +7,6 @@ export interface HasSpeed {
 export interface HasPosition {
 	x: number;
 	y: number;
-}
-
-export interface HasCooldowns {
-	fireCooldown?: Cooldown;
-	dashCooldown?: Cooldown;
-	dashActive?: Cooldown;
 }
 
 export interface HasStats {

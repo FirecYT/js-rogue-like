@@ -2,7 +2,6 @@ import Entity from "./Entity";
 import { HasPosition, HasSpeed } from '../types/EntityTraits';
 import { AiController } from '../controllers/AiController';
 import { BasicPistol } from '../items/weapons/BasicPistol';
-import Cooldown from '../components/Cooldown';
 
 export default class Enemy extends Entity implements HasPosition, HasSpeed {
 	public speed = 1;
@@ -13,7 +12,6 @@ export default class Enemy extends Entity implements HasPosition, HasSpeed {
 
 		if (Math.random() > 0.07) {
 			this.inventory.setWeapon(new BasicPistol());
-			this.cooldowns.set('fire', new Cooldown(120));
 		}
 
 		this.controller = new AiController(this.player);

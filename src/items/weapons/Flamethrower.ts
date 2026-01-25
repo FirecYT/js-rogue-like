@@ -2,8 +2,9 @@ import { Weapon } from '../Weapon';
 import Entity from '../../entities/Entity';
 import { EffectSystem } from '../../systems/EffectSystem';
 import { FireZone } from '../../effects/FireZone';
+import { EffectFactory } from '../../systems/EffectFactory';
 
-export class Flamethrower implements Weapon {
+export class Flamethrower extends Weapon {
     id = 'flamethrower';
     name = 'Flamethrower';
     type = 'weapon' as const;
@@ -13,14 +14,14 @@ export class Flamethrower implements Weapon {
     modifiersSlots = 1;
 
     fire(source: Entity, angle: number, effectSystem: EffectSystem): void {
-        const fire = new FireZone(source.x, source.y, angle, source);
-        effectSystem.addEffect(fire);
+        const base = new FireZone(source.x, source.y, angle, source);
+		const finalEffect = EffectFactory.create(base, source.inventory.modifiers, effectSystem);
+        effectSystem.addEffect(finalEffect);
     }
 
     onEquip?(entity: Entity): void {
-        const fireCd = entity.cooldowns.get('fire');
-        if (fireCd) {
-            fireCd.setDuration(this.fireRate);
+        if (entity.inventory.weapon && entity.inventory.weapon.cooldown) {
+            entity.inventory.weapon.cooldown.setDuration(this.fireRate);
         }
     }
 }

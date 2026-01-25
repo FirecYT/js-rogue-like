@@ -2,8 +2,9 @@ import { Weapon } from '../Weapon';
 import Entity from '../../entities/Entity';
 import { EffectSystem } from '../../systems/EffectSystem';
 import { LaserBeam } from '../../effects/LaserBeam';
+import { EffectFactory } from '../../systems/EffectFactory';
 
-export class LaserRifle implements Weapon {
+export class LaserRifle extends Weapon {
 	id = 'laser_rifle';
 	name = 'Laser Rifle';
 	type = 'weapon' as const;
@@ -13,14 +14,14 @@ export class LaserRifle implements Weapon {
 	modifiersSlots = 5;
 
 	fire(source: Entity, angle: number, effectSystem: EffectSystem): void {
-		const beam = new LaserBeam(source.x, source.y, angle, source);
-		effectSystem.addEffect(beam);
+		const base = new LaserBeam(source.x, source.y, angle, source);
+		const finalEffect = EffectFactory.create(base, source.inventory.modifiers, effectSystem);
+		effectSystem.addEffect(finalEffect);
 	}
 
 	onEquip?(entity: Entity): void {
-		const fireCd = entity.cooldowns.get('fire');
-		if (fireCd) {
-			fireCd.setDuration(this.fireRate);
+		if (entity.inventory.weapon && entity.inventory.weapon.cooldown) {
+			entity.inventory.weapon.cooldown.setDuration(this.fireRate);
 		}
 	}
 }

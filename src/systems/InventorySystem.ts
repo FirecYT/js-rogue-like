@@ -104,16 +104,16 @@ export class InventorySystem {
 		for (let i = 0; i < 5; i++) {
 			const chip = chips[i];
 			const isActive = chip && chip.isActive;
-			const ready = chip && entity.cooldowns.isReady(`chip_${i}`);
+			const ready = chip && entity.inventory.isChipReady(i);
 
 			if (chip) {
 				ctx.fillStyle = isActive ? '#f0f' : '#0af';
 				ctx.fillText(`${i + 1}. ${chip.name}`, x, y + 20 + i * 20);
 
 				// Статус кулдауна
-				if (!ready) {
+				if (!ready && chip.cooldown) {
 					ctx.fillStyle = '#f90';
-					const progress = entity.cooldowns.get(`chip_${i}`)?.progress() || 0;
+					const progress = chip.cooldown.progress();
 					ctx.fillText(`(${Math.ceil(progress * 100)}% ready)`, x + 150, y + 20 + i * 20);
 				}
 			} else {
