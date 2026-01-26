@@ -1,8 +1,10 @@
 import { Effect } from "../../effects/Effect";
-import { EffectModifier } from "../EffectModifier";
+import { Modifier } from "../Modifier";
 
-export class SinusoidalModifier implements EffectModifier {
+export class SinusoidalModifier implements Modifier {
+	id = 'sinusoidal';
 	public name = 'Sinusoidal';
+	type = 'modifier' as const;
     private amplitude = 5;
     private frequency = 0.5;
 

@@ -1,9 +1,12 @@
 import Entity from "./Entity";
-import { HasPosition, HasSpeed } from '../types/EntityTraits';
+import { Controllable, HasPosition, HasSpeed } from '../types/EntityTraits';
 import { AiController } from '../controllers/AiController';
 import { BasicPistol } from '../items/weapons/BasicPistol';
+import { RebirthChip } from "../items/chips/RebirthChip";
+import { Controller } from "../controllers/Controller";
 
-export default class Enemy extends Entity implements HasPosition, HasSpeed {
+export default class Enemy extends Entity implements HasPosition, HasSpeed, Controllable {
+	public controller: Controller | null;
 	public speed = 1;
 	public experience = 5;
 
@@ -11,7 +14,11 @@ export default class Enemy extends Entity implements HasPosition, HasSpeed {
 		super(x, y, 5);
 
 		if (Math.random() > 0.07) {
-			this.inventory.setWeapon(new BasicPistol());
+			this.inventory.setWeapon(new BasicPistol);
+		}
+
+		if (Math.random() > 0.07) {
+			this.inventory.addChip(new RebirthChip);
 		}
 
 		this.controller = new AiController(this.player);

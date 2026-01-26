@@ -1,3 +1,4 @@
+import { Controller } from "../controllers/Controller";
 import Entity from "../entities/Entity";
 
 export interface HasSpeed {
@@ -15,4 +16,8 @@ export interface HasStats {
 
 export interface HasTarget {
 	target: Entity;
+}
+
+export interface Controllable {
+	controller: Controller | null;
 }

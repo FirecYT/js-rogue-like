@@ -1,2 +1,35 @@
-/node_modules
-/build
+```
+# Backup files
+*.ts.bak
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Dependencies
+node_modules/
+.npm/
+.yarn/
+bower_components/
+
+# Build outputs
+dist/
+build/
+coverage/
+*.min.js
+*.min.css
+
+# OS generated files
+.DS_Store
+Thumbs.db
+```

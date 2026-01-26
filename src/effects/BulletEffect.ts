@@ -24,8 +24,11 @@ export class BulletEffect extends Effect {
 			const dist = Math.sqrt(dx * dx + dy * dy);
 			if (dist < this.half_size) {
 				entity.takeDamage(this.damage, this.source);
-				this.lifetime = 0;
-				break;
+				this.onHit?.(entity);
+				if (!this.shouldPassThrough(entity)) {
+					this.lifetime = 0;
+					break;
+				}
 			}
 		}
 	}

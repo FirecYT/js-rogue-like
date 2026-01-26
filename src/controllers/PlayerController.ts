@@ -6,7 +6,7 @@ import Entity from '../entities/Entity';
 import { getAngleBetweenPoints } from '../utils';
 import { EffectSystem } from '../systems/EffectSystem';
 
-export class PlayerController extends Controller<Entity> {
+export class PlayerController extends Controller {
 	constructor(private mouse: MouseInput) {
 		super();
 	}

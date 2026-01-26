@@ -2,7 +2,8 @@ import Entity from "../entities/Entity";
 
 interface EventMap {
 	enemyKilled: { killer: Entity; victim: Entity };
-};
+	entityDied: { entity: Entity };
+}
 
 class EventBus {
 	private listeners: { [K in keyof EventMap]?: ((data: EventMap[K]) => void)[] } = {};

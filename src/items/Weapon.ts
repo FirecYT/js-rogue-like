@@ -20,4 +20,6 @@ export abstract class Weapon implements Item {
 			entity.inventory.weapon.cooldown.setDuration(this.fireRate);
 		}
 	}
+
+	onUnequip?(entity: Entity): void;
 }

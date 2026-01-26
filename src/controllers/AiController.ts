@@ -5,7 +5,7 @@ import Entity from '../entities/Entity';
 import { HasSpeed } from '../types/EntityTraits';
 import { EffectSystem } from '../systems/EffectSystem';
 
-export class AiController extends Controller<Entity> {
+export class AiController extends Controller {
 	protected path: { x: number, y: number }[] = [];
 	protected pathUpdateCooldown = 60;
 	protected target: Entity;

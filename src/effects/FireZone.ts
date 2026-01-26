@@ -24,6 +24,7 @@ export class FireZone extends Effect {
 				const dist = Math.sqrt(dx * dx + dy * dy);
 				if (dist < this.radius) {
 					entity.takeDamage(3, this.source);
+					this.onHit?.(entity);
 				}
 			}
 		}
