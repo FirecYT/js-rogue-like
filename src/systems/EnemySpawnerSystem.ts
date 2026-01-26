@@ -25,6 +25,7 @@ export class EnemySpawnerSystem {
 				const y = this.player.y + Math.sin(angle) * distance;
 
 				const newEnemy = new Enemy(x, y, this.player);
+				void newEnemy;
 				this.entities.push(newEnemy);
 			}
 		}

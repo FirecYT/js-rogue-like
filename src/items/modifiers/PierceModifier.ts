@@ -1,8 +1,10 @@
 import { Effect } from "../../effects/Effect";
-import { EffectModifier } from "../EffectModifier";
+import { Modifier } from "../Modifier";
 
-export class PierceModifier implements EffectModifier {
+export class PierceModifier implements Modifier {
+	id = 'pierce';
 	public name = 'Pierce';
+	type = 'modifier' as const;
     apply(base: Effect): Effect {
         base.shouldPassThrough = (target) => { void target; return true; }
         return base;

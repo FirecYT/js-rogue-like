@@ -28,6 +28,14 @@ import { PierceModifier } from './items/modifiers/PierceModifier';
 import { DamageBoostModifier } from './items/modifiers/DamageBoostModifier';
 import { PickupUISystem } from './systems/PickupUISystem';
 import { PickupItem } from './entities/PickupItem';
+import { WeaponPickup } from './entities/WeaponPickup';
+import { Flamethrower } from './items/weapons/Flamethrower';
+import { LaserRifle } from './items/weapons/LaserRifle';
+import { ChipPickup } from './entities/ChipPickup';
+import { ModifierPickup } from './entities/ModifierPickup';
+import { RebirthChip } from './items/chips/RebirthChip';
+import { RebirthSystem } from './systems/RebirthSystem';
+import { Controller } from './controllers/Controller';
 
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
@@ -114,7 +122,7 @@ const bossSpawnSystem = new BossSpawnSystem(
 
 const uiSystem = new UISystem(
 	engine,
-	player,
+	() => controlSwitchSystem.getCurrentControlled(),
 	mouse,
 	playerProgression,
 	floatingTexts,
@@ -123,23 +131,25 @@ const uiSystem = new UISystem(
 );
 
 const controlSwitchSystem = new ControlSwitchSystem(
-	entities,
+	player,
 	new PlayerController(mouse),
-	mouse
 );
 
 const inventorySystem = new InventorySystem(
 	engine,
+	mouse,
 	() => controlSwitchSystem.getCurrentControlled()
 );
+
+new RebirthSystem(entities, controlSwitchSystem);
 
 const effectSystem = new EffectSystem();
 
 const pickupUISystem = new PickupUISystem(
-  engine,
-  player,
-  mouse,
-  1 // canvas scale
+	engine,
+	() => controlSwitchSystem.getCurrentControlled(),
+	mouse,
+	entities
 );
 
 let controlled = controlSwitchSystem.getCurrentControlled();
@@ -153,6 +163,8 @@ function getMousePosition() {
 
 const bestWeapon = new BasicPistol();
 
+bestWeapon.fireRate = 0;
+
 const damageBoost = new DamageBoostModifier(2.0);
 const pierce = new PierceModifier();
 const sinusoidal = new SinusoidalModifier();
@@ -165,33 +177,38 @@ player.inventory.addModifier(pierce);
 player.inventory.addModifier(sinusoidal);
 player.inventory.addModifier(explosive);
 
-player.inventory.addChip(TeleportChip);
+player.inventory.addChip(new TeleportChip);
 player.inventory.addChip(new DashChip);
+player.inventory.addChip(new RebirthChip());
+
+entities.push(new WeaponPickup(500, 0, new BasicPistol));
+entities.push(new WeaponPickup(500, 100, new Flamethrower));
+entities.push(new WeaponPickup(500, 200, new LaserRifle));
+
+entities.push(new ModifierPickup(600, 0, new DamageBoostModifier(2.0)));
+entities.push(new ModifierPickup(600, 50, new PierceModifier()));
+entities.push(new ModifierPickup(600, 100, new SinusoidalModifier()));
+entities.push(new ModifierPickup(600, 150, new ExplosiveModifier(effectSystem)));
+
+entities.push(new ChipPickup(700, 0, new TeleportChip));
+entities.push(new ChipPickup(700, 50, new DashChip));
 
 function update() {
 	controlled = controlSwitchSystem.getCurrentControlled();
 
 	camera.update();
-
-	if (controlSwitchSystem.isDebugMode()) {
-		const speed = 10 / (2 ** scale);
-		if (keyboard.isKeyDown('KeyW')) camera.setFreeMode(camera.x, camera.y - speed);
-		if (keyboard.isKeyDown('KeyS')) camera.setFreeMode(camera.x, camera.y + speed);
-		if (keyboard.isKeyDown('KeyA')) camera.setFreeMode(camera.x - speed, camera.y);
-		if (keyboard.isKeyDown('KeyD')) camera.setFreeMode(camera.x + speed, camera.y);
-	} else {
-		camera.follow(controlled);
-	}
+	camera.follow(controlled);
 
 	worldManager.update(controlled.x, controlled.y);
 	bossSpawnSystem.update();
-	controlSwitchSystem.update();
 	inventorySystem.update();
 
 	if (!(state & 1)) {
 		entities.forEach(e => {
 			if (!e.isDead()) {
-				e.controller?.update(e, worldManager, effectSystem);
+				if ('controller' in e) {
+					(e.controller as Controller)?.update(e, worldManager, effectSystem);
+				}
 				e.inventory.update();
 			}
 		});
@@ -241,13 +258,13 @@ function update() {
 		if (!pickupUISystem.isActive()) {
 			for (let i = 0; i < entities.length; i++) {
 				const entity = entities[i];
-				
+
 				// Check if entity is a pickup item
 				if (entity instanceof PickupItem) {
 					const dx = controlled.x - entity.x;
 					const dy = controlled.y - entity.y;
 					const distance = Math.sqrt(dx * dx + dy * dy);
-					
+
 					// If player is close enough to pickup item
 					if (distance < 20) { // Adjust pickup radius as needed
 						pickupUISystem.activate(entity);
@@ -264,11 +281,7 @@ function update() {
 	}
 
 	uiSystem.update();
-\t	pickupUISystem.update();
-
-	if (controlSwitchSystem.isDebugMode()) {
-		controlSwitchSystem.restoreControllers();
-	}
+	pickupUISystem.update();
 
 	keyboard.update();
 }
@@ -413,8 +426,8 @@ function render() {
 	uiSystem.render();
 
 	inventorySystem.render();
-		
-		pickupUISystem.render();
+
+	pickupUISystem.render();
 }
 
 function tick() {

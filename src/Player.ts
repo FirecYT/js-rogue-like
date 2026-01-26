@@ -1,8 +1,10 @@
 import Entity from './entities/Entity';
 import { interpolateColor } from './utils';
-import { HasStats, HasPosition } from './types/EntityTraits';
+import { HasStats, HasPosition, Controllable } from './types/EntityTraits';
+import { Controller } from './controllers/Controller';
 
-export default class Player extends Entity implements HasPosition, HasStats {
+export default class Player extends Entity implements HasPosition, HasStats, Controllable {
+	public controller: Controller | null = null;
 	public damage = 10;
 	public width = 10;
 	public height = 10;
@@ -28,27 +30,5 @@ export default class Player extends Entity implements HasPosition, HasStats {
 
 		ctx.fillStyle = color;
 		ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-	}
-
-	getCooldowns(): { name: string; val: number; }[] {
-		const cooldowns = [];
-
-		for (const chip of this.inventory.chips) {
-			if (chip && chip.cooldown && !chip.cooldown.isReady()) {
-				cooldowns.push({
-					name: `${chip.name}`,
-					val: chip.cooldown.progress(),
-				});
-			}
-		}
-
-		if (this.inventory.weapon && this.inventory.weapon.cooldown && !this.inventory.weapon.cooldown.isReady()) {
-			cooldowns.push({
-				name: 'fire',
-				val: this.inventory.weapon.cooldown.progress(),
-			});
-		}
-
-		return cooldowns;
 	}
 }

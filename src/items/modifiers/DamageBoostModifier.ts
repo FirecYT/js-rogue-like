@@ -1,11 +1,13 @@
 import { Effect } from "../../effects/Effect";
-import { EffectModifier } from "../EffectModifier";
+import { Modifier } from "../Modifier";
 
-export class DamageBoostModifier implements EffectModifier {
-    public name = 'Damage Boost';
-    constructor(private multiplier: number) { }
-    apply(base: Effect): Effect {
-        base.damage = Math.floor(base.damage * this.multiplier);
-        return base;
-    }
+export class DamageBoostModifier implements Modifier {
+	id = 'damage_boost';
+	name = 'Damage Boost';
+	type = 'modifier' as const;
+	constructor(private multiplier: number) { }
+	apply(base: Effect): Effect {
+		base.damage = Math.floor(base.damage * this.multiplier);
+		return base;
+	}
 }

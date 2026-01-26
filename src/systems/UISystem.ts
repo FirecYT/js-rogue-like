@@ -1,15 +1,15 @@
 import Engine from '../components/Engine';
-import Player from '../Player';
 import FloatingText from '../components/FloatingText';
 import { pir } from '../utils';
 import { PlayerProgression } from './PlayerProgression';
+import Entity from '../entities/Entity';
 
 export class UISystem {
 	private state: number;
 
 	constructor(
 		private engine: Engine,
-		private player: Player,
+		private getControlledEntity: () => Entity,
 		private mouse: { x: number; y: number; pressed: boolean },
 		private playerProgression: PlayerProgression,
 		private floatingTexts: FloatingText[],
@@ -22,48 +22,7 @@ export class UISystem {
 	update() {
 		this.state = this.getState();
 		if (this.state & 1) {
-			const updates = [
-				// () => {
-				//   this.player.dashCooldown.setDuration(
-				//     Math.max(0, this.player.dashCooldown.getMaximum() - 10)
-				//   );
-				// },
-				// () => {
-				//   console.log('Dash speed +');
-				// },
-				// () => {
-				//   this.player.fireCooldown.setDuration(
-				//     Math.floor((this.player.fireCooldown.getMaximum() / 4) * 3)
-				//   );
-				// },
-				() => {
-					this.player.damage++;
-				},
-			];
-
-			for (let i = 0; i < updates.length; i++) {
-				if (
-					this.mouse.pressed &&
-					pir(this.mouse, {
-						x: 45,
-						y: 43 + 20 * i,
-						width: 100,
-						height: 14,
-					})
-				) {
-					updates[i]();
-					this.setState(this.state ^ 1);
-
-					// Проверка на следующий уровень
-					if (this.playerProgression.add(0)) {
-						this.setState(this.getState() | 1);
-						this.floatingTexts.push(
-							new FloatingText(this.player.x, this.player.y - 20, `LEVEL UP! ${this.playerProgression.level}`, 120)
-						);
-					}
-					break;
-				}
-			}
+			this.setState(this.state ^ 1);
 		}
 	}
 
@@ -84,7 +43,7 @@ export class UISystem {
 		);
 
 		// Cooldowns
-		const cooldowns = this.player.getCooldowns();
+		const cooldowns = this.getControlledEntity().getCooldowns();
 		this.engine.context.fillStyle = '#ccc';
 		for (let i = 0; i < cooldowns.length; i++) {
 			this.engine.context.fillRect(5, this.engine.canvas.height - 10 - 10 * i, 100, 5);

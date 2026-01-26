@@ -2,18 +2,25 @@ import { Weapon } from '../items/Weapon';
 import { Chip } from '../items/Chip';
 import Entity from '../entities/Entity';
 import { EffectSystem } from '../systems/EffectSystem';
-import { EffectModifier } from '../items/EffectModifier';
+import { Modifier } from '../items/Modifier';
 
 export class Inventory {
 	public weapon: Weapon | null = null;
-	public modifiers: EffectModifier[] = [];
+	public modifiers: (Modifier | null)[] = [];
 	public chips: (Chip | null)[] = [null, null, null, null, null];
 
 	constructor(public entity: Entity) { }
 
 	setWeapon(weapon: Weapon | null): void {
+		this.weapon?.onUnequip?.(this.entity);
 		this.weapon = weapon;
-		this.weapon?.onEquip?.(this.entity);
+		if (weapon) {
+			while (this.modifiers.length < weapon.modifiersSlots) {
+				this.modifiers.push(null);
+			}
+			this.modifiers.length = weapon.modifiersSlots;
+			weapon.onEquip?.(this.entity);
+		}
 	}
 
 	addChip(chip: Chip): boolean {
@@ -24,9 +31,11 @@ export class Inventory {
 		return true;
 	}
 
-	addModifier(mod: EffectModifier): boolean {
-		if (this.weapon && this.modifiers.length >= this.weapon.modifiersSlots) return false;
-		this.modifiers.push(mod);
+	addModifier(mod: Modifier): boolean {
+		if (!this.weapon) return false;
+		const emptySlot = this.modifiers.findIndex(m => m === null);
+		if ((emptySlot === -1 && this.modifiers.length === this.weapon.modifiersSlots) || emptySlot >= this.weapon.modifiersSlots) return false;
+		this.modifiers[emptySlot] = mod;
 		return true;
 	}
 

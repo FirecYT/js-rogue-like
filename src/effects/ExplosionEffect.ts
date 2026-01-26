@@ -3,7 +3,7 @@ import Entity from '../entities/Entity';
 
 export class ExplosionEffect extends Effect {
 	private radius = 40;
-	private duration = 8;
+	private duration = 12;
 
 	constructor(x: number, y: number, source: Entity) {
 		super(x, y, 0, source, 15);
@@ -19,13 +19,14 @@ export class ExplosionEffect extends Effect {
 				const dist = Math.sqrt(dx * dx + dy * dy);
 				if (dist < this.radius) {
 					entity.takeDamage(this.damage, this.source);
+					this.onHit?.(entity);
 				}
 			}
 		}
 	}
 
 	render(ctx: CanvasRenderingContext2D): void {
-		const alpha = this.duration / 8;
+		const alpha = this.duration / 12;
 		ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
 		ctx.beginPath();
 		ctx.arc(this.x, this.y, this.radius * (1 - alpha), 0, Math.PI * 2);

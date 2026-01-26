@@ -1,3 +1,11 @@
+import { ChipPickup } from "./entities/ChipPickup";
+import Entity from "./entities/Entity";
+import { ModifierPickup } from "./entities/ModifierPickup";
+import { WeaponPickup } from "./entities/WeaponPickup";
+import { Chip } from "./items/Chip";
+import { Modifier } from "./items/Modifier";
+import { Weapon } from "./items/Weapon";
+
 export function pir(
 	point: {
 		x: number;
@@ -63,5 +71,17 @@ export function interpolateColor(color1: string, color2: string, factor: number)
 }
 
 export function getAngleBetweenPoints(x1: number, y1: number, x2: number, y2: number): number {
-  return Math.atan2(y2 - y1, x2 - x1);
+	return Math.atan2(y2 - y1, x2 - x1);
+}
+
+export function createPickupFromItem(item: Weapon | Modifier | Chip, x: number, y: number): Entity {
+	y += 10;
+
+	if (item.type === 'weapon') {
+		return new WeaponPickup(x, y, item as Weapon);
+	} else if (item.type === 'modifier') {
+		return new ModifierPickup(x, y, item as Modifier);
+	} else {
+		return new ChipPickup(x, y, item as Chip);
+	}
 }

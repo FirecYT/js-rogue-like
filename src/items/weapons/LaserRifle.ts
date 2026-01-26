@@ -15,7 +15,7 @@ export class LaserRifle extends Weapon {
 
 	fire(source: Entity, angle: number, effectSystem: EffectSystem): void {
 		const base = new LaserBeam(source.x, source.y, angle, source);
-		const finalEffect = EffectFactory.create(base, source.inventory.modifiers, effectSystem);
+		const finalEffect = EffectFactory.create(base, source.inventory.modifiers);
 		effectSystem.addEffect(finalEffect);
 	}
 
