@@ -13,11 +13,11 @@ export default class Enemy extends Entity implements HasPosition, HasSpeed, Cont
 	constructor(x: number, y: number, private player: Entity) {
 		super(x, y, 5);
 
-		if (Math.random() > 0.07) {
+		if (Math.random() > 0.5) {
 			this.inventory.setWeapon(new BasicPistol);
 		}
 
-		if (Math.random() > 0.07) {
+		if (Math.random() > 0.25) {
 			this.inventory.addChip(new RebirthChip);
 		}
 

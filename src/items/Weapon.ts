@@ -23,3 +23,7 @@ export abstract class Weapon implements Item {
 
 	onUnequip?(entity: Entity): void;
 }
+
+export function isWeapon(item: Item): item is Weapon {
+	return item.type === 'weapon';
+}

@@ -2,9 +2,9 @@ import { ChipPickup } from "./entities/ChipPickup";
 import Entity from "./entities/Entity";
 import { ModifierPickup } from "./entities/ModifierPickup";
 import { WeaponPickup } from "./entities/WeaponPickup";
-import { Chip } from "./items/Chip";
-import { Modifier } from "./items/Modifier";
-import { Weapon } from "./items/Weapon";
+import { Chip, isChip } from "./items/Chip";
+import { isModifier, Modifier } from "./items/Modifier";
+import { isWeapon, Weapon } from "./items/Weapon";
 
 export function pir(
 	point: {
@@ -77,11 +77,13 @@ export function getAngleBetweenPoints(x1: number, y1: number, x2: number, y2: nu
 export function createPickupFromItem(item: Weapon | Modifier | Chip, x: number, y: number): Entity {
 	y += 10;
 
-	if (item.type === 'weapon') {
-		return new WeaponPickup(x, y, item as Weapon);
-	} else if (item.type === 'modifier') {
-		return new ModifierPickup(x, y, item as Modifier);
-	} else {
-		return new ChipPickup(x, y, item as Chip);
+	if (isWeapon(item)) {
+		return new WeaponPickup(x, y, item);
+	} else if (isModifier(item)) {
+		return new ModifierPickup(x, y, item);
+	} else if (isChip(item)) {
+		return new ChipPickup(x, y, item);
 	}
+
+	throw new TypeError("Undefiend type for item");
 }

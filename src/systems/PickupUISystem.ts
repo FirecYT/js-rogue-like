@@ -1,9 +1,9 @@
 // src/systems/PickupUISystem.ts
 
 import Engine from '../components/Engine';
-import { Weapon } from '../items/Weapon';
-import { Modifier } from '../items/Modifier';
-import { Chip } from '../items/Chip';
+import { isWeapon } from '../items/Weapon';
+import { isModifier, Modifier } from '../items/Modifier';
+import { isChip } from '../items/Chip';
 import { PickupItem } from '../entities/PickupItem';
 import { createPickupFromItem, pir } from '../utils';
 import MouseInput from '../components/MouseInput';
@@ -92,8 +92,8 @@ export class PickupUISystem {
 		const item = this.pickupItem.item;
 		const inventory = this.getControlledEntity().inventory;
 
-		if (item.type === 'weapon') {
-			const newWeapon = item as Weapon;
+		if (isWeapon(item)) {
+			const newWeapon = item;
 			const oldWeapon = inventory.weapon;
 			const oldModifiers = inventory.modifiers.filter(m => m !== null);
 
@@ -121,21 +121,21 @@ export class PickupUISystem {
 					createPickupFromItem(mod, this.getControlledEntity().x + (Math.random() - 0.5) * 40, this.getControlledEntity().y + (Math.random() - 0.5) * 40)
 				);
 			}
-		} else if (item.type === 'modifier') {
+		} else if (isModifier(item)) {
 			const oldMod = inventory.modifiers[slotIndex];
 			if (oldMod) {
 				oldMod.onUnequip?.(this.getControlledEntity());
 				this.entities.push(createPickupFromItem(oldMod, this.getControlledEntity().x, this.getControlledEntity().y));
 			}
-			inventory.modifiers[slotIndex] = item as Modifier;
+			inventory.modifiers[slotIndex] = item;
 			item.onEquip?.(this.getControlledEntity());
 
-		} else if (item.type === 'chip') {
+		} else if (isChip(item)) {
 			const oldChip = inventory.chips[slotIndex];
 			if (oldChip) {
 				this.entities.push(createPickupFromItem(oldChip, this.getControlledEntity().x, this.getControlledEntity().y));
 			}
-			const newChip = item as Chip;
+			const newChip = item;
 			inventory.chips[slotIndex] = newChip;
 			newChip.onEquip?.(this.getControlledEntity());
 		}

@@ -1,13 +1,14 @@
 import { Controller } from './Controller';
-import { Pathfinder } from '../world/Pathfinding';
+import { Pathfinder, simplifyPath } from '../world/Pathfinding';
 import { WorldManager } from '../world/WorldManager';
 import Entity from '../entities/Entity';
 import { HasSpeed } from '../types/EntityTraits';
 import { EffectSystem } from '../systems/EffectSystem';
+import { CHUNK_CONFIG } from '../world/Types';
 
 export class AiController extends Controller {
 	protected path: { x: number, y: number }[] = [];
-	protected pathUpdateCooldown = 60;
+	protected pathUpdateCooldown = 0;
 	protected target: Entity;
 
 	constructor(target: Entity) {
@@ -19,8 +20,16 @@ export class AiController extends Controller {
 		this.pathUpdateCooldown--;
 
 		if (this.pathUpdateCooldown <= 0) {
-			this.path = Pathfinder.findPath(entity.x, entity.y, this.target.x, this.target.y, world);
-			if (this.path.length > 0) this.path.shift();
+			const distance = Math.hypot(this.target.x - entity.x, this.target.y - entity.y);
+
+			if (distance < CHUNK_CONFIG.FULL_SIZE * 4) {
+				const rawPath = Pathfinder.findPath(entity.x, entity.y, this.target.x, this.target.y, world);
+				if (rawPath.length > 0) {
+					this.path = simplifyPath(rawPath, world);
+				} else {
+					this.path = [];
+				}
+			}
 			this.pathUpdateCooldown = 60;
 		}
 

@@ -35,7 +35,7 @@ import { ChipPickup } from './entities/ChipPickup';
 import { ModifierPickup } from './entities/ModifierPickup';
 import { RebirthChip } from './items/chips/RebirthChip';
 import { RebirthSystem } from './systems/RebirthSystem';
-import { Controller } from './controllers/Controller';
+import { isControllable } from './types/EntityTraits';
 
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
@@ -206,8 +206,8 @@ function update() {
 	if (!(state & 1)) {
 		entities.forEach(e => {
 			if (!e.isDead()) {
-				if ('controller' in e) {
-					(e.controller as Controller)?.update(e, worldManager, effectSystem);
+				if (isControllable(e)) {
+					e.controller?.update(e, worldManager, effectSystem);
 				}
 				e.inventory.update();
 			}
@@ -254,24 +254,20 @@ function update() {
 			}
 		}
 
-		// Check for pickup collisions
 		if (!pickupUISystem.isActive()) {
 			for (let i = 0; i < entities.length; i++) {
 				const entity = entities[i];
 
-				// Check if entity is a pickup item
 				if (entity instanceof PickupItem) {
 					const dx = controlled.x - entity.x;
 					const dy = controlled.y - entity.y;
 					const distance = Math.sqrt(dx * dx + dy * dy);
 
-					// If player is close enough to pickup item
-					if (distance < 20) { // Adjust pickup radius as needed
+					if (distance < 20) {
 						pickupUISystem.activate(entity);
 						entity.onPickup(controlled);
-						// Remove the pickup item from the world after activation
 						entities.splice(i, 1);
-						break; // Only handle one pickup at a time
+						break;
 					}
 				}
 			}

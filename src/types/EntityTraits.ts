@@ -21,3 +21,7 @@ export interface HasTarget {
 export interface Controllable {
 	controller: Controller | null;
 }
+
+export function isControllable(entity: Entity): entity is Entity & Controllable {
+	return 'controller' in entity;
+}

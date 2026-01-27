@@ -7,3 +7,7 @@ export interface Chip extends Item {
 	use?(entity: Entity): void;
 	onUpdate?(entity: Entity): void
 }
+
+export function isChip(item: Item): item is Chip {
+	return item.type === 'chip';
+}

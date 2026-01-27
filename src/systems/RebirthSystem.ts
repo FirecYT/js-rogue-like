@@ -1,8 +1,7 @@
 import { eventBus } from '../events/EventBus';
 import Entity from '../entities/Entity';
 import { ControlSwitchSystem } from './ControlSwitchSystem';
-import { Controllable } from '../types/EntityTraits';
-import { Controller } from '../controllers/Controller';
+import { Controllable, isControllable } from '../types/EntityTraits';
 
 export class RebirthSystem {
 	constructor(
@@ -18,7 +17,7 @@ export class RebirthSystem {
 				e !== victim &&
 				e !== this.controlSwitchSystem.getCurrentControlled() &&
 				!e.isDead() &&
-				'controller' in e
+				isControllable(e)
 			) as (Entity & Controllable)[];
 
 			if (candidates.length === 0) return;
@@ -28,8 +27,8 @@ export class RebirthSystem {
 					Math.hypot(b.x - victim.x, b.y - victim.y) ? a : b
 			);
 
-			if ('controller' in victim) {
-				nearest.controller = victim.controller as Controller;
+			if (isControllable(victim)) {
+				nearest.controller = victim.controller;
 			}
 
 			victim.inventory.chips[chipIdx] = null;

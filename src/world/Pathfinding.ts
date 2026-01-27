@@ -52,7 +52,7 @@ export class Pathfinder {
 			}
 
 			if (currentNode.x === target.globalTileX && currentNode.y === target.globalTileY) {
-				return this.buildPath(currentNode, worldManager);
+				return this.buildPath(currentNode, worldManager, startWorldX, startWorldY);
 			}
 
 			openSet.splice(currentIndex, 1);
@@ -95,7 +95,7 @@ export class Pathfinder {
 		return Math.max(dx, dy);
 	}
 
-	private static buildPath(endNode: Node, worldManager: WorldManager): { x: number, y: number }[] {
+	private static buildPath(endNode: Node, worldManager: WorldManager, startWorldX: number, startWorldY: number): { x: number, y: number }[] {
 		const path: { x: number, y: number }[] = [];
 		let currentNode: Node | undefined = endNode;
 
@@ -108,6 +108,52 @@ export class Pathfinder {
 			currentNode = currentNode.parent;
 		}
 
+		if (path.length > 0) {
+			path[0] = { x: startWorldX, y: startWorldY };
+		}
+
 		return path;
 	}
+}
+
+export function simplifyPath(path: { x: number; y: number }[], worldManager: WorldManager): { x: number; y: number }[] {
+	if (path.length <= 2) return path;
+
+	const simplified = [path[0]];
+	let current = 0;
+
+	while (current < path.length - 1) {
+		let furthest = current + 1;
+		for (let i = current + 2; i < path.length; i++) {
+			if (hasLineOfSight(simplified[simplified.length - 1], path[i], worldManager)) {
+				furthest = i;
+			} else {
+				break;
+			}
+		}
+		simplified.push(path[furthest]);
+		current = furthest;
+	}
+
+	return simplified;
+}
+
+function hasLineOfSight(a: { x: number; y: number }, b: { x: number; y: number }, world: WorldManager): boolean {
+	const dx = b.x - a.x;
+	const dy = b.y - a.y;
+	const dist = Math.hypot(dx, dy);
+	if (dist === 0) return true;
+
+	const steps = Math.ceil(dist / 8);
+	const stepX = dx / steps;
+	const stepY = dy / steps;
+
+	for (let i = 1; i <= steps; i++) {
+		const x = a.x + stepX * i;
+		const y = a.y + stepY * i;
+		if (!world.isWorldPositionPassable(x, y)) {
+			return false;
+		}
+	}
+	return true;
 }
