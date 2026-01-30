@@ -9,7 +9,7 @@ import MouseInput from './components/MouseInput';
 import { PlayerProgression } from './systems/PlayerProgression';
 import { BossSpawnSystem } from './systems/BossSpawnSystem';
 import { EnemySpawnerSystem } from './systems/EnemySpawnerSystem';
-import { UISystem } from './systems/UISystem';
+import { ScreenManager } from './ui/ScreenManager';
 import { PlayerController } from './controllers/PlayerController';
 import Entity from './entities/Entity';
 import { BasicPistol } from './items/weapons/BasicPistol';
@@ -26,7 +26,7 @@ import { ExplosiveModifier } from './items/modifiers/ExplosiveModifier';
 import { SinusoidalModifier } from './items/modifiers/SinusoidalModifier';
 import { PierceModifier } from './items/modifiers/PierceModifier';
 import { DamageBoostModifier } from './items/modifiers/DamageBoostModifier';
-import { PickupUISystem } from './systems/PickupUISystem';
+
 import { PickupItem } from './entities/PickupItem';
 import { WeaponPickup } from './entities/WeaponPickup';
 import { Flamethrower } from './items/weapons/Flamethrower';
@@ -120,15 +120,14 @@ const bossSpawnSystem = new BossSpawnSystem(
 	]
 );
 
-const uiSystem = new UISystem(
+const screenManager = new ScreenManager(
 	engine,
-	() => controlSwitchSystem.getCurrentControlled(),
 	mouse,
-	playerProgression,
-	floatingTexts,
-	() => state,
-	(newState) => { state = newState; },
+	() => controlSwitchSystem.getCurrentControlled()
 );
+
+// Set the player progression for the HUD
+screenManager.getHud().setPlayerProgression(playerProgression);
 
 const controlSwitchSystem = new ControlSwitchSystem(
 	player,
@@ -145,12 +144,7 @@ new RebirthSystem(entities, controlSwitchSystem);
 
 const effectSystem = new EffectSystem();
 
-const pickupUISystem = new PickupUISystem(
-	engine,
-	() => controlSwitchSystem.getCurrentControlled(),
-	mouse,
-	entities
-);
+
 
 let controlled = controlSwitchSystem.getCurrentControlled();
 
@@ -276,8 +270,7 @@ function update() {
 		effectSystem.update(entities);
 	}
 
-	uiSystem.update();
-	pickupUISystem.update();
+screenManager.update();
 
 	keyboard.update();
 }
@@ -419,10 +412,9 @@ function render() {
 
 	engine.context.restore();
 
-	uiSystem.render();
+screenManager.render();
 
 	inventorySystem.render();
-
 	pickupUISystem.render();
 }
 
