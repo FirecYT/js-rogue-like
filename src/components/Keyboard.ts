@@ -5,12 +5,14 @@ export default class Keyboard {
 
 	constructor() {
 		document.addEventListener('keydown', (e) => {
+			e.preventDefault();
 			if (!this.keysDown.has(e.code)) {
 				this.keysDown.add(e.code);
 				this.keysPressed.add(e.code);
 			}
 		});
 		document.addEventListener('keyup', (e) => {
+			e.preventDefault();
 			this.keysDown.delete(e.code);
 		});
 	}

@@ -1,104 +1,131 @@
 import { Component } from '../Component';
-import { MouseInput } from '../../components/MouseInput';
+import MouseInput from '../../components/MouseInput';
 
 /**
- * Кнопка
+ * Улучшенная кнопка с градиентами и тенями
  */
 export class Button extends Component {
-  private text: string;
-  private onClickCallback: (() => void) | null = null;
+	/** Текст на кнопке */
+	private text: string;
 
-  /**
-   * Создать кнопку
-   * @param text Текст на кнопке
-   * @param width Ширина кнопки
-   * @param height Высота кнопки
-   */
-  constructor(text: string, width: number = 100, height: number = 30) {
-    super();
-    this.text = text;
-    this.width = width;
-    this.height = height;
-  }
+	/** Обработчик клика */
+	private onClickCallback: (() => void) | null = null;
 
-  /**
-   * Установить обработчик клика
-   * @param callback Функция, вызываемая при клике
-   */
-  setOnClick(callback: () => void): void {
-    this.onClickCallback = callback;
-  }
+	/**
+	 * Создать кнопку
+	 * @param text Текст на кнопке
+	 * @param width Ширина кнопки
+	 * @param height Высота кнопки
+	 */
+	constructor(text: string, width = 100, height = 30) {
+		super();
+		this.text = text;
+		this.width = width;
+		this.height = height;
+	}
 
-  /**
-   * Обновить текст кнопки
-   * @param text Новый текст
-   */
-  setText(text: string): void {
-    this.text = text;
-  }
+	/**
+	 * Установить обработчик клика
+	 * @param callback Функция, вызываемая при клике
+	 */
+	setOnClick(callback: () => void): void {
+		this.onClickCallback = callback;
+	}
 
-  /**
-   * Проверка и обработка клика
-   * @returns true, если был клик по кнопке
-   */
-  handleClick(): boolean {
-    if (this.active && this.onClickCallback) {
-      this.onClickCallback();
-      return true;
-    }
-    return false;
-  }
+	/**
+	 * Обновить текст кнопки
+	 * @param text Новый текст
+	 */
+	setText(text: string): void {
+		this.text = text;
+	}
 
-  /**
-   * Обновление состояния кнопки (наведение, нажатие)
-   * @param mouse Входные данные мыши
-   */
-  update(mouse: MouseInput): void {
-    // Calculate mouse position relative to button
-    const relativeX = mouse.x - (this.x || 0);
-    const relativeY = mouse.y - (this.y || 0);
+	/**
+	 * Проверка и обработка клика
+	 * @returns true, если был клик по кнопке
+	 */
+	handleClick(): boolean {
+		if (this.active && this.onClickCallback) {
+			this.onClickCallback();
+			return true;
+		}
+		return false;
+	}
 
-    // Check if mouse is over button
-    const isOverButton = relativeX >= 0 && relativeX <= this.width && 
-                         relativeY >= 0 && relativeY <= this.height;
+	/**
+	 * Обновление состояния кнопки (наведение, нажатие)
+	 * @param mouse Входные данные мыши
+	 * @param globalX Глобальная координата X компонента на экране
+	 * @param globalY Глобальная координата Y компонента на экране
+	 */
+	update(mouse: MouseInput, globalX: number, globalY: number): void {
+		const isOverButton = (
+			mouse.x >= globalX &&
+			mouse.x <= globalX + this.width &&
+			mouse.y >= globalY &&
+			mouse.y <= globalY + this.height
+		);
 
-    this.setHovered(isOverButton);
+		this.setHovered(isOverButton);
 
-    // Update active state based on mouse press and hover
-    if (isOverButton && mouse.pressed) {
-      this.setActive(true);
-    } else {
-      this.setActive(false);
-    }
+		if (this.active && !mouse.pressed) {
+			this.handleClick();
+			this.setActive(false);
+		}
 
-    // Handle click
-    if (this.active && !mouse.pressed) {
-      this.handleClick();
-      this.setActive(false);
-    }
-  }
+		if (isOverButton && mouse.pressed) {
+			this.setActive(true);
+		} else {
+			this.setActive(false);
+		}
+	}
 
-  /**
-   * Отрисовка кнопки
-   * @param ctx Контекст канваса
-   * @param offsetX Смещение по оси X от родителя
-   * @param offsetY Смещение по оси Y от родителя
-   */
-  render(ctx: CanvasRenderingContext2D, offsetX: number = 0, offsetY: number = 0): void {
-    // Draw button background
-    ctx.fillStyle = this.active ? '#5a5' : (this.hovered ? '#6b6' : '#aaa');
-    ctx.fillRect(offsetX + this.x, offsetY + this.y, this.width, this.height);
-    
-    // Draw button border
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(offsetX + this.x, offsetY + this.y, this.width, this.height);
-    
-    // Draw button text
-    ctx.fillStyle = '#000';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.text, offsetX + this.x + this.width / 2, offsetY + this.y + this.height / 2);
-  }
+	/**
+	 * Отрисовка кнопки
+	 * @param ctx Контекст канваса
+	 * @param offsetX Смещение по оси X от родителя
+	 * @param offsetY Смещение по оси Y от родителя
+	 */
+	render(ctx: CanvasRenderingContext2D, offsetX = 0, offsetY = 0): void {
+		const x = offsetX + this.x;
+		const y = offsetY + this.y;
+		const isHovered = this.hovered;
+		const isActive = this.active;
+
+		// Градиентный фон
+		const gradient = ctx.createLinearGradient(x, y, x, y + this.height);
+		if (isActive) {
+			gradient.addColorStop(0, '#2d4d2d');
+			gradient.addColorStop(1, '#1d3d1d');
+		} else if (isHovered) {
+			gradient.addColorStop(0, '#3a5a3a');
+			gradient.addColorStop(1, '#2a4a2a');
+		} else {
+			gradient.addColorStop(0, '#2a2a2a');
+			gradient.addColorStop(1, '#1a1a1a');
+		}
+		ctx.fillStyle = gradient;
+		ctx.fillRect(x, y, this.width, this.height);
+
+		// Внутренняя тень
+		ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+		ctx.shadowBlur = 4;
+		ctx.shadowOffsetX = 1;
+		ctx.shadowOffsetY = 1;
+		ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+		ctx.fillRect(x + 1, y + 1, this.width - 2, this.height - 2);
+		ctx.shadowColor = 'transparent';
+
+		// Граница
+		ctx.strokeStyle = isHovered ? '#777' : '#555';
+		ctx.lineWidth = 1.5;
+		ctx.strokeRect(x + 0.5, y + 0.5, this.width - 1, this.height - 1);
+
+		// Текст
+		ctx.fillStyle = '#fff';
+		ctx.font = '14px Arial';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(this.text, x + this.width / 2, y + this.height / 2);
+	}
 }

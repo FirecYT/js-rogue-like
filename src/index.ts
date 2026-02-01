@@ -16,7 +16,6 @@ import { BasicPistol } from './items/weapons/BasicPistol';
 import { TeleportChip } from './items/chips/TeleportChip';
 import { DashChip } from './items/chips/DashChip';
 import { ControlSwitchSystem } from './systems/ControlSwitchSystem';
-import { InventorySystem } from './systems/InventorySystem';
 import { EffectSystem } from './systems/EffectSystem';
 import { eventBus } from './events/EventBus';
 import Enemy from './entities/Enemy';
@@ -26,8 +25,6 @@ import { ExplosiveModifier } from './items/modifiers/ExplosiveModifier';
 import { SinusoidalModifier } from './items/modifiers/SinusoidalModifier';
 import { PierceModifier } from './items/modifiers/PierceModifier';
 import { DamageBoostModifier } from './items/modifiers/DamageBoostModifier';
-
-import { PickupItem } from './entities/PickupItem';
 import { WeaponPickup } from './entities/WeaponPickup';
 import { Flamethrower } from './items/weapons/Flamethrower';
 import { LaserRifle } from './items/weapons/LaserRifle';
@@ -36,6 +33,14 @@ import { ModifierPickup } from './entities/ModifierPickup';
 import { RebirthChip } from './items/chips/RebirthChip';
 import { RebirthSystem } from './systems/RebirthSystem';
 import { isControllable } from './types/EntityTraits';
+import { PickupWindow } from './ui/windows/PickupWindow';
+import { PickupItem } from './entities/PickupItem';
+import { LevelUpWindow } from './ui/windows/LevelUpWindow';
+import { InventoryWindow } from './ui/windows/InventoryWindow';
+import { isWeapon } from './items/Weapon';
+import { isModifier, Modifier } from './items/Modifier';
+import { createPickupFromItem } from './utils';
+import { isChip } from './items/Chip';
 
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
@@ -74,8 +79,6 @@ await engine.loadImages([
 
 let scale = 0;
 
-let state = 0;
-
 const playerProgression = new PlayerProgression();
 
 const floatingTexts: FloatingText[] = [];
@@ -89,7 +92,17 @@ canvas.addEventListener('wheel', (event) => {
 
 function addExperience(amount: number) {
 	if (playerProgression.add(amount)) {
-		state |= 1;
+		const lvlUpWin = new LevelUpWindow(
+			['Увеличить урон', 'Уменьшить перезарядку', 'Увеличить здоровье'],
+			engine.canvas.width,
+			engine.canvas.height
+		);
+
+		lvlUpWin.setOnChoose((choice) => {
+			// applyUpgrade(choice); // ← твоя функция улучшения
+			screenManager.closeWindow(lvlUpWin);
+			floatingTexts.push(new FloatingText(controlled.x, controlled.y, choice, 60));
+		});
 
 		floatingTexts.push(new FloatingText(controlled.x, controlled.y - 20, `LEVEL UP! ${playerProgression.level}`, 120));
 	}
@@ -134,17 +147,9 @@ const controlSwitchSystem = new ControlSwitchSystem(
 	new PlayerController(mouse),
 );
 
-const inventorySystem = new InventorySystem(
-	engine,
-	mouse,
-	() => controlSwitchSystem.getCurrentControlled()
-);
-
 new RebirthSystem(entities, controlSwitchSystem);
 
 const effectSystem = new EffectSystem();
-
-
 
 let controlled = controlSwitchSystem.getCurrentControlled();
 
@@ -195,9 +200,8 @@ function update() {
 
 	worldManager.update(controlled.x, controlled.y);
 	bossSpawnSystem.update();
-	inventorySystem.update();
 
-	if (!(state & 1)) {
+	if (!screenManager.hasActiveWindows()) {
 		entities.forEach(e => {
 			if (!e.isDead()) {
 				if (isControllable(e)) {
@@ -248,21 +252,83 @@ function update() {
 			}
 		}
 
-		if (!pickupUISystem.isActive()) {
-			for (let i = 0; i < entities.length; i++) {
-				const entity = entities[i];
+		for (let i = 0; i < entities.length; i++) {
+			const entity = entities[i];
+			if (entity instanceof PickupItem) {
+				const dx = controlled.x - entity.x;
+				const dy = controlled.y - entity.y;
+				const distance = Math.sqrt(dx * dx + dy * dy);
+				if (distance < 20) {
+					const pickupWin = new PickupWindow(
+						entity,
+						controlled,
+						entities,
+						engine.canvas.width,
+						engine.canvas.height
+					);
 
-				if (entity instanceof PickupItem) {
-					const dx = controlled.x - entity.x;
-					const dy = controlled.y - entity.y;
-					const distance = Math.sqrt(dx * dx + dy * dy);
+					pickupWin.setOnConfirm((slotIndex) => {
+						const item = entity.item;
 
-					if (distance < 20) {
-						pickupUISystem.activate(entity);
-						entity.onPickup(controlled);
-						entities.splice(i, 1);
-						break;
-					}
+						if (isWeapon(item)) {
+							const newWeapon = item;
+							const oldWeapon = controlled.inventory.weapon;
+							const oldModifiers = controlled.inventory.modifiers.filter(m => m !== null);
+
+							controlled.inventory.setWeapon(newWeapon);
+
+							const newModifiers: (Modifier | null)[] = Array(newWeapon.modifiersSlots).fill(null);
+
+							const droppedModifiers: Modifier[] = [];
+							for (let i = 0; i < oldModifiers.length; i++) {
+								if (i < newWeapon.modifiersSlots) {
+									newModifiers[i] = oldModifiers[i];
+								} else {
+									droppedModifiers.push(oldModifiers[i]);
+								}
+							}
+
+							controlled.inventory.modifiers = newModifiers;
+
+							if (oldWeapon) {
+								entities.push(createPickupFromItem(oldWeapon, controlled.x, controlled.y));
+							}
+							for (const mod of droppedModifiers) {
+								mod.onUnequip?.(controlled);
+								entities.push(
+									createPickupFromItem(mod, controlled.x + (Math.random() - 0.5) * 40, controlled.y + (Math.random() - 0.5) * 40)
+								);
+							}
+						} else if (isModifier(item)) {
+							const oldMod = controlled.inventory.modifiers[slotIndex];
+							if (oldMod) {
+								oldMod.onUnequip?.(controlled);
+								entities.push(createPickupFromItem(oldMod, controlled.x, controlled.y));
+							}
+							controlled.inventory.modifiers[slotIndex] = item;
+							item.onEquip?.(controlled);
+
+						} else if (isChip(item)) {
+							const oldChip = controlled.inventory.chips[slotIndex];
+							if (oldChip) {
+								entities.push(createPickupFromItem(oldChip, controlled.x, controlled.y));
+							}
+							const newChip = item;
+							controlled.inventory.chips[slotIndex] = newChip;
+							newChip.onEquip?.(controlled);
+						}
+
+						screenManager.closeWindow(pickupWin);
+					});
+
+					pickupWin.setOnCancel(() => {
+						screenManager.closeWindow(pickupWin);
+					});
+
+					screenManager.openWindow(pickupWin);
+					entity.onPickup(controlled);
+					entities.splice(i, 1);
+					break;
 				}
 			}
 		}
@@ -270,7 +336,25 @@ function update() {
 		effectSystem.update(entities);
 	}
 
-screenManager.update();
+	if (keyboard.isKeyPressedOnce('Tab')) {
+		if (screenManager.isWindowOpen(InventoryWindow)) {
+			screenManager.closeWindowsOfType(InventoryWindow);
+		} else {
+			const invWin = new InventoryWindow(
+				controlSwitchSystem.getCurrentControlled(),
+				engine.canvas.width,
+				engine.canvas.height
+			);
+
+			invWin.setOnClose(() => {
+				screenManager.closeWindow(invWin);
+			});
+
+			screenManager.openWindow(invWin);
+		}
+	}
+
+	screenManager.update();
 
 	keyboard.update();
 }
@@ -412,10 +496,7 @@ function render() {
 
 	engine.context.restore();
 
-screenManager.render();
-
-	inventorySystem.render();
-	pickupUISystem.render();
+	screenManager.render();
 }
 
 function tick() {
