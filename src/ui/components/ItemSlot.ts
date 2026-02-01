@@ -64,8 +64,13 @@ export class ItemSlot extends Component {
 			gradient.addColorStop(0, isHovered ? '#2a2a2a' : '#1a1a1a');
 			gradient.addColorStop(1, isHovered ? '#1f1f1f' : '#0f0f0f');
 		} else {
-			gradient.addColorStop(0, isHovered ? '#253525' : '#1a251a');
-			gradient.addColorStop(1, isHovered ? '#1a251a' : '#0f1a0f');
+			if (this.item?.cooldown) {
+				gradient.addColorStop(0, isHovered ? '#253525' : '#1a251a');
+				gradient.addColorStop(1, isHovered ? '#1a251a' : '#0f1a0f');
+			} else {
+				gradient.addColorStop(0, isHovered ? '#263636' : '#192424');
+				gradient.addColorStop(1, isHovered ? '#192424' : '#0f1a1a');
+			}
 		}
 		ctx.fillStyle = gradient;
 		ctx.fillRect(x, y, this.width, this.height);
@@ -80,7 +85,7 @@ export class ItemSlot extends Component {
 		ctx.shadowColor = 'transparent';
 
 		// Граница
-		ctx.strokeStyle = isOccupied ? (isHovered ? '#6f6' : '#4a4') : (isHovered ? '#777' : '#444');
+		ctx.strokeStyle = isOccupied ? (this.item?.cooldown ? (isHovered ? '#6f6' : '#4a4') : (isHovered ? '#6ff' : '#4aa')) : (isHovered ? '#777' : '#444');
 		ctx.lineWidth = isHovered ? 1.5 : 1;
 		ctx.strokeRect(x + 0.5, y + 0.5, this.width - 1, this.height - 1);
 
@@ -110,7 +115,7 @@ export class ItemSlot extends Component {
 		if (!this.item) return;
 
 		ctx.fillStyle = this.hovered ? '#fff' : '#ccc';
-		ctx.font = `${Math.max(8, Math.floor((this.width / this.item.name.length) * 1.5))}px Arial`;
+		ctx.font = `${Math.max(6, Math.floor((this.width / this.item.name.length) * 1.5))}px Arial`;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 
@@ -126,38 +131,28 @@ export class ItemSlot extends Component {
 	private renderCooldown(ctx: CanvasRenderingContext2D, x: number, y: number): void {
 		if (!this.item?.cooldown) return;
 
-		const centerX = x + this.width / 2;
-		const centerY = y + this.height / 2;
-		const radius = Math.min(this.width, this.height) / 2 - 8;
+		ctx.fillStyle = '#0004';
+		ctx.fillRect(x, y, this.width, this.height);
+
+		const isHovered = this.hovered;
 		const progress = this.item.cooldown.progress();
 
-		// Фон круга перезарядки
-		ctx.beginPath();
-		ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-		ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-		ctx.fill();
+		const gradient = ctx.createLinearGradient(x, y, x, y + this.height);
+		gradient.addColorStop(0, isHovered ? '#2a2a2a' : '#1a1a1a');
+		gradient.addColorStop(1, isHovered ? '#1f1f1f' : '#0f0f0f');
 
-		// Прогресс перезарядки (по кругу против часовой стрелки)
-		ctx.beginPath();
-		ctx.arc(
-			centerX,
-			centerY,
-			radius,
-			-Math.PI / 2,                              // Начинаем сверху
-			-Math.PI / 2 + Math.PI * 2 * (1 - progress), // Против часовой стрелки
-			false
-		);
-		ctx.strokeStyle = '#4a86e8'; // Светло-синий
-		ctx.lineWidth = 4;
-		ctx.stroke();
+		ctx.fillStyle = gradient;
+		ctx.fillRect(x, y, this.width, this.height * progress);
 
-		// Текст оставшегося времени
+		const centerX = x + this.width / 2;
+		const centerY = y + this.height / 2;
+
 		if (progress > 0.1) {
 			ctx.fillStyle = '#fff';
 			ctx.font = '10px Arial';
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'middle';
-			const remaining = Math.ceil(this.item.cooldown.getMaximum() * progress / 60); // Переводим в секунды
+			const remaining = Math.ceil(this.item.cooldown.getMaximum() * progress / 60 * 10) / 10;
 			ctx.fillText(remaining.toString(), centerX, centerY);
 		}
 	}

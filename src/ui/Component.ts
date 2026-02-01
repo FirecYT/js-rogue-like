@@ -81,8 +81,6 @@ export abstract class Component {
 			let current: Component | null = this.parent;
 
 			while (current) {
-				console.log(current);
-
 				x += current.x;
 				y += current.y;
 				current = current.parent;

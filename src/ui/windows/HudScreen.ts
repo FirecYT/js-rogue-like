@@ -21,6 +21,10 @@ export class HudScreen extends Component {
 	private chipsBar: VerticalLayout;     // Чипы (справа над ХП)
 	private hpBarContainer: VerticalLayout; // Контейнер ХП + чипов
 
+	// Слоты для отслеживания состояния
+	private weaponSlot: ItemSlot | null = null;
+	private modifierSlots: ItemSlot[] = [];
+
 	// Настройки размеров
 	private readonly CHIP_SIZE = 50;
 	private readonly WEAPON_SLOT_WIDTH = 80;
@@ -28,6 +32,10 @@ export class HudScreen extends Component {
 	private readonly MODIFIER_SLOT_SIZE = 50;
 	private readonly HP_BAR_WIDTH = 12;
 	private readonly EXP_BAR_HEIGHT = 6;
+
+	// Отслеживание состояния для обновления
+	private lastWeaponId: string | null = null;
+	private lastModifierCount = 0;
 
 	constructor(engine: Engine, getControlledEntity: () => Entity) {
 		super();
@@ -37,15 +45,13 @@ export class HudScreen extends Component {
 		// === ПАНЕЛЬ ОРУЖИЯ И МОДИФИКАТОРОВ (слева внизу) ===
 		this.weaponBar = new HorizontalLayout();
 		this.weaponBar.x = 10;
-		this.weaponBar.y = engine.canvas.height - 80; // 60px + отступ
+		this.weaponBar.y = engine.canvas.height - 80;
 		this.weaponBar.spacing = 8;
 
 		// === ПАНЕЛЬ ЗДОРОВЬЯ И ЧИПОВ (справа внизу) ===
 		this.hpBarContainer = new VerticalLayout();
-		this.hpBarContainer.x = engine.canvas.width - this.HP_BAR_WIDTH - 10;
-		this.hpBarContainer.y = engine.canvas.height - 150; // Высота контейнера
 		this.hpBarContainer.spacing = 10;
-		this.hpBarContainer.padding = { top: 10, right: 10, bottom: 50, left: 10 };
+		this.hpBarContainer.padding = { top: 10, right: 10, bottom: 10, left: 10 };
 
 		// Панель чипов
 		this.chipsBar = new VerticalLayout();
@@ -57,9 +63,6 @@ export class HudScreen extends Component {
 			const slot = new ItemSlot(this.CHIP_SIZE, this.CHIP_SIZE);
 			this.chipsBar.addChild(slot);
 		}
-
-		// Добавляем контейнер ХП в основной контейнер
-		// (фактически ХП будет отрисовываться отдельно, но для позиционирования)
 	}
 
 	/**
@@ -76,35 +79,72 @@ export class HudScreen extends Component {
 		const entity = this.getControlledEntity();
 		if (!entity) return;
 
-		// Создаем слоты оружия и модификаторов при первой загрузке
-		if (this.weaponBar.children.length === 0) {
-			this.createWeaponBar(entity);
-		}
+		// Обновляем оружие и модификаторы
+		this.updateWeaponBar(entity);
 
 		// Обновляем чипы
 		const chipSlots = this.chipsBar.children as ItemSlot[];
-		for (let i = 0; i < chipSlots.length; i++) {
+		for (let i = 0; i < Math.min(chipSlots.length, entity.inventory.chips.length); i++) {
 			chipSlots[i].setItem(entity.inventory.chips[i]);
 		}
 
 		// Обновляем компоненты
 		this.weaponBar.update(mouse, this.weaponBar.x, this.weaponBar.y);
-		this.hpBarContainer.x = this.engine.canvas.width - this.hpBarContainer.width;
-		this.hpBarContainer.y = this.engine.canvas.height - this.hpBarContainer.height;
+		this.hpBarContainer.x = this.engine.canvas.width - this.hpBarContainer.width - 10;
+		this.hpBarContainer.y = this.engine.canvas.height - this.hpBarContainer.height - 10;
 		this.hpBarContainer.update(mouse, this.hpBarContainer.x, this.hpBarContainer.y);
 	}
 
 	/**
-	 * Создание панели оружия и модификаторов
+	 * Обновление панели оружия и модификаторов
 	 */
-	private createWeaponBar(entity: Entity): void {
-		if (entity.inventory.weapon) {
-			const weaponSlot = new ItemSlot(this.WEAPON_SLOT_WIDTH, this.WEAPON_SLOT_HEIGHT, entity.inventory.weapon);
-			this.weaponBar.addChild(weaponSlot);
+	private updateWeaponBar(entity: Entity): void {
+		const currentWeapon = entity.inventory.weapon;
+		const currentModifiers = entity.inventory.modifiers;
 
-			for (const modifier of entity.inventory.modifiers) {
-				const modSlot = new ItemSlot(this.MODIFIER_SLOT_SIZE, this.MODIFIER_SLOT_SIZE, modifier);
+		// Определяем, нужно ли пересоздать слоты
+		const weaponChanged = currentWeapon?.id !== this.lastWeaponId;
+		const modifiersCountChanged = currentModifiers.length !== this.lastModifierCount;
+
+		if (weaponChanged || modifiersCountChanged) {
+			// Очищаем старые слоты
+			this.weaponBar.children = [];
+			this.modifierSlots = [];
+
+			// Создаём новый слот оружия
+			if (currentWeapon) {
+				this.weaponSlot = new ItemSlot(
+					this.WEAPON_SLOT_WIDTH,
+					this.WEAPON_SLOT_HEIGHT,
+					currentWeapon
+				);
+				this.weaponBar.addChild(this.weaponSlot);
+				this.lastWeaponId = currentWeapon.id;
+			} else {
+				this.weaponSlot = null;
+				this.lastWeaponId = null;
+			}
+
+			// Создаём слоты модификаторов
+			for (const modifier of currentModifiers) {
+				const modSlot = new ItemSlot(
+					this.MODIFIER_SLOT_SIZE,
+					this.MODIFIER_SLOT_SIZE,
+					modifier
+				);
 				this.weaponBar.addChild(modSlot);
+				this.modifierSlots.push(modSlot);
+			}
+
+			this.lastModifierCount = currentModifiers.length;
+		} else {
+			// Просто обновляем предметы в существующих слотах
+			if (this.weaponSlot && currentWeapon) {
+				this.weaponSlot.setItem(currentWeapon);
+			}
+
+			for (let i = 0; i < this.modifierSlots.length; i++) {
+				this.modifierSlots[i].setItem(currentModifiers[i]);
 			}
 		}
 	}
@@ -136,12 +176,14 @@ export class HudScreen extends Component {
 		const height = this.EXP_BAR_HEIGHT;
 		const y = 0;
 
+		// Фон полосы
 		const gradientBg = ctx.createLinearGradient(0, y, width, y);
 		gradientBg.addColorStop(0, '#1a3a1a');
 		gradientBg.addColorStop(1, '#0a2a0a');
 		ctx.fillStyle = gradientBg;
 		ctx.fillRect(0, y, width, height);
 
+		// Прогресс
 		const progress = this.playerProgression.experience / this.playerProgression.experienceToNext;
 		const progressWidth = width * progress;
 
@@ -161,19 +203,24 @@ export class HudScreen extends Component {
 		const hpPercent = hp / maxHp;
 
 		const barWidth = this.HP_BAR_WIDTH;
-		const barHeight = this.chipsBar.height;
+		const barHeight = this.chipsBar.height + this.hpBarContainer.padding.top + this.hpBarContainer.padding.bottom;
 		const x = this.hpBarContainer.x;
 		const y = this.hpBarContainer.y;
 
-		const gradientBg = ctx.createLinearGradient(x, y, x + barWidth, y);
-		gradientBg.addColorStop(0, '#1a0a0a');
-		gradientBg.addColorStop(1, '#2a0a0a');
-		ctx.fillStyle = gradientBg;
-		ctx.fillRect(x - 12, y + 10, barWidth, barHeight);
+		// Фон полосы здоровья
+		ctx.fillStyle = '#1a0a0a';
+		ctx.fillRect(x - barWidth - 15, y, barWidth, barHeight);
 
-		const progress = barHeight * hpPercent;
+		// Прогресс здоровья
+		const progressHeight = barHeight * hpPercent;
 
-		const gradientHp = ctx.createLinearGradient(x, y, x, y + progress);
+		const gradientHp = ctx.createLinearGradient(
+			x - barWidth - 15,
+			y + barHeight - progressHeight,
+			x - 15,
+			y + barHeight
+		);
+
 		if (hpPercent > 0.6) {
 			gradientHp.addColorStop(0, '#4caf50');
 			gradientHp.addColorStop(1, '#8bc34a');
@@ -184,9 +231,16 @@ export class HudScreen extends Component {
 			gradientHp.addColorStop(0, '#f44336');
 			gradientHp.addColorStop(1, '#e91e63');
 		}
-		ctx.fillStyle = gradientHp;
-		ctx.fillRect(x - 12, y + 10 - progress + barHeight, barWidth, progress);
 
+		ctx.fillStyle = gradientHp;
+		ctx.fillRect(
+			x - barWidth - 15,
+			y + barHeight - progressHeight,
+			barWidth,
+			progressHeight
+		);
+
+		// Отрисовка чипов
 		this.chipsBar.render(ctx, x, y);
 	}
 }

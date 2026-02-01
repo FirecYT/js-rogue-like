@@ -149,8 +149,6 @@ export class PickupWindow extends Window {
 			const slot = this.slots[i];
 			const { x: slotX, y: slotY } = slot.getGlobalPosition();
 
-			console.log(slotX, slotY);
-
 			if (
 				mouseX >= slotX &&
 				mouseX <= slotX + slot.width &&

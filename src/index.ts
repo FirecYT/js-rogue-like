@@ -139,7 +139,6 @@ const screenManager = new ScreenManager(
 	() => controlSwitchSystem.getCurrentControlled()
 );
 
-// Set the player progression for the HUD
 screenManager.getHud().setPlayerProgression(playerProgression);
 
 const controlSwitchSystem = new ControlSwitchSystem(
