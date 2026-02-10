@@ -5,7 +5,7 @@ export class Camera {
 	public y = 0;
 	private targetX = 0;
 	private targetY = 0;
-	private followSpeed = 0.1;
+	private followSpeed = 0.05;
 	private freeMode = false;
 
 	constructor(private canvas: HTMLCanvasElement) { }

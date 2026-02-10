@@ -21,7 +21,8 @@ export class Tooltip {
 	): void {
 		const lines = text.split('\n');
 		const padding = 8;
-		const lineHeight = 18;
+		const lineHeight = 13;
+		const linePadding = 8;
 		const cornerRadius = 5;
 
 		// Измерение текста
@@ -32,7 +33,7 @@ export class Tooltip {
 		}
 
 		const width = maxWidth + padding * 2;
-		const height = lines.length * lineHeight + padding * 2;
+		const height = lines.length * lineHeight + (lines.length - 1) * linePadding + padding * 2;
 
 		// Коррекция позиции
 		let adjustedX = x + offsetX;
@@ -69,7 +70,7 @@ export class Tooltip {
 		ctx.textAlign = 'left';
 		ctx.textBaseline = 'top';
 		for (let i = 0; i < lines.length; i++) {
-			ctx.fillText(lines[i], adjustedX + padding, adjustedY + padding + i * lineHeight);
+			ctx.fillText(lines[i], adjustedX + padding, adjustedY + padding + i * lineHeight + i * linePadding);
 		}
 	}
 

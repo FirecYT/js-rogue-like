@@ -75,6 +75,9 @@ export class PickupWindow extends Window {
 
 		const choiceLayout = new VerticalLayout();
 
+		const currentLabel = new Label(`Текущие слоты:`);
+		choiceLayout.addChild(currentLabel);
+
 		const currentSlotsLayout = new HorizontalLayout();
 		let numSlots = 0;
 		if (isWeapon(this.pickupItem.item)) {
@@ -105,6 +108,9 @@ export class PickupWindow extends Window {
 		}
 
 		choiceLayout.addChild(currentSlotsLayout);
+
+		const pickupLabel = new Label(`Подбираемый предмет:`);
+		choiceLayout.addChild(pickupLabel);
 
 		const pickupSlot = new ItemSlot(60, 60, this.pickupItem.item);
 
