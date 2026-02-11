@@ -3,6 +3,7 @@ import Entity from "../entities/Entity";
 interface EventMap {
 	enemyKilled: { killer: Entity; victim: Entity };
 	entityDied: { entity: Entity };
+	chunkUnloaded: { chunkX: number, chunkY: number };
 }
 
 class EventBus {

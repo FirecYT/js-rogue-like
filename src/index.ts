@@ -3,7 +3,7 @@
 import Engine from './components/Engine';
 import FloatingText from './components/FloatingText';
 import Player from './Player';
-import { CHUNK_CONFIG, TileType } from './world/Types';
+import { CHUNK_CONFIG } from './world/Types';
 import { WorldManager } from './world/WorldManager';
 import MouseInput from './components/MouseInput';
 import { PlayerProgression } from './systems/PlayerProgression';
@@ -41,6 +41,7 @@ import { isWeapon } from './items/Weapon';
 import { isModifier, Modifier } from './items/Modifier';
 import { createPickupFromItem } from './utils';
 import { isChip } from './items/Chip';
+import { ChunkViewManager } from './world/rendering/ChunkViewManager';
 
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
@@ -55,6 +56,7 @@ const engine = new Engine(canvas);
 const worldManager = new WorldManager();
 const keyboard = Keyboard.getInstance();
 const camera = new Camera(canvas);
+const chunkViewManager = new ChunkViewManager(worldManager, engine);
 
 const player = new Player(
 	CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE,
@@ -121,6 +123,10 @@ eventBus.on('enemyKilled', ({ killer, victim }) => {
 	}
 });
 
+eventBus.on('chunkUnloaded', ({ chunkX, chunkY }) => {
+	chunkViewManager.unloadView(chunkX, chunkY);
+})
+
 const bossSpawnSystem = new BossSpawnSystem(
 	worldManager,
 	entities,
@@ -148,7 +154,7 @@ const controlSwitchSystem = new ControlSwitchSystem(
 
 new RebirthSystem(entities, controlSwitchSystem);
 
-const effectSystem = new EffectSystem();
+const effectSystem = new EffectSystem(worldManager);
 
 let controlled = controlSwitchSystem.getCurrentControlled();
 
@@ -163,17 +169,12 @@ const bestWeapon = new BasicPistol();
 
 bestWeapon.fireRate = 0;
 
-const damageBoost = new DamageBoostModifier(2.0);
-const pierce = new PierceModifier();
-const sinusoidal = new SinusoidalModifier();
-const explosive = new ExplosiveModifier(effectSystem);
-
 player.inventory.setWeapon(bestWeapon);
 
-player.inventory.addModifier(damageBoost);
-player.inventory.addModifier(pierce);
-player.inventory.addModifier(sinusoidal);
-player.inventory.addModifier(explosive);
+player.inventory.addModifier(new DamageBoostModifier(2.0));
+// player.inventory.addModifier(new PierceModifier());
+player.inventory.addModifier(new SinusoidalModifier());
+player.inventory.addModifier(new ExplosiveModifier(effectSystem));
 
 player.inventory.addChip(new TeleportChip);
 player.inventory.addChip(new DashChip);
@@ -197,7 +198,10 @@ function update() {
 	camera.update();
 	camera.follow(controlled);
 
-	worldManager.update(controlled.x, controlled.y);
+	const halfW = Math.ceil(engine.canvas.width / 2 / (2 ** scale) / CHUNK_CONFIG.FULL_SIZE);
+	const halfH = Math.ceil(engine.canvas.height / 2 / (2 ** scale) / CHUNK_CONFIG.FULL_SIZE);
+
+	worldManager.update(controlled.x, controlled.y, halfW, halfH);
 	bossSpawnSystem.update();
 
 	if (!screenManager.hasActiveWindows()) {
@@ -379,84 +383,27 @@ function drawCrosshair() {
 
 function drawWorld() {
 	const chunks = worldManager.getActiveChunks();
-
 	for (const chunk of chunks) {
-		for (let x = 0; x < chunk.tiles.length; x++) {
-			for (let y = 0; y < chunk.tiles[x].length; y++) {
-				const tileType = chunk.tiles[x][y];
-				const worldPos = worldManager.gridToWorld(
-					chunk.x * CHUNK_CONFIG.SIZE + x,
-					chunk.y * CHUNK_CONFIG.SIZE + y
-				);
+		const chunkView = chunkViewManager.getView(chunk.x, chunk.y);
+		if (!chunkView) continue;
 
-				const screenPos = {
-					x: worldPos.x - controlled.x + Math.floor(engine.canvas.width / 2),
-					y: worldPos.y - controlled.y + Math.floor(engine.canvas.height / 2),
-				}
+		// Мировая позиция чанка (левый верхний угол)
+		const worldX = chunk.x * CHUNK_CONFIG.FULL_SIZE;
+		const worldY = chunk.y * CHUNK_CONFIG.FULL_SIZE;
 
-				if (screenPos.x + CHUNK_CONFIG.TILE_SIZE < 0 || screenPos.y + CHUNK_CONFIG.TILE_SIZE < 0) continue;
-				if (screenPos.x > engine.canvas.width || screenPos.y > engine.canvas.height) continue;
+		// Фрустум-клиннинг в мировых координатах
+		const camX = camera.x;
+		const camY = camera.y;
+		const halfW = engine.canvas.width / 2 / (2 ** scale);
+		const halfH = engine.canvas.height / 2 / (2 ** scale);
 
-				let image = "";
-				let seed = x;
-				for (let i = 0; i < y; i++) {
-					seed = (seed * 73129 + 95121) % 12345;
-				}
+		if (worldX + CHUNK_CONFIG.FULL_SIZE < camX - halfW) continue;
+		if (worldY + CHUNK_CONFIG.FULL_SIZE < camY - halfH) continue;
+		if (worldX > camX + halfW) continue;
+		if (worldY > camY + halfH) continue;
 
-				switch (tileType) {
-					case TileType.EMPTY:
-						image = `images/floor_${seed % 4 + 3}.png`;
-						engine.context.fillStyle = '#333'; //'#444';
-						break;
-					case TileType.WALL: {
-						const wallIndex = worldManager.getWallTextureIndex(chunk, x, y, TileType.WALL);
-
-						const spriteX = (wallIndex % 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
-						const spriteY = Math.floor(wallIndex / 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
-
-						engine.drawSprite(
-							'images/walls.png',
-							spriteX, spriteY, CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE,
-							worldPos.x, worldPos.y,
-							CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE
-						);
-
-						engine.context.fillStyle = '#666';
-						continue;
-					}
-					case TileType.ROCK:
-						image = `images/trash_${(x + y) % 3}.png`;
-						engine.context.fillStyle = '#333'; //'#888';
-						break;
-					case TileType.BUILDING:
-						image = `images/floor_${seed % 3}.png`;
-						engine.context.fillStyle = '#333'; //'#444';
-						break;
-					case TileType.WATER:
-						engine.context.fillStyle = '#369';
-						break;
-					default:
-						engine.context.fillStyle = '#333';
-				}
-
-				engine.context.fillRect(
-					worldPos.x,
-					worldPos.y,
-					CHUNK_CONFIG.TILE_SIZE,
-					CHUNK_CONFIG.TILE_SIZE
-				);
-
-				if (image) {
-					engine.drawImage(
-						image,
-						worldPos.x,
-						worldPos.y,
-						CHUNK_CONFIG.TILE_SIZE,
-						CHUNK_CONFIG.TILE_SIZE
-					);
-				}
-			}
-		}
+		// Передаём мировые координаты — transform сделает всё остальное
+		chunkView.draw(engine.context, worldX, worldY);
 	}
 }
 

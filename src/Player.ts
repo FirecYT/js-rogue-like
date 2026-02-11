@@ -8,6 +8,7 @@ export default class Player extends Entity implements HasPosition, HasStats, Con
 	public damage = 10;
 	public width = 10;
 	public height = 10;
+	public speed = 10;
 
 	constructor(x: number, y: number) {
 		super(x, y, 1000);

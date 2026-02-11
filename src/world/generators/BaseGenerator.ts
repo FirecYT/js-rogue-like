@@ -21,7 +21,8 @@ export abstract class BaseGenerator {
 			y: chunkY,
 			tiles,
 			regionType: RegionType.VOID,
-			passableGrid
+			passableGrid,
+			generation: 0
 		};
 	}
 

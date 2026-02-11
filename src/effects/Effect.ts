@@ -1,4 +1,5 @@
 import Entity from '../entities/Entity';
+import { WorldManager } from '../world/WorldManager';
 
 export abstract class Effect {
 	constructor(
@@ -9,7 +10,7 @@ export abstract class Effect {
 		public damage: number
 	) { }
 
-	abstract update(enities: Entity[]): void;
+	abstract update(enities: Entity[], worldManager?: WorldManager | null): void;
 	abstract render(ctx: CanvasRenderingContext2D): void;
 	abstract isDead(): boolean;
 

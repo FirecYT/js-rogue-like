@@ -14,6 +14,34 @@ export class PlayerController extends Controller {
 	update(entity: Entity, world: WorldManager, effectSystem: EffectSystem): void {
 		const keyboard = Keyboard.getInstance();
 		const speed = entity.speed;
+		const originalX = entity.x;
+		const originalY = entity.y;
+
+		if (keyboard.isKeyDown('KeyA')) {
+			entity.x -= speed;
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
+				entity.x = originalX;
+			}
+		}
+		if (keyboard.isKeyDown('KeyD')) {
+			entity.x += speed;
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
+				entity.x = originalX;
+			}
+		}
+
+		if (keyboard.isKeyDown('KeyW')) {
+			entity.y -= speed;
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
+				entity.y = originalY;
+			}
+		}
+		if (keyboard.isKeyDown('KeyS')) {
+			entity.y += speed;
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
+				entity.y = originalY;
+			}
+		}
 
 		if (keyboard.isKeyDown('ShiftLeft')) {
 			const dashChipIndex = entity.inventory.chips.findIndex(chip => chip?.id === 'dash');
@@ -21,11 +49,6 @@ export class PlayerController extends Controller {
 				entity.inventory.useChip(dashChipIndex);
 			}
 		}
-
-		if (keyboard.isKeyDown('KeyW')) entity.y -= speed;
-		if (keyboard.isKeyDown('KeyS')) entity.y += speed;
-		if (keyboard.isKeyDown('KeyA')) entity.x -= speed;
-		if (keyboard.isKeyDown('KeyD')) entity.x += speed;
 
 		if (entity.inventory.weapon) {
 			const mouseWorldX = this.mouse.x + entity.x - window.innerWidth / 2;

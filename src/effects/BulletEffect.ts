@@ -1,5 +1,6 @@
 import { Effect } from './Effect';
 import Entity from '../entities/Entity';
+import { WorldManager } from '../world/WorldManager';
 
 export class BulletEffect extends Effect {
 	private speed = 6;
@@ -11,13 +12,19 @@ export class BulletEffect extends Effect {
 		this.damage = damage;
 	}
 
-	update(enities: Entity[]): void {
+	update(entities: Entity[], worldManager?: WorldManager | null): void {
 		this.x += Math.cos(this.angle) * this.speed;
 		this.y += Math.sin(this.angle) * this.speed;
 		this.lifetime--;
 
-		// Проверяем столкновения
-		for (const entity of enities) {
+		if (worldManager) {
+			if (!worldManager.isWorldPositionPassable(this.x, this.y)) {
+				this.lifetime = 0;
+				return;
+			}
+		}
+
+		for (const entity of entities) {
 			if (entity === this.source || entity.isDead()) continue;
 			const dx = entity.x - this.x;
 			const dy = entity.y - this.y;
@@ -36,6 +43,14 @@ export class BulletEffect extends Effect {
 	render(ctx: CanvasRenderingContext2D): void {
 		ctx.fillStyle = '#f99';
 		ctx.fillRect(this.x - this.half_size, this.y - this.half_size, this.half_size * 2, this.half_size * 2);
+
+		if (this.lifetime <= 5) {
+			const alpha = this.lifetime / 5;
+			ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+			ctx.beginPath();
+			ctx.arc(this.x, this.y, this.half_size * 2, 0, Math.PI * 2);
+			ctx.fill();
+		}
 	}
 
 	isDead(): boolean {
