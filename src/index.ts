@@ -357,6 +357,24 @@ function update() {
 		}
 	}
 
+	if (keyboard.isKeyPressedOnce('F12')) {
+		if (document.fullscreenElement) {
+			document.exitFullscreen().then(() => {
+				engine.canvas.width = document.body.clientWidth;
+				engine.canvas.height = document.body.clientHeight;
+
+				engine.context.imageSmoothingEnabled = false;
+			});
+		} else {
+			engine.canvas.requestFullscreen().then(() => {
+				engine.canvas.width = document.body.clientWidth;
+				engine.canvas.height = document.body.clientHeight;
+
+				engine.context.imageSmoothingEnabled = false;
+			});
+		}
+	}
+
 	screenManager.update();
 
 	keyboard.update();

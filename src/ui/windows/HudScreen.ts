@@ -44,8 +44,6 @@ export class HudScreen extends Component {
 
 		// === ПАНЕЛЬ ОРУЖИЯ И МОДИФИКАТОРОВ (слева внизу) ===
 		this.weaponBar = new HorizontalLayout();
-		this.weaponBar.x = 10;
-		this.weaponBar.y = engine.canvas.height - 80;
 		this.weaponBar.spacing = 8;
 
 		// === ПАНЕЛЬ ЗДОРОВЬЯ И ЧИПОВ (справа внизу) ===
@@ -89,6 +87,8 @@ export class HudScreen extends Component {
 		}
 
 		// Обновляем компоненты
+		this.weaponBar.x = 10;
+		this.weaponBar.y = this.engine.canvas.height - 80;
 		this.weaponBar.update(mouse, this.weaponBar.x, this.weaponBar.y);
 		this.hpBarContainer.x = this.engine.canvas.width - this.hpBarContainer.width - 10;
 		this.hpBarContainer.y = this.engine.canvas.height - this.hpBarContainer.height - 10;
