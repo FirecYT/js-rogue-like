@@ -3,70 +3,111 @@ import Engine from '../../components/Engine';
 import { WorldManager } from '../WorldManager';
 
 /**
- * Контейнер чанка с кэшированной отрисовкой
- * Отвечает за рендеринг содержимого чанка в оффскрин-канвас
- */
+* Контейнер чанка с кэшированной отрисовкой и поддержкой LOD
+*/
 export class ChunkView {
-	private canvas: OffscreenCanvas;
-	private ctx: OffscreenCanvasRenderingContext2D;
-	private isDirty = true;
-	private lastRenderedGeneration = -1;
-	private rand;
+	// Максимальное количество уровней детализации
+	private static readonly MAX_LOD_LEVELS = 5;
+
+	private canvases = new Map<number, OffscreenCanvas>();
+	private contexts = new Map<number, OffscreenCanvasRenderingContext2D>();
+	private isDirty: boolean[] = [];
+	private lastRenderedGeneration: number[] = [];
 
 	constructor(
 		public chunk: Chunk,
 		private worldManager: WorldManager,
 		private engine: Engine
 	) {
-		this.rand = Math.floor(Math.random() * 1000);
-		this.canvas = new OffscreenCanvas(CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE);
-
-		const ctx = this.canvas.getContext('2d');
-		if (!ctx) throw new Error('Cannot create chunk canvas context');
-
-		this.ctx = ctx;
-		this.ctx.imageSmoothingEnabled = false;
+		this.initializeCanvases();
 	}
 
 	/**
-	 * Пометить чанк как изменённый (требует перерисовки)
+	 * Инициализация канвасов для всех уровней детализации
+	 */
+	private initializeCanvases(): void {
+		for (let lod = 0; lod < ChunkView.MAX_LOD_LEVELS; lod++) {
+			const size = CHUNK_CONFIG.FULL_SIZE / Math.pow(2, lod);
+			const canvas = new OffscreenCanvas(size, size);
+			const ctx = canvas.getContext('2d');
+
+			if (!ctx) throw new Error('Cannot create chunk canvas context');
+
+			ctx.imageSmoothingEnabled = false;
+			this.canvases.set(lod, canvas);
+			this.contexts.set(lod, ctx);
+
+			// Инициализируем состояние для каждого уровня
+			this.isDirty[lod] = true;
+			this.lastRenderedGeneration[lod] = -1;
+		}
+	}
+
+	/**
+	 * Пометить чанк как изменённый (требует перерисовки всех уровней)
 	 */
 	markDirty(): void {
-		this.isDirty = true;
+		for (let lod = 0; lod < ChunkView.MAX_LOD_LEVELS; lod++) {
+			this.isDirty[lod] = true;
+		}
 	}
 
 	/**
-	 * Отрисовать чанк в кэш (выполняется один раз до первого использования или при изменении)
+	 * Получить подходящий уровень детализации для масштаба
 	 */
-	private renderToCache(): void {
-		// Проверяем, нужно ли обновлять кэш
-		if (!this.isDirty && this.chunk.generation === this.lastRenderedGeneration) {
-			return; // Кэш актуален
+	public getLODForScale(scale: number): number {
+		if (scale >= 0) return 0;
+		if (scale >= -1) return 1;
+		if (scale >= -2) return 2;
+		if (scale >= -3) return 3;
+		return 4; // Максимальный уровень упрощения
+	}
+
+	/**
+	 * Отрисовать чанк в кэш для указанного уровня детализации
+	 */
+	private renderToCache(lod: number): void {
+		// Проверяем, нужно ли обновлять кэш для этого уровня
+		if (!this.isDirty[lod] && this.chunk.generation === this.lastRenderedGeneration[lod]) {
+			return; // Кэш для этого уровня актуален
 		}
 
-		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		const ctx = this.contexts.get(lod);
+		const canvas = this.canvases.get(lod);
+
+		if (!ctx || !canvas) return;
+
+		const tileSize = CHUNK_CONFIG.TILE_SIZE / Math.pow(2, lod);
+
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 		// Отрисовка всех тайлов чанка
 		for (let x = 0; x < CHUNK_CONFIG.SIZE; x++) {
 			for (let y = 0; y < CHUNK_CONFIG.SIZE; y++) {
-				this.renderTile(x, y);
+				this.renderTile(ctx, x, y, tileSize);
 			}
 		}
 
-		this.isDirty = false;
-		this.lastRenderedGeneration = this.chunk.generation;
+		this.isDirty[lod] = false;
+		this.lastRenderedGeneration[lod] = this.chunk.generation;
 	}
 
 	/**
 	 * Отрисовать один тайл в кэш
 	 */
-	private renderTile(tileX: number, tileY: number): void {
+	private renderTile(
+		ctx: OffscreenCanvasRenderingContext2D,
+		tileX: number,
+		tileY: number,
+		tileSize: number
+	): void {
 		const tileType = this.chunk.tiles[tileX][tileY];
-		const worldX = tileX * CHUNK_CONFIG.TILE_SIZE;
-		const worldY = tileY * CHUNK_CONFIG.TILE_SIZE;
+		const worldX = tileX * tileSize;
+		const worldY = tileY * tileSize;
 
 		let image = "";
 		let seed = tileX;
+
 		for (let i = 0; i < tileY; i++) {
 			seed = (seed * 73129 + 95121) % 12345;
 		}
@@ -74,86 +115,96 @@ export class ChunkView {
 		switch (tileType) {
 			case TileType.EMPTY:
 				image = `images/floor_${seed % 4 + 3}.png`;
-				this.ctx.fillStyle = '#333';
+				ctx.fillStyle = '#333';
 				break;
 			case TileType.WALL: {
 				const wallIndex = this.worldManager.getWallTextureIndex(this.chunk, tileX, tileY, TileType.WALL);
-
 				const spriteX = (wallIndex % 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
 				const spriteY = Math.floor(wallIndex / 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
-
 				const wallsImg = this.engine.getImage('images/walls.png');
 
 				if (wallsImg) {
-					this.ctx.drawImage(
+					const sourceSize = CHUNK_CONFIG.TILE_SIZE;
+					ctx.drawImage(
 						wallsImg,
-						spriteX, spriteY, CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE,
-						worldX, worldY,
-						CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE
+						spriteX, spriteY, sourceSize, sourceSize,
+						worldX, worldY, tileSize, tileSize
 					);
 				}
-
 				return;
 			}
 			case TileType.ROCK:
 				image = `images/trash_${(tileX + tileY) % 3}.png`;
-				this.ctx.fillStyle = '#333';
+				ctx.fillStyle = '#333';
 				break;
 			case TileType.BUILDING:
 				image = `images/floor_${seed % 3}.png`;
-				this.ctx.fillStyle = '#333';
+				ctx.fillStyle = '#333';
 				break;
 			case TileType.WATER:
-				this.ctx.fillStyle = '#369';
+				ctx.fillStyle = '#369';
 				break;
 			default:
-				this.ctx.fillStyle = '#F0F';
+				ctx.fillStyle = '#F0F';
 		}
 
 		// Заполняем фон тайла, если не стена
-		this.ctx.fillRect(worldX, worldY, CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE);
+		ctx.fillRect(worldX, worldY, tileSize, tileSize);
 
 		// Отрисовываем текстуру поверх фона
 		if (image) {
 			const img = this.engine.getImage(image);
 			if (img) {
-				this.ctx.drawImage(img, worldX, worldY, CHUNK_CONFIG.TILE_SIZE, CHUNK_CONFIG.TILE_SIZE);
+				ctx.drawImage(img, worldX, worldY, tileSize, tileSize);
 			}
 		}
 	}
-
 
 	/**
 	 * Отрисовать кэшированный чанк на основной канвас
 	 * @param targetCtx Контекст основного канваса
 	 * @param screenX Позиция на экране по X
 	 * @param screenY Позиция на экране по Y
+	 * @param scale Текущий масштаб камеры
 	 */
-	draw(targetCtx: CanvasRenderingContext2D, screenX: number, screenY: number): void {
-		this.renderToCache();
+	draw(targetCtx: CanvasRenderingContext2D, screenX: number, screenY: number, scale: number): void {
+		const lod = this.getLODForScale(scale);
+		const canvas = this.canvases.get(lod);
+
+		if (!canvas) return;
+
+		this.renderToCache(lod);
 
 		targetCtx.drawImage(
-			this.canvas,
-			0, 0, this.canvas.width, this.canvas.height,
-			screenX, screenY, this.canvas.width, this.canvas.height
+			canvas,
+			0, 0, canvas.width, canvas.height,
+			screenX, screenY, CHUNK_CONFIG.FULL_SIZE, CHUNK_CONFIG.FULL_SIZE
 		);
 
-		targetCtx.strokeStyle = '#F0F4';
-		targetCtx.strokeRect(screenX, screenY, this.canvas.width, this.canvas.height);
+		// // Отладочная рамка с указанием LOD
+		// targetCtx.strokeStyle = `rgba(${255 - lod * 50}, ${lod * 50}, 0, 0.4)`;
+		// targetCtx.lineWidth = 1;
+		// targetCtx.strokeRect(screenX, screenY, CHUNK_CONFIG.FULL_SIZE, CHUNK_CONFIG.FULL_SIZE);
+
+		// // Показываем уровень детализации в углу (для отладки)
+		// targetCtx.fillStyle = `rgba(${255 - lod * 50}, ${lod * 50}, 0, 0.8)`;
+		// targetCtx.font = '10px Arial';
+		// targetCtx.fillText(`LOD${lod}`, screenX + 5, screenY + 15);
 	}
 
 	/**
 	 * Освободить ресурсы (при выгрузке чанка)
 	 */
 	dispose(): void {
-		// Canvas автоматически очищается при удалении ссылки
-		// Можно добавить дополнительную очистку, если нужно
+		this.canvases.clear();
+		this.contexts.clear();
 	}
 
 	/**
 	 * Получить номер поколения, при котором был сделан последний рендер
+	 * для указанного уровня детализации
 	 */
-	getLastRenderedGeneration(): number {
-		return this.lastRenderedGeneration;
+	getLastRenderedGeneration(lod: number = 0): number {
+		return this.lastRenderedGeneration[lod] ?? -1;
 	}
 }

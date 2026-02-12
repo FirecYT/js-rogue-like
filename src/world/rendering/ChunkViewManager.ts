@@ -20,12 +20,11 @@ export class ChunkViewManager {
 	 * @param chunkY Координата чанка Y
 	 * @returns ChunkView или null, если чанк не существует
 	 */
-	getView(chunkX: number, chunkY: number): ChunkView | null {
+	getView(chunkX: number, chunkY: number, scale: number): ChunkView | null {
 		const key = `${chunkX},${chunkY}`;
 		const chunk = this.worldManager.getChunk(chunkX, chunkY);
 
 		if (!chunk) {
-			// Если чанк больше не существует, но у нас есть его вьюшку, удаляем
 			if (this.views.has(key)) {
 				this.unloadView(chunkX, chunkY);
 			}
@@ -34,13 +33,10 @@ export class ChunkViewManager {
 
 		let view = this.views.get(key);
 
-		// Проверяем, нужно ли создать новую вьюшку или обновить старую
 		if (!view) {
-			// Создаём новую вьюшку
 			view = new ChunkView(chunk, this.worldManager, this.engine);
 			this.views.set(key, view);
-		} else if (chunk.generation !== view.getLastRenderedGeneration()) {
-			// Если чанк изменился, помечаем вьюшку как грязную
+		} else if (chunk.generation !== view.getLastRenderedGeneration(view.getLODForScale(scale))) {
 			view.markDirty();
 		}
 

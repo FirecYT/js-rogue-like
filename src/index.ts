@@ -384,7 +384,7 @@ function drawCrosshair() {
 function drawWorld() {
 	const chunks = worldManager.getActiveChunks();
 	for (const chunk of chunks) {
-		const chunkView = chunkViewManager.getView(chunk.x, chunk.y);
+		const chunkView = chunkViewManager.getView(chunk.x, chunk.y, scale);
 		if (!chunkView) continue;
 
 		// Мировая позиция чанка (левый верхний угол)
@@ -402,8 +402,7 @@ function drawWorld() {
 		if (worldX > camX + halfW) continue;
 		if (worldY > camY + halfH) continue;
 
-		// Передаём мировые координаты — transform сделает всё остальное
-		chunkView.draw(engine.context, worldX, worldY);
+		chunkView.draw(engine.context, worldX, worldY, scale);
 	}
 }
 
