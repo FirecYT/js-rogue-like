@@ -15,8 +15,8 @@ export default class Engine {
 
 		this.context = context;
 
-		this.canvas.width = document.body.clientWidth;
-		this.canvas.height = document.body.clientHeight;
+		this.canvas.width = this.canvas.parentElement?.clientWidth || 640;
+		this.canvas.height = this.canvas.parentElement?.clientHeight || 480;
 
 		this.context.imageSmoothingEnabled = false;
 	}

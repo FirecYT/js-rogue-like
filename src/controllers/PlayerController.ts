@@ -51,8 +51,8 @@ export class PlayerController extends Controller {
 		}
 
 		if (entity.inventory.weapon) {
-			const mouseWorldX = this.mouse.x + entity.x - window.innerWidth / 2;
-			const mouseWorldY = this.mouse.y + entity.y - window.innerHeight / 2;
+			const mouseWorldX = entity.x + this.mouse.cx;
+			const mouseWorldY = entity.y + this.mouse.cy;
 			const angle = getAngleBetweenPoints(entity.x, entity.y, mouseWorldX, mouseWorldY);
 
 			if (this.mouse.pressed && entity.inventory.isWeaponReady()) {

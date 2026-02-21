@@ -114,14 +114,14 @@ export class ChunkView {
 
 		switch (tileType) {
 			case TileType.EMPTY:
-				image = `images/floor_${seed % 4 + 3}.png`;
+				image = `/js-rogue-like/images/floor_${seed % 4 + 3}.png`;
 				ctx.fillStyle = '#333';
 				break;
 			case TileType.WALL: {
 				const wallIndex = this.worldManager.getWallTextureIndex(this.chunk, tileX, tileY, TileType.WALL);
 				const spriteX = (wallIndex % 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
 				const spriteY = Math.floor(wallIndex / 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
-				const wallsImg = this.engine.getImage('images/walls.png');
+				const wallsImg = this.engine.getImage('/js-rogue-like/images/walls.png');
 
 				if (wallsImg) {
 					const sourceSize = CHUNK_CONFIG.TILE_SIZE;
@@ -134,11 +134,11 @@ export class ChunkView {
 				return;
 			}
 			case TileType.ROCK:
-				image = `images/trash_${(tileX + tileY) % 3}.png`;
+				image = `/js-rogue-like/images/trash_${(tileX + tileY) % 3}.png`;
 				ctx.fillStyle = '#333';
 				break;
 			case TileType.BUILDING:
-				image = `images/floor_${seed % 3}.png`;
+				image = `/js-rogue-like/images/floor_${seed % 3}.png`;
 				ctx.fillStyle = '#333';
 				break;
 			case TileType.WATER:
@@ -204,7 +204,7 @@ export class ChunkView {
 	 * Получить номер поколения, при котором был сделан последний рендер
 	 * для указанного уровня детализации
 	 */
-	getLastRenderedGeneration(lod: number = 0): number {
+	getLastRenderedGeneration(lod = 0): number {
 		return this.lastRenderedGeneration[lod] ?? -1;
 	}
 }

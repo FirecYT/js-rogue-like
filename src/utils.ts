@@ -1,6 +1,6 @@
 import { ChipPickup } from "./entities/ChipPickup";
-import Entity from "./entities/Entity";
 import { ModifierPickup } from "./entities/ModifierPickup";
+import { PickupItem } from "./entities/PickupItem";
 import { WeaponPickup } from "./entities/WeaponPickup";
 import { isChip } from "./items/Chip";
 import { Item } from "./items/Item";
@@ -75,7 +75,7 @@ export function getAngleBetweenPoints(x1: number, y1: number, x2: number, y2: nu
 	return Math.atan2(y2 - y1, x2 - x1);
 }
 
-export function createPickupFromItem(item: Item, x: number, y: number): Entity {
+export function createPickupFromItem(item: Item, x: number, y: number): PickupItem {
 	y += 10;
 
 	if (isWeapon(item)) {

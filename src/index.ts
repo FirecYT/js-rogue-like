@@ -66,17 +66,17 @@ const player = new Player(
 player.controller = new PlayerController(mouse);
 
 await engine.loadImages([
-	'images/trash_0.png',
-	'images/trash_1.png',
-	'images/trash_2.png',
-	'images/floor_0.png',
-	'images/floor_1.png',
-	'images/floor_2.png',
-	'images/floor_3.png',
-	'images/floor_4.png',
-	'images/floor_5.png',
-	'images/floor_6.png',
-	'images/walls.png',
+	'/js-rogue-like/images/trash_0.png',
+	'/js-rogue-like/images/trash_1.png',
+	'/js-rogue-like/images/trash_2.png',
+	'/js-rogue-like/images/floor_0.png',
+	'/js-rogue-like/images/floor_1.png',
+	'/js-rogue-like/images/floor_2.png',
+	'/js-rogue-like/images/floor_3.png',
+	'/js-rogue-like/images/floor_4.png',
+	'/js-rogue-like/images/floor_5.png',
+	'/js-rogue-like/images/floor_6.png',
+	'/js-rogue-like/images/walls.png',
 ]);
 
 let scale = 0;
@@ -90,6 +90,7 @@ const enemySpawner = new EnemySpawnerSystem(player, entities, worldManager);
 
 canvas.addEventListener('wheel', (event) => {
 	scale -= Math.sign(event.deltaY);
+	event.preventDefault();
 });
 
 function addExperience(amount: number) {
@@ -360,8 +361,8 @@ function update() {
 	if (keyboard.isKeyPressedOnce('F12')) {
 		if (document.fullscreenElement) {
 			document.exitFullscreen().then(() => {
-				engine.canvas.width = document.body.clientWidth;
-				engine.canvas.height = document.body.clientHeight;
+				engine.canvas.width = engine.canvas.parentElement?.clientWidth || 640;
+				engine.canvas.height = engine.canvas.parentElement?.clientHeight || 480;
 
 				engine.context.imageSmoothingEnabled = false;
 			});
