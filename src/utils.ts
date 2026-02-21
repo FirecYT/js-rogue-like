@@ -88,3 +88,25 @@ export function createPickupFromItem(item: Item, x: number, y: number): PickupIt
 
 	throw new TypeError("Undefiend type for item");
 }
+
+export function getCircularReplacer() {
+	const ancestors: object[] = [];
+
+	return function (this: object, key: string, value: object) {
+		if (typeof value !== "object" || value === null) {
+			return value;
+		}
+
+		while (ancestors.length > 0 && ancestors.at(-1) !== this) {
+			ancestors.pop();
+		}
+
+		if (ancestors.includes(value)) {
+			return "[Circular]";
+		}
+
+		ancestors.push(value);
+
+		return value;
+	};
+}
