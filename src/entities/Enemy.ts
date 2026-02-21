@@ -36,9 +36,9 @@ export default class Enemy extends Entity implements HasPosition, HasSpeed, Cont
 		}
 
 		const hpPercent = this.getHP() / this.maxHP;
+		ctx.fillStyle = '#000';
+		ctx.fillRect(this.x - 11, this.y - 13, 22, 4);
 		ctx.fillStyle = '#0f0';
 		ctx.fillRect(this.x - 10, this.y - 12, hpPercent * 20, 2);
-		ctx.strokeStyle = '#000';
-		ctx.strokeRect(this.x - 10, this.y - 12, 20, 2);
 	}
 }
