@@ -164,13 +164,13 @@ export class ItemSlot extends Component {
 	getTooltip(): { text: string; x: number; y: number } | null {
 		if (this.hovered && this.item) {
 			let tooltipText = `${this.item.name}`;
-			if (this.item.type) {
-				tooltipText += `\nТип: ${this.item.type}`;
-			}
-			if (this.item.cooldown && !this.item.cooldown.isReady()) {
-				const remaining = Math.ceil(this.item.cooldown.getMaximum() * this.item.cooldown.progress() / 60);
+
+
+			if (this.item.cooldown) {
+				const remaining = Math.ceil(this.item.cooldown.getMaximum() / 60);
 				tooltipText += `\nПерезарядка: ${remaining} сек`;
 			}
+
 			return {
 				text: tooltipText,
 				x: this.x + this.width / 2,
