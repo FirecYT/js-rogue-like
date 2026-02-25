@@ -5,6 +5,7 @@ import Entity from '../entities/Entity';
 import { HasSpeed } from '../types/EntityTraits';
 import { EffectSystem } from '../systems/EffectSystem';
 import { CHUNK_CONFIG } from '../world/Types';
+import { getAngleBetweenPoints } from '../utils';
 
 export class AiController extends Controller {
 	protected path: { x: number, y: number }[] = [];
@@ -37,7 +38,7 @@ export class AiController extends Controller {
 			const canSeeTarget = world.hasLineOfSight(entity.x, entity.y, this.target.x, this.target.y, 400);
 
 			if (distance < 400 && canSeeTarget) {
-				const angle = Math.atan2(this.target.y - entity.y, this.target.x - entity.x);
+				const angle = getAngleBetweenPoints(entity.x, entity.y, this.target.x, this.target.y);
 				entity.inventory.fire(angle, effectSystem);
 			}
 		}

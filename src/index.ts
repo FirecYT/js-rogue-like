@@ -39,7 +39,7 @@ import { LevelUpWindow } from './ui/windows/LevelUpWindow';
 import { InventoryWindow } from './ui/windows/InventoryWindow';
 import { isWeapon } from './items/Weapon';
 import { isModifier, Modifier } from './items/Modifier';
-import { createPickupFromItem } from './utils';
+import { createPickupFromItem, getAngleBetweenPoints } from './utils';
 import { isChip } from './items/Chip';
 import { ChunkViewManager } from './world/rendering/ChunkViewManager';
 
@@ -354,6 +354,16 @@ function update() {
 				screenManager.closeWindow(invWin);
 			});
 
+			invWin.setOnItemDropped((pickupItem: PickupItem) => {
+				entities.push(pickupItem);
+				floatingTexts.push(new FloatingText(
+					controlled.x,
+					controlled.y - 20,
+					`Выброшено: ${pickupItem.item.name}`,
+					60
+				));
+			});
+
 			screenManager.openWindow(invWin);
 		}
 	}
@@ -384,7 +394,7 @@ function update() {
 function drawCrosshair() {
 	const _m = getMousePosition();
 
-	const angle = Math.atan2(_m.y - controlled.y, _m.x - controlled.x);
+	const angle = getAngleBetweenPoints(controlled.x, controlled.y, _m.x, _m.y);
 
 	const length = 1500;
 
@@ -451,6 +461,11 @@ function render() {
 	entities.forEach(entity => {
 		if (!entity.isDead()) {
 			entity.render(engine.context);
+
+			// TODO: отладочная инфа для entity
+			// engine.context.textAlign = 'left';
+			// engine.context.fillStyle = '#fff';
+			// engine.multiline(JSON.stringify(entity, getCircularReplacer(), 4), entity.x, entity.y);
 		}
 	});
 

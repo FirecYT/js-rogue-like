@@ -1,6 +1,7 @@
 import { Component } from '../Component';
 import MouseInput from '../../components/MouseInput';
 import { Item } from '../../items/Item';
+import { isWeapon } from '../../items/Weapon';
 
 /**
  * Улучшенный слот для предмета с индикацией перезарядки
@@ -165,10 +166,13 @@ export class ItemSlot extends Component {
 		if (this.hovered && this.item) {
 			let tooltipText = `${this.item.name}`;
 
-
 			if (this.item.cooldown) {
 				const remaining = Math.ceil(this.item.cooldown.getMaximum() / 60);
 				tooltipText += `\nПерезарядка: ${remaining} сек`;
+			}
+
+			if (isWeapon(this.item)) {
+				tooltipText += `\nКоличество модификаторов: ${this.item.modifiersSlots} шт.`;
 			}
 
 			return {

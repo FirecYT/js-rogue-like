@@ -52,12 +52,7 @@ export class PickupWindow extends Window {
 
 		this.createUI();
 		this.autoSize();
-
-		this.x = (canvasWidth - this.width) / 2;
-		this.y = (canvasHeight - this.height) / 2;
-
-		this.root.x = this.x;
-		this.root.y = this.y;
+		this.centerWindow(canvasWidth, canvasHeight);
 	}
 
 	/**

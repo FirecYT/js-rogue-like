@@ -161,4 +161,11 @@ export abstract class Window extends Component {
 		this.width = maxWidth;
 		this.height = maxHeight;
 	}
+
+	centerWindow(canvasWidth: number, canvasHeight: number): void {
+		this.x = (canvasWidth - this.width) / 2;
+		this.y = (canvasHeight - this.height) / 2;
+		this.root.x = this.x;
+		this.root.y = this.y;
+	}
 }
