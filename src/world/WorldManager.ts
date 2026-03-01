@@ -5,6 +5,9 @@ import { BossAltarGenerator } from './generators/BossAltarGenerator';
 import { eventBus } from '../events/EventBus';
 import { SettlementGenerator } from './generators/SettlementGenerator';
 
+/**
+ * Менеджер мира: загрузка/выгрузка чанков, генерация по типу региона, координаты тайлов, проходимость, соседи, рейкаст.
+ */
 export class WorldManager {
 	private chunks = new Map<string, Chunk>();
 
@@ -15,7 +18,14 @@ export class WorldManager {
 		[RegionType.SETTLEMENT]: new SettlementGenerator()
 	};
 
-	update(playerX: number, playerY: number, loadHalfDistanceX: number, loadHalfDistanceY: number) {
+	/**
+	 * Загружает чанки в радиусе от игрока и выгружает далёкие; испускает chunkUnloaded при выгрузке.
+	 * @param playerX - Мировая X игрока
+	 * @param playerY - Мировая Y игрока
+	 * @param loadHalfDistanceX - Полуширина загрузки в чанках по X
+	 * @param loadHalfDistanceY - Полувысота загрузки в чанках по Y
+	 */
+	update(playerX: number, playerY: number, loadHalfDistanceX: number, loadHalfDistanceY: number): void {
 		const playerChunk = this.worldToChunk(playerX, playerY);
 
 		for (let x = playerChunk.x - loadHalfDistanceX; x <= playerChunk.x + loadHalfDistanceX; x++) {
@@ -66,7 +76,13 @@ export class WorldManager {
 		return [RegionType.RUINS, RegionType.SETTLEMENT][Math.floor(Math.random()*2)];
 	}
 
-	worldToGrid(worldX: number, worldY: number) {
+	/**
+	 * Преобразует мировые координаты в координаты тайла и чанка.
+	 * @param worldX - Мировая X
+	 * @param worldY - Мировая Y
+	 * @returns { chunkX, chunkY, tileX, tileY, globalTileX, globalTileY } или null, если вне загруженных чанков
+	 */
+	worldToGrid(worldX: number, worldY: number): { chunkX: number; chunkY: number; tileX: number; tileY: number; globalTileX: number; globalTileY: number } | null {
 		const chunk = this.worldToChunk(worldX, worldY);
 		const chunkData = this.getChunk(chunk.x, chunk.y);
 
@@ -95,7 +111,13 @@ export class WorldManager {
 		};
 	}
 
-	gridToWorld(globalTileX: number, globalTileY: number) {
+	/**
+	 * Преобразует глобальные координаты тайла в мировые (верхний левый угол тайла).
+	 * @param globalTileX - Глобальная X тайла
+	 * @param globalTileY - Глобальная Y тайла
+	 * @returns { x, y } в мировых координатах
+	 */
+	gridToWorld(globalTileX: number, globalTileY: number): { x: number; y: number } {
 		const chunkX = Math.floor(globalTileX / CHUNK_CONFIG.SIZE);
 		const chunkY = Math.floor(globalTileY / CHUNK_CONFIG.SIZE);
 
@@ -111,6 +133,12 @@ export class WorldManager {
 		};
 	}
 
+	/**
+	 * Проверяет, проходим ли тайл с заданными глобальными координатами.
+	 * @param globalTileX - Глобальная X тайла
+	 * @param globalTileY - Глобальная Y тайла
+	 * @returns true, если тайл проходим
+	 */
 	isTilePassable(globalTileX: number, globalTileY: number): boolean {
 		const chunkX = Math.floor(globalTileX / CHUNK_CONFIG.SIZE);
 		const chunkY = Math.floor(globalTileY / CHUNK_CONFIG.SIZE);
@@ -127,6 +155,12 @@ export class WorldManager {
 		return chunk.passableGrid[localX]?.[localY] || false;
 	}
 
+	/**
+	 * Проверяет, проходима ли мировая позиция (по соответствующему тайлу).
+	 * @param worldX - Мировая X
+	 * @param worldY - Мировая Y
+	 * @returns true, если проходимо
+	 */
 	isWorldPositionPassable(worldX: number, worldY: number): boolean {
 		const gridPos = this.worldToGrid(worldX, worldY);
 		if (!gridPos) return false;
@@ -140,15 +174,31 @@ export class WorldManager {
 		return { x: chunkX, y: chunkY };
 	}
 
+	/**
+	 * Возвращает чанк по координатам или null.
+	 * @param chunkX - X чанка
+	 * @param chunkY - Y чанка
+	 * @returns Чанк или null
+	 */
 	getChunk(chunkX: number, chunkY: number): Chunk | null {
 		return this.chunks.get(`${chunkX},${chunkY}`) || null;
 	}
 
+	/**
+	 * Возвращает все загруженные чанки.
+	 * @returns Массив чанков
+	 */
 	getActiveChunks(): Chunk[] {
 		return Array.from(this.chunks.values());
 	}
 
-	getPassableNeighbors(globalTileX: number, globalTileY: number): { x: number, y: number }[] {
+	/**
+	 * Возвращает проходимых соседей тайла (8 направлений; диагональ только если оба ортогональных проходимы).
+	 * @param globalTileX - Глобальная X тайла
+	 * @param globalTileY - Глобальная Y тайла
+	 * @returns Массив { x, y } глобальных координат соседних проходимых тайлов
+	 */
+	getPassableNeighbors(globalTileX: number, globalTileY: number): { x: number; y: number }[] {
 		const neighbors = [];
 		const directions = [
 			{ dx: -1, dy: 0 }, { dx: 1, dy: 0 },
@@ -179,6 +229,14 @@ export class WorldManager {
 		return neighbors;
 	}
 
+	/**
+	 * Возвращает индекс текстуры стены по битовой маске соседей того же типа (1=верх, 2=право, 4=низ, 8=лево).
+	 * @param chunk - Чанк
+	 * @param x - Локальная X тайла
+	 * @param y - Локальная Y тайла
+	 * @param tileType - Тип тайла стены
+	 * @returns Индекс 0..15
+	 */
 	getWallTextureIndex(
 		chunk: Chunk,
 		x: number,
@@ -199,6 +257,16 @@ export class WorldManager {
 		return index;
 	}
 
+	/**
+	 * Проверяет, есть ли у тайла (x, y) сосед (x+dx, y+dy) с заданным типом (в том числе в соседнем чанке).
+	 * @param chunk - Чанк
+	 * @param x - Локальная X
+	 * @param y - Локальная Y
+	 * @param dx - Смещение по X
+	 * @param dy - Смещение по Y
+	 * @param tileType - Тип тайла
+	 * @returns true, если соседний тайл имеет тип tileType
+	 */
 	hasWallNeighbor(
 		chunk: Chunk,
 		x: number,
@@ -232,13 +300,13 @@ export class WorldManager {
 	}
 
 	/**
-	 * Рейкаст - проверка линии на столкновение со стенами
-	 * @param startX Начальная позиция X
-	 * @param startY Начальная позиция Y
-	 * @param endX Конечная позиция X
-	 * @param endY Конечная позиция Y
-	 * @param maxDistance Максимальная дистанция проверки (опционально)
-	 * @returns Объект с результатами или точка столкновения
+	 * Рейкаст: проверка отрезка на столкновение со стенами.
+	 * @param startX - Начальная X
+	 * @param startY - Начальная Y
+	 * @param endX - Конечная X
+	 * @param endY - Конечная Y
+	 * @param maxDistance - Максимальная дистанция (опционально)
+	 * @returns { hit, distance, point?, normal? }
 	 */
 	raycast(startX: number, startY: number, endX: number, endY: number, maxDistance?: number): {
 		hit: boolean;
@@ -296,10 +364,10 @@ export class WorldManager {
 	}
 
 	/**
-	 * Получить нормаль стены (направление от стены)
-	 * @param globalTileX Глобальная координата тайла X
-	 * @param globalTileY Глобальная координата тайла Y
-	 * @returns Нормаль {x, y}
+	 * Возвращает нормаль стены (направление от стены к проходимому соседу).
+	 * @param globalTileX - Глобальная X тайла
+	 * @param globalTileY - Глобальная Y тайла
+	 * @returns { x, y } нормаль
 	 */
 	private getWallNormal(globalTileX: number, globalTileY: number): { x: number; y: number } {
 		const hasLeft = this.isTilePassable(globalTileX - 1, globalTileY);
@@ -316,13 +384,13 @@ export class WorldManager {
 	}
 
 	/**
-	 * Проверить видимость между двумя точками (нет ли стен на пути)
-	 * @param startX Начальная позиция X
-	 * @param startY Начальная позиция Y
-	 * @param endX Конечная позиция X
-	 * @param endY Конечная позиция Y
-	 * @param maxDistance Максимальная дистанция видимости
-	 * @returns true, если точка видна
+	 * Проверяет видимость между двумя точками (нет стен на пути в пределах maxDistance).
+	 * @param startX - Начальная X
+	 * @param startY - Начальная Y
+	 * @param endX - Конечная X
+	 * @param endY - Конечная Y
+	 * @param maxDistance - Максимальная дистанция (опционально)
+	 * @returns true, если луч не упирается в стену или дистанция до препятствия >= длины отрезка − 5
 	 */
 	hasLineOfSight(startX: number, startY: number, endX: number, endY: number, maxDistance?: number): boolean {
 		const result = this.raycast(startX, startY, endX, endY, maxDistance);

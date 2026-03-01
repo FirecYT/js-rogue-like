@@ -93,7 +93,11 @@ canvas.addEventListener('wheel', (event) => {
 	event.preventDefault();
 });
 
-function addExperience(amount: number) {
+/**
+ * Добавляет опыт игроку; при повышении уровня открывает окно выбора улучшения.
+ * @param amount - Количество опыта
+ */
+function addExperience(amount: number): void {
 	if (playerProgression.add(amount)) {
 		const lvlUpWin = new LevelUpWindow(
 			['Увеличить урон', 'Уменьшить перезарядку', 'Увеличить здоровье'],
@@ -102,7 +106,6 @@ function addExperience(amount: number) {
 		);
 
 		lvlUpWin.setOnChoose((choice) => {
-			// applyUpgrade(choice); // ← твоя функция улучшения
 			screenManager.closeWindow(lvlUpWin);
 			floatingTexts.push(new FloatingText(controlled.x, controlled.y, choice, 60));
 		});
@@ -133,11 +136,7 @@ const bossSpawnSystem = new BossSpawnSystem(
 	entities,
 	player,
 	floatingTexts,
-	[
-		// { triggerX: 3.5, triggerY: 0.5, spawnX: 3.5, spawnY: 0.5, bossClass: SpiderBoss },
-		// { triggerX: -2.5, triggerY: 0.5, spawnX: -2.5, spawnY: 0.5, bossClass: MechanicalWormBoss },
-		// { triggerX: 16.5, triggerY: 16.5, spawnX: -15.5, spawnY: -15.5, bossClass: WormBoss },
-	]
+	[]
 );
 
 const screenManager = new ScreenManager(
@@ -159,7 +158,11 @@ const effectSystem = new EffectSystem(worldManager);
 
 let controlled = controlSwitchSystem.getCurrentControlled();
 
-function getMousePosition() {
+/**
+ * Возвращает мировые координаты курсора мыши (относительно управляемой сущности и центра экрана).
+ * @returns { x, y } в мировых координатах
+ */
+function getMousePosition(): { x: number; y: number } {
 	return {
 		x: mouse.x + controlled.x - engine.canvas.width / 2,
 		y: mouse.y + controlled.y - engine.canvas.height / 2,
@@ -173,7 +176,6 @@ bestWeapon.fireRate = 0;
 player.inventory.setWeapon(bestWeapon);
 
 player.inventory.addModifier(new DamageBoostModifier(2.0));
-// player.inventory.addModifier(new PierceModifier());
 player.inventory.addModifier(new SinusoidalModifier());
 player.inventory.addModifier(new ExplosiveModifier(effectSystem));
 
@@ -193,7 +195,10 @@ entities.push(new ModifierPickup(600, 150, new ExplosiveModifier(effectSystem)))
 entities.push(new ChipPickup(700, 0, new TeleportChip));
 entities.push(new ChipPickup(700, 50, new DashChip));
 
-function update() {
+/**
+ * Игровой цикл обновления: камера, мир, боссы, сущности, коллизии, подбор предметов, эффекты, окна и клавиатура.
+ */
+function update(): void {
 	controlled = controlSwitchSystem.getCurrentControlled();
 
 	camera.update();
@@ -391,7 +396,10 @@ function update() {
 	keyboard.update();
 }
 
-function drawCrosshair() {
+/**
+ * Рисует прицел: линия от управляемой сущности к курсору и точка в позиции мыши.
+ */
+function drawCrosshair(): void {
 	const _m = getMousePosition();
 
 	const angle = getAngleBetweenPoints(controlled.x, controlled.y, _m.x, _m.y);
@@ -410,17 +418,18 @@ function drawCrosshair() {
 	engine.context.fillRect(_m.x - 1, _m.y - 1, 2, 2);
 }
 
-function drawWorld() {
+/**
+ * Отрисовывает мир: активные чанки с фрустум-клиннингом и LOD.
+ */
+function drawWorld(): void {
 	const chunks = worldManager.getActiveChunks();
 	for (const chunk of chunks) {
 		const chunkView = chunkViewManager.getView(chunk.x, chunk.y, scale);
 		if (!chunkView) continue;
 
-		// Мировая позиция чанка (левый верхний угол)
 		const worldX = chunk.x * CHUNK_CONFIG.FULL_SIZE;
 		const worldY = chunk.y * CHUNK_CONFIG.FULL_SIZE;
 
-		// Фрустум-клиннинг в мировых координатах
 		const camX = camera.x;
 		const camY = camera.y;
 		const halfW = engine.canvas.width / 2 / (2 ** scale);
@@ -435,7 +444,10 @@ function drawWorld() {
 	}
 }
 
-function render() {
+/**
+ * Очищает канвас, рисует фон, применяет трансформ камеры, мир, прицел, эффекты, сущности, всплывающие тексты и UI.
+ */
+function render(): void {
 	engine.clear();
 
 	engine.context.fillStyle = '#222';
@@ -461,11 +473,6 @@ function render() {
 	entities.forEach(entity => {
 		if (!entity.isDead()) {
 			entity.render(engine.context);
-
-			// TODO: отладочная инфа для entity
-			// engine.context.textAlign = 'left';
-			// engine.context.fillStyle = '#fff';
-			// engine.multiline(JSON.stringify(entity, getCircularReplacer(), 4), entity.x, entity.y);
 		}
 	});
 
@@ -478,7 +485,10 @@ function render() {
 	screenManager.render();
 }
 
-function tick() {
+/**
+ * Один кадр игрового цикла: update и render, затем следующий requestAnimationFrame.
+ */
+function tick(): void {
 	update();
 	render();
 	requestAnimationFrame(tick);

@@ -1,16 +1,19 @@
-// world/generators/BossAltarGenerator.ts
 import { BaseGenerator } from './BaseGenerator';
 import { Chunk, TileType, RegionType, CHUNK_CONFIG } from '../Types';
 
+/**
+ * Генератор арены босса: круг стен с четырьмя входами, центральная платформа.
+ */
 export class BossAltarGenerator extends BaseGenerator {
-  generate(chunkX: number, chunkY: number): Chunk {
-    const chunk = this.createEmptyChunk(chunkX, chunkY);
-    chunk.regionType = RegionType.BOSS_ALTAR;
-
-    // Создаём круговую арену
-    this.generateArena(chunk);
-
-    // Алтарь в центре
+	/**
+	 * @param chunkX - X чанка
+	 * @param chunkY - Y чанка
+	 * @returns Чанк с ареной
+	 */
+	generate(chunkX: number, chunkY: number): Chunk {
+		const chunk = this.createEmptyChunk(chunkX, chunkY);
+		chunk.regionType = RegionType.BOSS_ALTAR;
+		this.generateArena(chunk);
     const centerX = CHUNK_CONFIG.SIZE / 2;
     const centerY = CHUNK_CONFIG.SIZE / 2;
 

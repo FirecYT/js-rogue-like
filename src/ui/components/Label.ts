@@ -18,8 +18,6 @@ export class Label extends Component {
 	constructor(text: string) {
 		super();
 		this.text = text;
-
-		// Set initial dimensions based on text
 		this.calculateDimensions();
 	}
 
@@ -66,17 +64,16 @@ export class Label extends Component {
 	}
 
 	/**
-	 * Вычислить размеры метки на основе текста
+	 * Вычисляет ширину и высоту метки по текущему шрифту и тексту.
 	 */
 	private calculateDimensions(): void {
-		// Create a temporary canvas to measure text
 		const canvas = document.createElement('canvas');
 		const ctx = canvas.getContext('2d');
 		if (ctx) {
 			ctx.font = `${this.fontSize}px Arial`;
 			const metrics = ctx.measureText(this.text);
 			this.width = metrics.width;
-			this.height = this.fontSize; // Approximate height
+			this.height = this.fontSize;
 		}
 	}
 
@@ -90,7 +87,6 @@ export class Label extends Component {
 		void mouse;
 		void globalX;
 		void globalY;
-		// Labels are not interactive, so no update needed
 	}
 
 	/**

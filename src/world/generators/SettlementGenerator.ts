@@ -1,18 +1,20 @@
 import { BaseGenerator } from './BaseGenerator';
 import { Chunk, TileType, RegionType, CHUNK_CONFIG } from '../Types';
 
+/**
+ * Генератор поселения: дома со входами и комнатами, улицы, обломки.
+ */
 export class SettlementGenerator extends BaseGenerator {
+	/**
+	 * @param chunkX - X чанка
+	 * @param chunkY - Y чанка
+	 * @returns Чанк с поселением
+	 */
 	generate(chunkX: number, chunkY: number): Chunk {
 		const chunk = this.createEmptyChunk(chunkX, chunkY);
 		chunk.regionType = RegionType.SETTLEMENT;
-
-		// Создаём несколько структурированных домов
 		this.generateHouses(chunk);
-
-		// Добавляем улицы между домами
 		this.generateStreets(chunk);
-
-		// Добавляем случайный мусор и детали
 		this.generateDebris(chunk);
 
 		return chunk;

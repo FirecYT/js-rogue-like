@@ -1,15 +1,19 @@
 import { PickupItem } from './PickupItem';
 import Entity from './Entity';
 
+/**
+ * Подбираемое оружие: отображается красным кругом с «W».
+ */
 export class WeaponPickup extends PickupItem {
+	/**
+	 * Отрисовка: красный круг, белая «W».
+	 * @param ctx - Контекст канваса
+	 */
 	render(ctx: CanvasRenderingContext2D): void {
-		// Render weapon pickup with distinctive color
-		ctx.fillStyle = '#f00'; // Red for weapons
+		ctx.fillStyle = '#f00';
 		ctx.beginPath();
 		ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
 		ctx.fill();
-
-		// Draw weapon indicator
 		ctx.fillStyle = '#fff';
 		ctx.font = '10px Arial';
 		ctx.textAlign = 'center';
@@ -17,9 +21,12 @@ export class WeaponPickup extends PickupItem {
 		ctx.fillText('W', this.x, this.y);
 	}
 
+	/**
+	 * @param entity - Сущность, подобравшая предмет
+	 * @returns true (подбор обрабатывается через UI выбора слота)
+	 */
 	onPickup(entity: Entity): boolean {
-		void entity
-		// This will trigger the weapon selection UI
-		return true; // Return true to indicate pickup was handled
+		void entity;
+		return true;
 	}
 }

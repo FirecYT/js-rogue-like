@@ -1,43 +1,46 @@
+/**
+ * Движок отрисовки: канвас, контекст, загрузка и отрисовка изображений.
+ */
 export default class Engine {
 	public canvas: HTMLCanvasElement;
 	public context: CanvasRenderingContext2D;
 	private images: Map<string, HTMLImageElement> = new Map<string, HTMLImageElement>();
 	private imageLoadingPromises: Map<string, Promise<HTMLImageElement>> = new Map<string, Promise<HTMLImageElement>>();
 
+	/**
+	 * @param canvas - Элемент canvas для отрисовки
+	 */
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
-
 		const context = canvas.getContext('2d');
-
 		if (!context) {
 			throw new Error("Can't get context");
 		}
-
 		this.context = context;
-
 		this.canvas.width = this.canvas.parentElement?.clientWidth || 640;
 		this.canvas.height = this.canvas.parentElement?.clientHeight || 480;
-
 		this.context.imageSmoothingEnabled = false;
 	}
 
-	clear() {
+	/**
+	 * Очищает весь канвас.
+	 */
+	clear(): void {
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	}
 
-	// Загрузка изображения
+	/**
+	 * Загружает изображение по URL (с кэшем и дедупликацией запросов).
+	 * @param url - URL изображения
+	 * @returns Промис с загруженным изображением
+	 */
 	loadImage(url: string): Promise<HTMLImageElement> {
-		// Если изображение уже загружено, возвращаем его
 		if (this.images.has(url)) {
 			return Promise.resolve(this.images.get(url) as HTMLImageElement);
 		}
-
-		// Если изображение уже загружается, возвращаем существующий промис
 		if (this.imageLoadingPromises.has(url)) {
 			return this.imageLoadingPromises.get(url) as Promise<HTMLImageElement>;
 		}
-
-		// Создаем новый промис для загрузки
 		const promise = new Promise<HTMLImageElement>((resolve, reject) => {
 			const img = new Image();
 			img.onload = () => {
@@ -51,19 +54,29 @@ export default class Engine {
 			};
 			img.src = url;
 		});
-
 		this.imageLoadingPromises.set(url, promise);
 		return promise;
 	}
 
-	// Загрузка нескольких изображений
+	/**
+	 * Загружает несколько изображений по URL.
+	 * @param urls - Массив URL изображений
+	 * @returns Промис с картой URL -> HTMLImageElement
+	 */
 	async loadImages(urls: string[]): Promise<Map<string, HTMLImageElement>> {
 		const promises = urls.map(url => this.loadImage(url));
 		await Promise.all(promises);
 		return this.images;
 	}
 
-	// Отрисовка изображения
+	/**
+	 * Рисует изображение на канвасе.
+	 * @param image - URL (из кэша движка) или HTMLImageElement
+	 * @param x - Позиция X
+	 * @param y - Позиция Y
+	 * @param width - Ширина (опционально)
+	 * @param height - Высота (опционально)
+	 */
 	drawImage(
 		image: HTMLImageElement | string,
 		x: number,
@@ -72,7 +85,6 @@ export default class Engine {
 		height?: number
 	): void {
 		let img: HTMLImageElement;
-
 		if (typeof image === 'string') {
 			if (!this.images.has(image)) {
 				console.warn(`Image not loaded: ${image}`);
@@ -82,28 +94,31 @@ export default class Engine {
 		} else {
 			img = image;
 		}
-
-		if (width && height) {
+		if (width != null && height != null) {
 			this.context.drawImage(img, x, y, width, height);
 		} else {
 			this.context.drawImage(img, x, y);
 		}
 	}
 
-	// Отрисовка части изображения (спрайт из спрайтшита)
+	/**
+	 * Рисует часть изображения (спрайт из спрайтшита).
+	 * @param image - URL или HTMLImageElement
+	 * @param sx - X в источнике
+	 * @param sy - Y в источнике
+	 * @param sw - Ширина в источнике
+	 * @param sh - Высота в источнике
+	 * @param dx - X на канвасе
+	 * @param dy - Y на канвасе
+	 * @param dw - Ширина на канвасе
+	 * @param dh - Высота на канвасе
+	 */
 	drawSprite(
 		image: HTMLImageElement | string,
-		sx: number, // source x
-		sy: number, // source y
-		sw: number, // source width
-		sh: number, // source height
-		dx: number, // destination x
-		dy: number, // destination y
-		dw: number, // destination width
-		dh: number  // destination height
+		sx: number, sy: number, sw: number, sh: number,
+		dx: number, dy: number, dw: number, dh: number
 	): void {
 		let img: HTMLImageElement;
-
 		if (typeof image === 'string') {
 			if (!this.images.has(image)) {
 				console.warn(`Image not loaded: ${image}`);
@@ -113,21 +128,27 @@ export default class Engine {
 		} else {
 			img = image;
 		}
-
 		this.context.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 	}
 
-	// Отрисовка изображения с поворотом
+	/**
+	 * Рисует изображение с поворотом вокруг центра (x, y).
+	 * @param image - URL или HTMLImageElement
+	 * @param x - Центр по X
+	 * @param y - Центр по Y
+	 * @param angle - Угол в радианах
+	 * @param width - Ширина (опционально)
+	 * @param height - Высота (опционально)
+	 */
 	drawImageRotated(
 		image: HTMLImageElement | string,
 		x: number,
 		y: number,
-		angle: number, // угол в радианах
+		angle: number,
 		width?: number,
 		height?: number
 	): void {
 		let img: HTMLImageElement;
-
 		if (typeof image === 'string') {
 			if (!this.images.has(image)) {
 				console.warn(`Image not loaded: ${image}`);
@@ -137,19 +158,25 @@ export default class Engine {
 		} else {
 			img = image;
 		}
-
 		this.context.save();
 		this.context.translate(x, y);
 		this.context.rotate(angle);
-
-		const drawWidth = width || img.width;
-		const drawHeight = height || img.height;
-
+		const drawWidth = width ?? img.width;
+		const drawHeight = height ?? img.height;
 		this.context.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
 		this.context.restore();
 	}
 
-	// Отрисовка изображения с масштабированием
+	/**
+	 * Рисует изображение с масштабированием.
+	 * @param image - URL или HTMLImageElement
+	 * @param x - Позиция X
+	 * @param y - Позиция Y
+	 * @param scaleX - Масштаб по X
+	 * @param scaleY - Масштаб по Y
+	 * @param width - Базовая ширина (опционально)
+	 * @param height - Базовая высота (опционально)
+	 */
 	drawImageScaled(
 		image: HTMLImageElement | string,
 		x: number,
@@ -160,7 +187,6 @@ export default class Engine {
 		height?: number
 	): void {
 		let img: HTMLImageElement;
-
 		if (typeof image === 'string') {
 			if (!this.images.has(image)) {
 				console.warn(`Image not loaded: ${image}`);
@@ -170,19 +196,25 @@ export default class Engine {
 		} else {
 			img = image;
 		}
-
-		const drawWidth = (width || img.width) * scaleX;
-		const drawHeight = (height || img.height) * scaleY;
-
+		const drawWidth = (width ?? img.width) * scaleX;
+		const drawHeight = (height ?? img.height) * scaleY;
 		this.context.drawImage(img, x, y, drawWidth, drawHeight);
 	}
 
-	// Отрисовка с прозрачностью
+	/**
+	 * Рисует изображение с заданной прозрачностью.
+	 * @param image - URL или HTMLImageElement
+	 * @param x - Позиция X
+	 * @param y - Позиция Y
+	 * @param alpha - Прозрачность от 0 до 1
+	 * @param width - Ширина (опционально)
+	 * @param height - Высота (опционально)
+	 */
 	drawImageWithAlpha(
 		image: HTMLImageElement | string,
 		x: number,
 		y: number,
-		alpha: number, // от 0 до 1
+		alpha: number,
 		width?: number,
 		height?: number
 	): void {
@@ -192,23 +224,39 @@ export default class Engine {
 		this.context.restore();
 	}
 
-	// Проверка, загружено ли изображение
+	/**
+	 * Проверяет, загружено ли изображение по URL.
+	 * @param url - URL изображения
+	 * @returns true, если изображение в кэше
+	 */
 	isImageLoaded(url: string): boolean {
 		return this.images.has(url);
 	}
 
-	// Получение загруженного изображения
+	/**
+	 * Возвращает загруженное изображение по URL.
+	 * @param url - URL изображения
+	 * @returns HTMLImageElement или undefined
+	 */
 	getImage(url: string): HTMLImageElement | undefined {
 		return this.images.get(url);
 	}
 
-	// Очистка кеша изображений
+	/**
+	 * Очищает кэш изображений и активные промисы загрузки.
+	 */
 	clearImageCache(): void {
 		this.images.clear();
 		this.imageLoadingPromises.clear();
 	}
 
-	// Создание изображения из данных (для procedural generation)
+	/**
+	 * Создаёт изображение из процедурной отрисовки на временном канвасе.
+	 * @param width - Ширина канваса
+	 * @param height - Высота канваса
+	 * @param drawCallback - Функция отрисовки (получает контекст)
+	 * @returns Созданное изображение
+	 */
 	createImageFromData(
 		width: number,
 		height: number,
@@ -217,60 +265,54 @@ export default class Engine {
 		const offscreenCanvas = document.createElement('canvas');
 		offscreenCanvas.width = width;
 		offscreenCanvas.height = height;
-
 		const offscreenCtx = offscreenCanvas.getContext('2d');
 		if (!offscreenCtx) {
 			throw new Error("Can't create offscreen context");
 		}
-
 		drawCallback(offscreenCtx);
-
 		const img = new Image();
 		img.src = offscreenCanvas.toDataURL();
 		return img;
 	}
 
-	// Вспомогательная функция для загрузки спрайтшита с автоматической нарезкой
+	/**
+	 * Загружает спрайтшит и возвращает функцию получения координат спрайта по индексам (x, y).
+	 * @param url - URL изображения спрайтшита
+	 * @param spriteWidth - Ширина одного спрайта
+	 * @param spriteHeight - Высота одного спрайта
+	 * @returns Промис с объектом { image, getSprite(x, y) -> { sx, sy, sw, sh } }
+	 */
 	async loadSpriteSheet(
 		url: string,
 		spriteWidth: number,
 		spriteHeight: number
 	): Promise<{ image: HTMLImageElement; getSprite: (x: number, y: number) => { sx: number; sy: number; sw: number; sh: number } }> {
 		const image = await this.loadImage(url);
-
-		// const cols = Math.floor(image.width / spriteWidth);
-		// const rows = Math.floor(image.height / spriteHeight);
-
 		const getSprite = (x: number, y: number) => ({
 			sx: x * spriteWidth,
 			sy: y * spriteHeight,
 			sw: spriteWidth,
 			sh: spriteHeight
 		});
-
 		return { image, getSprite };
 	}
 
+	/**
+	 * Устанавливает размер канваса.
+	 * @param width - Ширина
+	 * @param height - Высота
+	 */
 	resize(width: number, height: number): void {
 		this.canvas.width = width;
 		this.canvas.height = height;
 	}
 
-	// update () {
-	// 	player.update();
-	// }
-
-	// render () {
-	// 	player.render(this.context)
-	// }
-
-	// tick () {
-	// 	this.update();
-	// 	this.render();
-
-	// 	requestAnimationFrame(this.tick);
-	// }
-
+	/**
+	 * Рисует многострочный текст (каждая строка через \n) с межстрочным интервалом 16.
+	 * @param text - Текст с переносами строк
+	 * @param x - Позиция X
+	 * @param y - Позиция Y первой строки
+	 */
 	multiline(text: string, x: number, y: number): void {
 		const lines = text.split('\n');
 		for (let i = 0; i < lines.length; i++) {

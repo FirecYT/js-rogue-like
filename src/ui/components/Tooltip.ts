@@ -25,7 +25,6 @@ export class Tooltip {
 		const linePadding = 8;
 		const cornerRadius = 5;
 
-		// Измерение текста
 		ctx.font = '13px Arial';
 		let maxWidth = 0;
 		for (const line of lines) {
@@ -35,7 +34,6 @@ export class Tooltip {
 		const width = maxWidth + padding * 2;
 		const height = lines.length * lineHeight + (lines.length - 1) * linePadding + padding * 2;
 
-		// Коррекция позиции
 		let adjustedX = x + offsetX;
 		let adjustedY = y + offsetY;
 		if (adjustedX + width > ctx.canvas.width) {
@@ -45,7 +43,6 @@ export class Tooltip {
 			adjustedY = y - height - offsetY;
 		}
 
-		// Тень
 		ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
 		ctx.shadowBlur = 10;
 		ctx.shadowOffsetX = 3;
@@ -58,13 +55,11 @@ export class Tooltip {
 
 		ctx.shadowColor = 'transparent';
 
-		// Граница
 		ctx.strokeStyle = '#555';
 		ctx.lineWidth = 1;
 		this.roundRect(ctx, adjustedX, adjustedY, width, height, cornerRadius);
 		ctx.stroke();
 
-		// Текст
 		ctx.fillStyle = '#fff';
 		ctx.font = '13px Arial';
 		ctx.textAlign = 'left';

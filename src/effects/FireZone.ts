@@ -1,21 +1,34 @@
 import { Effect } from './Effect';
 import Entity from '../entities/Entity';
 
+/**
+ * Зона огня: круг с периодическим уроном по сущностям внутри радиуса.
+ */
 export class FireZone extends Effect {
 	private radius = 30;
 	private duration = 180;
 	private damageTick = 0;
 
+	/**
+	 * Центр зоны смещён от (x, y) на 40 единиц по направлению angle.
+	 * @param x - Базовая X
+	 * @param y - Базовая Y
+	 * @param angle - Направление смещения
+	 * @param source - Источник
+	 */
 	constructor(x: number, y: number, angle: number, source: Entity) {
 		const offsetX = Math.cos(angle) * 40;
 		const offsetY = Math.sin(angle) * 40;
 		super(x + offsetX, y + offsetY, angle, source, 3);
 	}
 
+	/**
+	 * Каждые 20 кадров наносит 3 урона сущностям в радиусе.
+	 * @param enities - Список сущностей
+	 */
 	update(enities: Entity[]): void {
 		this.duration--;
 		this.damageTick++;
-
 		if (this.damageTick % 20 === 0) {
 			for (const entity of enities) {
 				if (entity === this.source || entity.isDead()) continue;
@@ -30,6 +43,10 @@ export class FireZone extends Effect {
 		}
 	}
 
+	/**
+	 * Рисует полупрозрачный оранжевый круг.
+	 * @param ctx - Контекст канваса
+	 */
 	render(ctx: CanvasRenderingContext2D): void {
 		const alpha = Math.min(1, this.duration / 60);
 		ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;

@@ -11,10 +11,10 @@ export class ItemSlot extends Component {
 	public item: Item | null = null;
 
 	/**
-	 * Создать слот для предмета
-	 * @param slotIndex Индекс слота
-	 * @param width Ширина слота
-	 * @param height Высота слота
+	 * Создаёт слот для отображения предмета и перезарядки.
+	 * @param width - Ширина слота (по умолчанию 60)
+	 * @param height - Высота слота (по умолчанию 60)
+	 * @param item - Предмет в слоте или null
 	 */
 	constructor(width = 60, height = 60, item: Item | null = null) {
 		super();

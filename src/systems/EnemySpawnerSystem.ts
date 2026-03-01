@@ -3,7 +3,16 @@ import { WorldManager } from '../world/WorldManager';
 import Entity from '../entities/Entity';
 import GameObject from '../components/GameObject';
 
+/**
+ * Система спавна врагов: с заданной вероятностью создаёт врагов на расстоянии 200–500 от игрока.
+ */
 export class EnemySpawnerSystem {
+	/**
+	 * @param player - Игрок (центр для спавна)
+	 * @param entities - Массив игровых объектов (куда добавляются враги)
+	 * @param worldManager - Мир
+	 * @param maxEnemies - Максимальное количество попыток спавна за кадр (по умолчанию 10)
+	 */
 	constructor(
 		private player: Entity,
 		private entities: GameObject[],
@@ -11,7 +20,10 @@ export class EnemySpawnerSystem {
 		private maxEnemies = 10
 	) { }
 
-	update() {
+	/**
+	 * До maxEnemies раз проверяет вероятность спавна (зависит от текущего числа живых врагов); при успехе создаёт Enemy и добавляет в entities.
+	 */
+	update(): void {
 		for (let i = 0; i < this.maxEnemies; i++) {
 			const enemyCount = this.entities.filter(
 				e => (e instanceof Enemy) && !e.isDead()
@@ -23,10 +35,7 @@ export class EnemySpawnerSystem {
 				const distance = 200 + Math.random() * 300;
 				const x = this.player.x + Math.cos(angle) * distance;
 				const y = this.player.y + Math.sin(angle) * distance;
-
-				const newEnemy = new Enemy(x, y, this.player);
-				void newEnemy;
-				this.entities.push(newEnemy);
+				this.entities.push(new Enemy(x, y, this.player));
 			}
 		}
 	}

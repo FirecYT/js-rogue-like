@@ -22,8 +22,6 @@ export class ScreenManager {
 	 */
 	constructor(private engine: Engine, mouse: MouseInput, getControlledEntity: () => Entity) {
 		this.mouse = mouse;
-
-		// Initialize HUD
 		this.hud = new HudScreen(engine, getControlledEntity);
 	}
 
@@ -113,26 +111,20 @@ export class ScreenManager {
 	}
 
 	/**
-	 * Обновление всех окон и компонентов
+	 * Обновляет HUD и все открытые окна (снизу вверх).
 	 */
 	update(): void {
-		// Update HUD
 		this.hud.update(this.mouse);
-
-		// Update windows from bottom to top
 		for (const window of this.windows) {
 			window.update(this.mouse);
 		}
 	}
 
 	/**
-	 * Отрисовка всего UI
+	 * Отрисовывает HUD и окна (снизу вверх); для верхнего окна — подсказку при наведении.
 	 */
 	render(): void {
-		// Render HUD first (always visible)
 		this.hud.render(this.engine.context);
-
-		// Render windows from bottom to top
 		for (const window of this.windows) {
 			this.engine.context.fillStyle = '#0008';
 			this.engine.context.fillRect(0, 0, this.engine.canvas.width, this.engine.canvas.height);

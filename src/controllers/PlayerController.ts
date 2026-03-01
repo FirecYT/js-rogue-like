@@ -6,11 +6,23 @@ import Entity from '../entities/Entity';
 import { getAngleBetweenPoints } from '../utils';
 import { EffectSystem } from '../systems/EffectSystem';
 
+/**
+ * Контроллер игрока: WASD, прицеливание мышью, стрельба по ЛКМ, чипы по Q/1-5, даш по Shift.
+ */
 export class PlayerController extends Controller {
+	/**
+	 * @param mouse - Состояние мыши (для прицела и нажатия)
+	 */
 	constructor(private mouse: MouseInput) {
 		super();
 	}
 
+	/**
+	 * Движение с проверкой проходимости, стрельба по нажатию мыши, использование чипов по клавишам.
+	 * @param entity - Игрок
+	 * @param world - Мир
+	 * @param effectSystem - Система эффектов
+	 */
 	update(entity: Entity, world: WorldManager, effectSystem: EffectSystem): void {
 		const keyboard = Keyboard.getInstance();
 		const speed = entity.speed;
@@ -19,28 +31,19 @@ export class PlayerController extends Controller {
 
 		if (keyboard.isKeyDown('KeyA')) {
 			entity.x -= speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
-				entity.x = originalX;
-			}
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.x = originalX;
 		}
 		if (keyboard.isKeyDown('KeyD')) {
 			entity.x += speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
-				entity.x = originalX;
-			}
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.x = originalX;
 		}
-
 		if (keyboard.isKeyDown('KeyW')) {
 			entity.y -= speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
-				entity.y = originalY;
-			}
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.y = originalY;
 		}
 		if (keyboard.isKeyDown('KeyS')) {
 			entity.y += speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) {
-				entity.y = originalY;
-			}
+			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.y = originalY;
 		}
 
 		if (keyboard.isKeyDown('ShiftLeft')) {
@@ -54,7 +57,6 @@ export class PlayerController extends Controller {
 			const mouseWorldX = entity.x + this.mouse.cx;
 			const mouseWorldY = entity.y + this.mouse.cy;
 			const angle = getAngleBetweenPoints(entity.x, entity.y, mouseWorldX, mouseWorldY);
-
 			if (this.mouse.pressed && entity.inventory.isWeaponReady()) {
 				entity.inventory.fire(angle, effectSystem);
 			}

@@ -10,40 +10,47 @@ interface Node {
 	parent?: Node;
 }
 
+/**
+ * Поиск пути A* в тайловой сетке мира.
+ */
 export class Pathfinder {
+	/**
+	 * Ищет путь от (startWorldX, startWorldY) до (targetWorldX, targetWorldY) в мировых координатах.
+	 * @param startWorldX - Начальная мировая X
+	 * @param startWorldY - Начальная мировая Y
+	 * @param targetWorldX - Целевая мировая X
+	 * @param targetWorldY - Целевая мировая Y
+	 * @param worldManager - Менеджер мира (проходимость, соседи)
+	 * @returns Массив точек { x, y } в мировых координатах (центры тайлов) или пустой массив
+	 */
 	static findPath(
 		startWorldX: number,
 		startWorldY: number,
 		targetWorldX: number,
 		targetWorldY: number,
 		worldManager: WorldManager
-	): { x: number, y: number }[] {
+	): { x: number; y: number }[] {
 		const start = worldManager.worldToGrid(startWorldX, startWorldY);
 		const target = worldManager.worldToGrid(targetWorldX, targetWorldY);
-
 		if (!start || !target) {
-			console.log('No start or target grid position');
 			return [];
 		}
 
 		const openSet: Node[] = [];
 		const closedSet = new Set<string>();
-
 		const startNode: Node = {
 			x: start.globalTileX,
 			y: start.globalTileY,
 			g: 0,
-			h: this.heuristic(start.globalTileX, start.globalTileY, target.globalTileX, target.globalTileY),
+			h: Pathfinder.heuristic(start.globalTileX, start.globalTileY, target.globalTileX, target.globalTileY),
 			f: 0
 		};
 		startNode.f = startNode.g + startNode.h;
-
 		openSet.push(startNode);
 
 		while (openSet.length > 0) {
 			let currentNode = openSet[0];
 			let currentIndex = 0;
-
 			for (let i = 1; i < openSet.length; i++) {
 				if (openSet[i].f < currentNode.f) {
 					currentNode = openSet[i];
@@ -52,27 +59,23 @@ export class Pathfinder {
 			}
 
 			if (currentNode.x === target.globalTileX && currentNode.y === target.globalTileY) {
-				return this.buildPath(currentNode, worldManager, startWorldX, startWorldY);
+				return Pathfinder.buildPath(currentNode, worldManager, startWorldX, startWorldY);
 			}
 
 			openSet.splice(currentIndex, 1);
 			closedSet.add(`${currentNode.x},${currentNode.y}`);
 
 			const neighbors = worldManager.getPassableNeighbors(currentNode.x, currentNode.y);
-
 			for (const neighborPos of neighbors) {
 				if (closedSet.has(`${neighborPos.x},${neighborPos.y}`)) continue;
-
 				const gScore = currentNode.g + 1;
-
 				let neighborNode = openSet.find(n => n.x === neighborPos.x && n.y === neighborPos.y);
-
 				if (!neighborNode) {
 					neighborNode = {
 						x: neighborPos.x,
 						y: neighborPos.y,
 						g: gScore,
-						h: this.heuristic(neighborPos.x, neighborPos.y, target.globalTileX, target.globalTileY),
+						h: Pathfinder.heuristic(neighborPos.x, neighborPos.y, target.globalTileX, target.globalTileY),
 						f: 0
 					};
 					neighborNode.f = neighborNode.g + neighborNode.h;
@@ -85,7 +88,6 @@ export class Pathfinder {
 				}
 			}
 		}
-
 		return [];
 	}
 
@@ -95,10 +97,9 @@ export class Pathfinder {
 		return Math.max(dx, dy);
 	}
 
-	private static buildPath(endNode: Node, worldManager: WorldManager, startWorldX: number, startWorldY: number): { x: number, y: number }[] {
-		const path: { x: number, y: number }[] = [];
+	private static buildPath(endNode: Node, worldManager: WorldManager, startWorldX: number, startWorldY: number): { x: number; y: number }[] {
+		const path: { x: number; y: number }[] = [];
 		let currentNode: Node | undefined = endNode;
-
 		while (currentNode) {
 			const worldPos = worldManager.gridToWorld(currentNode.x, currentNode.y);
 			path.unshift({
@@ -107,21 +108,23 @@ export class Pathfinder {
 			});
 			currentNode = currentNode.parent;
 		}
-
 		if (path.length > 0) {
 			path[0] = { x: startWorldX, y: startWorldY };
 		}
-
 		return path;
 	}
 }
 
+/**
+ * Упрощает путь: оставляет точки, между которыми есть прямая видимость (нет стен).
+ * @param path - Исходный путь (массив { x, y })
+ * @param worldManager - Мир для проверки проходимости
+ * @returns Упрощённый путь
+ */
 export function simplifyPath(path: { x: number; y: number }[], worldManager: WorldManager): { x: number; y: number }[] {
 	if (path.length <= 2) return path;
-
 	const simplified = [path[0]];
 	let current = 0;
-
 	while (current < path.length - 1) {
 		let furthest = current + 1;
 		for (let i = current + 2; i < path.length; i++) {
@@ -134,26 +137,24 @@ export function simplifyPath(path: { x: number; y: number }[], worldManager: Wor
 		simplified.push(path[furthest]);
 		current = furthest;
 	}
-
 	return simplified;
 }
 
+/**
+ * Проверяет, есть ли прямая видимость между двумя точками (шаги по 8 пикселей).
+ */
 function hasLineOfSight(a: { x: number; y: number }, b: { x: number; y: number }, world: WorldManager): boolean {
 	const dx = b.x - a.x;
 	const dy = b.y - a.y;
 	const dist = Math.hypot(dx, dy);
 	if (dist === 0) return true;
-
 	const steps = Math.ceil(dist / 8);
 	const stepX = dx / steps;
 	const stepY = dy / steps;
-
 	for (let i = 1; i <= steps; i++) {
 		const x = a.x + stepX * i;
 		const y = a.y + stepY * i;
-		if (!world.isWorldPositionPassable(x, y)) {
-			return false;
-		}
+		if (!world.isWorldPositionPassable(x, y)) return false;
 	}
 	return true;
 }

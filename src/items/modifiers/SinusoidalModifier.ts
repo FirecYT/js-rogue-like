@@ -1,6 +1,9 @@
 import { Effect } from "../../effects/Effect";
 import { Modifier } from "../Modifier";
 
+/**
+ * Модификатор: траектория эффекта колеблется по синусоиде перпендикулярно направлению.
+ */
 export class SinusoidalModifier implements Modifier {
 	id = 'sinusoidal';
 	public name = 'Sinusoidal';
@@ -8,6 +11,11 @@ export class SinusoidalModifier implements Modifier {
 	private amplitude = 5;
 	private frequency = 0.5;
 
+	/**
+	 * Оборачивает base.update: перед вызовом сдвигает (x, y) эффекта по перпендикуляру к angle.
+	 * @param base - Базовый эффект
+	 * @returns Тот же эффект с изменённым update
+	 */
 	apply(base: Effect): Effect {
 		let phase = 0;
 		const originalUpdate = base.update.bind(base);

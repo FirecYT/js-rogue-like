@@ -3,14 +3,21 @@ import Entity from '../entities/Entity';
 import { ControlSwitchSystem } from './ControlSwitchSystem';
 import { Controllable, isControllable } from '../types/EntityTraits';
 
+/**
+ * Система перерождения: при смерти сущности с чипом Rebirth управление передаётся ближайшей союзной управляемой сущности.
+ */
 export class RebirthSystem {
+	/**
+	 * Подписывается на enemyKilled: если жертва имела чип rebirth, ищет ближайшую союзную сущность и передаёт ей контроллер; при необходимости переключает управление.
+	 * @param entities - Массив всех сущностей
+	 * @param controlSwitchSystem - Система переключения управления
+	 */
 	constructor(
 		private entities: Entity[],
 		private controlSwitchSystem: ControlSwitchSystem
 	) {
 		eventBus.on('enemyKilled', ({ victim }) => {
 			const chipIdx = victim.inventory.chips.findIndex(c => c?.id === 'rebirth');
-
 			if (chipIdx === -1) return;
 
 			const candidates: (Entity & Controllable)[] = this.entities.filter(e =>
@@ -24,7 +31,7 @@ export class RebirthSystem {
 
 			const nearest = candidates.reduce((a, b) =>
 				Math.hypot(a.x - victim.x, a.y - victim.y) <
-					Math.hypot(b.x - victim.x, b.y - victim.y) ? a : b
+				Math.hypot(b.x - victim.x, b.y - victim.y) ? a : b
 			);
 
 			if (isControllable(victim)) {

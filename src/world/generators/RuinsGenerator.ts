@@ -1,12 +1,18 @@
 import { BaseGenerator } from './BaseGenerator';
 import { Chunk, TileType, RegionType, CHUNK_CONFIG } from '../Types';
 
+/**
+ * Генератор руин: здания с входами, стены, обломки (ROCK).
+ */
 export class RuinsGenerator extends BaseGenerator {
+	/**
+	 * @param chunkX - X чанка
+	 * @param chunkY - Y чанка
+	 * @returns Чанк с руинами
+	 */
 	generate(chunkX: number, chunkY: number): Chunk {
 		const chunk = this.createEmptyChunk(chunkX, chunkY);
 		chunk.regionType = RegionType.RUINS;
-
-		// Генерация руин с помощью шума Перлина или простых алгоритмов
 		this.generateBuildings(chunk);
 		this.generateWalls(chunk);
 		this.generateDebris(chunk);

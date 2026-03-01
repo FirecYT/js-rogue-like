@@ -15,10 +15,11 @@ export class ChunkViewManager {
 	) { }
 
 	/**
-	 * Получить или создать визуальное представление для чанка
-	 * @param chunkX Координата чанка X
-	 * @param chunkY Координата чанка Y
-	 * @returns ChunkView или null, если чанк не существует
+	 * Возвращает или создаёт ChunkView для чанка; при отсутствии чанка выгружает вью и возвращает null.
+	 * @param chunkX - X чанка
+	 * @param chunkY - Y чанка
+	 * @param scale - Масштаб (для выбора LOD и проверки поколения)
+	 * @returns ChunkView или null
 	 */
 	getView(chunkX: number, chunkY: number, scale: number): ChunkView | null {
 		const key = `${chunkX},${chunkY}`;
@@ -44,9 +45,9 @@ export class ChunkViewManager {
 	}
 
 	/**
-	 * Уведомление о выгрузке чанка (например, при выходе за пределы видимости)
-	 * @param chunkX Координата чанка X
-	 * @param chunkY Координата чанка Y
+	 * Выгружает вью чанка (dispose и удаление из кэша).
+	 * @param chunkX - X чанка
+	 * @param chunkY - Y чанка
 	 */
 	unloadView(chunkX: number, chunkY: number): void {
 		const key = `${chunkX},${chunkY}`;
@@ -58,7 +59,7 @@ export class ChunkViewManager {
 	}
 
 	/**
-	 * Полная очистка всех вьюшек (например, при смене уровня)
+	 * Очищает все вью и освобождает ресурсы.
 	 */
 	clearAll(): void {
 		for (const view of this.views.values()) {
@@ -68,7 +69,8 @@ export class ChunkViewManager {
 	}
 
 	/**
-	 * Получить все активные вьюшки (например, для отладки или принудительного рендеринга)
+	 * Возвращает все активные ChunkView.
+	 * @returns Массив вью
 	 */
 	getAllViews(): ChunkView[] {
 		return Array.from(this.views.values());

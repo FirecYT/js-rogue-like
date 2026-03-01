@@ -56,7 +56,7 @@ export class PickupWindow extends Window {
 	}
 
 	/**
-	 * Create the UI elements for the window
+	 * Создаёт элементы окна: метка, слоты текущих предметов, слот подбираемого предмета, кнопка «Пропустить».
 	 */
 	private createUI(): void {
 		this.root.children = [];
