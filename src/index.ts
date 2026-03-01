@@ -39,9 +39,10 @@ import { LevelUpWindow } from './ui/windows/LevelUpWindow';
 import { InventoryWindow } from './ui/windows/InventoryWindow';
 import { isWeapon } from './items/Weapon';
 import { isModifier, Modifier } from './items/Modifier';
-import { createPickupFromItem, getAngleBetweenPoints } from './utils';
+import { createPickupFromItem } from './utils';
 import { isChip } from './items/Chip';
 import { ChunkViewManager } from './world/rendering/ChunkViewManager';
+import { Crosshair } from './ui/components/Crosshair';
 
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
@@ -85,6 +86,9 @@ const playerProgression = new PlayerProgression();
 
 const floatingTexts: FloatingText[] = [];
 const entities: Entity[] = [player];
+
+/** Пикап, рядом с которым игрок (для подсказки "[E] Подобрать"); обновляется каждый кадр. */
+let pickupInRange: PickupItem | null = null;
 
 const enemySpawner = new EnemySpawnerSystem(player, entities, worldManager);
 
@@ -146,6 +150,7 @@ const screenManager = new ScreenManager(
 );
 
 screenManager.getHud().setPlayerProgression(playerProgression);
+screenManager.getHud().setPickupInRangeGetter(() => pickupInRange);
 
 const controlSwitchSystem = new ControlSwitchSystem(
 	player,
@@ -261,6 +266,7 @@ function update(): void {
 			}
 		}
 
+		pickupInRange = null;
 		for (let i = 0; i < entities.length; i++) {
 			const entity = entities[i];
 			if (entity instanceof PickupItem) {
@@ -268,75 +274,79 @@ function update(): void {
 				const dy = controlled.y - entity.y;
 				const distance = Math.sqrt(dx * dx + dy * dy);
 				if (distance < 20) {
-					const pickupWin = new PickupWindow(
-						entity,
-						controlled,
-						entities,
-						engine.canvas.width,
-						engine.canvas.height
-					);
+					if (keyboard.isKeyPressedOnce('KeyE')) {
+						const pickupWin = new PickupWindow(
+							entity,
+							controlled,
+							entities,
+							engine.canvas.width,
+							engine.canvas.height
+						);
 
-					pickupWin.setOnConfirm((slotIndex) => {
-						const item = entity.item;
+						pickupWin.setOnConfirm((slotIndex) => {
+							const item = entity.item;
 
-						if (isWeapon(item)) {
-							const newWeapon = item;
-							const oldWeapon = controlled.inventory.weapon;
-							const oldModifiers = controlled.inventory.modifiers.filter(m => m !== null);
+							if (isWeapon(item)) {
+								const newWeapon = item;
+								const oldWeapon = controlled.inventory.weapon;
+								const oldModifiers = controlled.inventory.modifiers.filter(m => m !== null);
 
-							controlled.inventory.setWeapon(newWeapon);
+								controlled.inventory.setWeapon(newWeapon);
 
-							const newModifiers: (Modifier | null)[] = Array(newWeapon.modifiersSlots).fill(null);
+								const newModifiers: (Modifier | null)[] = Array(newWeapon.modifiersSlots).fill(null);
 
-							const droppedModifiers: Modifier[] = [];
-							for (let i = 0; i < oldModifiers.length; i++) {
-								if (i < newWeapon.modifiersSlots) {
-									newModifiers[i] = oldModifiers[i];
-								} else {
-									droppedModifiers.push(oldModifiers[i]);
+								const droppedModifiers: Modifier[] = [];
+								for (let i = 0; i < oldModifiers.length; i++) {
+									if (i < newWeapon.modifiersSlots) {
+										newModifiers[i] = oldModifiers[i];
+									} else {
+										droppedModifiers.push(oldModifiers[i]);
+									}
 								}
+
+								controlled.inventory.modifiers = newModifiers;
+
+								if (oldWeapon) {
+									entities.push(createPickupFromItem(oldWeapon, controlled.x, controlled.y));
+								}
+								for (const mod of droppedModifiers) {
+									mod.onUnequip?.(controlled);
+									entities.push(
+										createPickupFromItem(mod, controlled.x + (Math.random() - 0.5) * 40, controlled.y + (Math.random() - 0.5) * 40)
+									);
+								}
+							} else if (isModifier(item)) {
+								const oldMod = controlled.inventory.modifiers[slotIndex];
+								if (oldMod) {
+									oldMod.onUnequip?.(controlled);
+									entities.push(createPickupFromItem(oldMod, controlled.x, controlled.y));
+								}
+								controlled.inventory.modifiers[slotIndex] = item;
+								item.onEquip?.(controlled);
+
+							} else if (isChip(item)) {
+								const oldChip = controlled.inventory.chips[slotIndex];
+								if (oldChip) {
+									entities.push(createPickupFromItem(oldChip, controlled.x, controlled.y));
+								}
+								const newChip = item;
+								controlled.inventory.chips[slotIndex] = newChip;
+								newChip.onEquip?.(controlled);
 							}
 
-							controlled.inventory.modifiers = newModifiers;
+							screenManager.closeWindow(pickupWin);
+						});
 
-							if (oldWeapon) {
-								entities.push(createPickupFromItem(oldWeapon, controlled.x, controlled.y));
-							}
-							for (const mod of droppedModifiers) {
-								mod.onUnequip?.(controlled);
-								entities.push(
-									createPickupFromItem(mod, controlled.x + (Math.random() - 0.5) * 40, controlled.y + (Math.random() - 0.5) * 40)
-								);
-							}
-						} else if (isModifier(item)) {
-							const oldMod = controlled.inventory.modifiers[slotIndex];
-							if (oldMod) {
-								oldMod.onUnequip?.(controlled);
-								entities.push(createPickupFromItem(oldMod, controlled.x, controlled.y));
-							}
-							controlled.inventory.modifiers[slotIndex] = item;
-							item.onEquip?.(controlled);
+						pickupWin.setOnCancel(() => {
+							screenManager.closeWindow(pickupWin);
+						});
 
-						} else if (isChip(item)) {
-							const oldChip = controlled.inventory.chips[slotIndex];
-							if (oldChip) {
-								entities.push(createPickupFromItem(oldChip, controlled.x, controlled.y));
-							}
-							const newChip = item;
-							controlled.inventory.chips[slotIndex] = newChip;
-							newChip.onEquip?.(controlled);
-						}
-
-						screenManager.closeWindow(pickupWin);
-					});
-
-					pickupWin.setOnCancel(() => {
-						screenManager.closeWindow(pickupWin);
-					});
-
-					screenManager.openWindow(pickupWin);
-					entity.onPickup(controlled);
-					entities.splice(i, 1);
+						screenManager.openWindow(pickupWin);
+						entity.onPickup(controlled);
+						entities.splice(i, 1);
+					} else {
+						pickupInRange = entity;
+					}
 					break;
 				}
 			}
@@ -397,28 +407,6 @@ function update(): void {
 }
 
 /**
- * Рисует прицел: линия от управляемой сущности к курсору и точка в позиции мыши.
- */
-function drawCrosshair(): void {
-	const _m = getMousePosition();
-
-	const angle = getAngleBetweenPoints(controlled.x, controlled.y, _m.x, _m.y);
-
-	const length = 1500;
-
-	const lineX = length * Math.cos(angle) + controlled.x;
-	const lineY = length * Math.sin(angle) + controlled.y;
-
-	engine.context.strokeStyle = '#f992';
-	engine.context.lineWidth = 4;
-	engine.context.beginPath();
-	engine.context.moveTo(controlled.x, controlled.y);
-	engine.context.lineTo(lineX, lineY);
-	engine.context.stroke();
-	engine.context.fillRect(_m.x - 1, _m.y - 1, 2, 2);
-}
-
-/**
  * Отрисовывает мир: активные чанки с фрустум-клиннингом и LOD.
  */
 function drawWorld(): void {
@@ -465,7 +453,8 @@ function render(): void {
 	drawWorld();
 
 	if (!controlled.isDead()) {
-		drawCrosshair();
+		const mouseWorld = getMousePosition();
+		Crosshair.render(engine.context, controlled.x, controlled.y, mouseWorld.x, mouseWorld.y);
 	}
 
 	effectSystem.render(engine.context);

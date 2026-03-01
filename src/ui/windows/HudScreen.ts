@@ -6,6 +6,8 @@ import Entity from '../../entities/Entity';
 import { HorizontalLayout } from '../containers/HorizontalLayout';
 import { ItemSlot } from '../components/ItemSlot';
 import { VerticalLayout } from '../containers/VerticalLayout';
+import { Label } from '../components/Label';
+import { PickupItem } from '../../entities/PickupItem';
 
 /**
  * HUD: полоса опыта сверху, полоса здоровья и чипы справа внизу, оружие и модификаторы слева внизу.
@@ -31,6 +33,9 @@ export class HudScreen extends Component {
 
 	private lastWeaponId: string | null = null;
 	private lastModifierCount = 0;
+
+	private getPickupInRange: (() => PickupItem | null) | null = null;
+	private readonly pickupHintLabel = new Label('[E] Подобрать');
 
 	constructor(engine: Engine, getControlledEntity: () => Entity) {
 		super();
@@ -60,6 +65,13 @@ export class HudScreen extends Component {
 	 */
 	setPlayerProgression(progression: PlayerProgression): void {
 		this.playerProgression = progression;
+	}
+
+	/**
+	 * Устанавливает геттер для пикапа в радиусе (для подсказки подбора).
+	 */
+	setPickupInRangeGetter(getter: () => PickupItem | null): void {
+		this.getPickupInRange = getter;
 	}
 
 	/**
@@ -146,6 +158,13 @@ export class HudScreen extends Component {
 		this.renderExperienceBar(ctx);
 		this.renderHealthBar(ctx, entity);
 		this.weaponBar.render(ctx, 0, 0);
+
+		const pickup = this.getPickupInRange?.();
+		if (pickup && !pickup.isDead()) {
+			this.pickupHintLabel.x = Math.floor(this.engine.canvas.width / 2 - this.pickupHintLabel.width / 2);
+			this.pickupHintLabel.y = this.engine.canvas.height - 90;
+			this.pickupHintLabel.render(ctx, 0, 0);
+		}
 	}
 
 	/**
