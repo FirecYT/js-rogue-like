@@ -1,9 +1,10 @@
-import { Chunk, TileType, CHUNK_CONFIG } from '../Types';
+import { OptimizedChunk, TileType, CHUNK_CONFIG, getTile } from '../Types';
 import Engine from '../../components/Engine';
 import { WorldManager } from '../WorldManager';
 
 /**
  * Контейнер чанка с кэшированной отрисовкой и поддержкой LOD (уровней детализации).
+ * @remarks Работает с OptimizedChunk для оптимизации доступа к данным.
  */
 export class ChunkView {
 	private static readonly MAX_LOD_LEVELS = 5;
@@ -14,7 +15,7 @@ export class ChunkView {
 	private lastRenderedGeneration: number[] = [];
 
 	constructor(
-		public chunk: Chunk,
+		public chunk: OptimizedChunk,
 		private worldManager: WorldManager,
 		private engine: Engine
 	) {
@@ -54,7 +55,7 @@ export class ChunkView {
 	/**
 	 * Возвращает уровень детализации (0..4) по текущему масштабу камеры.
 	 * @param scale - Масштаб (0 = максимальная детализация, отрицательные = упрощение)
-	 * @returns Индекс LOD
+	 * @returns Индекс уровня детализации
 	 */
 	public getLODForScale(scale: number): number {
 		if (scale >= 0) return 0;
@@ -82,6 +83,7 @@ export class ChunkView {
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+		// Оптимизация: рисуем только видимые тайлы (можно добавить culling)
 		for (let x = 0; x < CHUNK_CONFIG.SIZE; x++) {
 			for (let y = 0; y < CHUNK_CONFIG.SIZE; y++) {
 				this.renderTile(ctx, x, y, tileSize);
@@ -95,9 +97,9 @@ export class ChunkView {
 	/**
 	 * Рисует один тайл в контекст кэша (текстуры пола, стен, камней и т.д.).
 	 * @param ctx - Контекст оффскрин-канваса
-	 * @param tileX - Локальная X тайла
-	 * @param tileY - Локальная Y тайла
-	 * @param tileSize - Размер тайла в пикселях для этого LOD
+	 * @param tileX - Локальная координата тайла по оси X
+	 * @param tileY - Локальная координата тайла по оси Y
+	 * @param tileSize - Размер тайла в пикселях для этого уровня детализации
 	 */
 	private renderTile(
 		ctx: OffscreenCanvasRenderingContext2D,
@@ -105,7 +107,7 @@ export class ChunkView {
 		tileY: number,
 		tileSize: number
 	): void {
-		const tileType = this.chunk.tiles[tileX][tileY];
+		const tileType = getTile(this.chunk, tileX, tileY);
 		const worldX = tileX * tileSize;
 		const worldY = tileY * tileSize;
 
@@ -122,7 +124,12 @@ export class ChunkView {
 				ctx.fillStyle = '#333';
 				break;
 			case TileType.WALL: {
-				const wallIndex = this.worldManager.getWallTextureIndex(this.chunk, tileX, tileY, TileType.WALL);
+				const wallIndex = this.worldManager.getWallTextureIndex(
+					this.chunk, 
+					tileX, 
+					tileY, 
+					TileType.WALL
+				);
 				const spriteX = (wallIndex % 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
 				const spriteY = Math.floor(wallIndex / 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
 				const wallsImg = this.engine.getImage('/js-rogue-like/images/walls.png');
@@ -162,11 +169,11 @@ export class ChunkView {
 	}
 
 	/**
-	 * Отрисовать кэшированный чанк на основной канвас
-	 * @param targetCtx Контекст основного канваса
-	 * @param screenX Позиция на экране по X
-	 * @param screenY Позиция на экране по Y
-	 * @param scale Текущий масштаб камеры
+	 * Отрисовывает кэшированный чанк на основной канвас.
+	 * @param targetCtx - Контекст основного канваса для отрисовки
+	 * @param screenX - Позиция на экране по оси X
+	 * @param screenY - Позиция на экране по оси Y
+	 * @param scale - Текущий масштаб камеры
 	 */
 	draw(targetCtx: CanvasRenderingContext2D, screenX: number, screenY: number, scale: number): void {
 		const lod = this.getLODForScale(scale);
@@ -192,11 +199,20 @@ export class ChunkView {
 	}
 
 	/**
-	 * Возвращает номер поколения чанка, при котором был последний рендер для данного LOD.
+	 * Возвращает номер поколения чанка, при котором был последний рендер для данного уровня детализации.
 	 * @param lod - Уровень детализации (по умолчанию 0)
-	 * @returns Номер поколения или -1
+	 * @returns Номер поколения или -1, если не рендерилось
 	 */
 	getLastRenderedGeneration(lod = 0): number {
 		return this.lastRenderedGeneration[lod] ?? -1;
+	}
+
+	/**
+	 * Быстрая проверка: нужно ли перерисовывать чанк для данного уровня детализации.
+	 * @param lod - Уровень детализации
+	 * @returns true, если требуется перерисовка
+	 */
+	needsRedraw(lod: number): boolean {
+		return this.isDirty[lod] || this.chunk.generation !== this.lastRenderedGeneration[lod];
 	}
 }
