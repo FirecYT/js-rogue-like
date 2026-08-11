@@ -28,8 +28,11 @@ export class LaserBeam extends Effect {
 			if (entity === this.source || entity.isDead()) continue;
 			const dx = entity.x - this.x;
 			const dy = entity.y - this.y;
-			const distToLine = Math.abs(dx * Math.sin(this.angle) - dy * Math.cos(this.angle));
-			const distAlong = dx * Math.cos(this.angle) + dy * Math.sin(this.angle);
+			const distToLine = Math.abs(
+				dx * Math.sin(this.angle) - dy * Math.cos(this.angle)
+			);
+			const distAlong =
+				dx * Math.cos(this.angle) + dy * Math.sin(this.angle);
 			if (distToLine < 10 && distAlong > 0 && distAlong < this.length) {
 				entity.takeDamage(this.damage, this.source);
 				this.onHit?.(entity);

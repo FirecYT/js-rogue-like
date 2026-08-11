@@ -4,8 +4,12 @@
 export default class Engine {
 	public canvas: HTMLCanvasElement;
 	public context: CanvasRenderingContext2D;
-	private images: Map<string, HTMLImageElement> = new Map<string, HTMLImageElement>();
-	private imageLoadingPromises: Map<string, Promise<HTMLImageElement>> = new Map<string, Promise<HTMLImageElement>>();
+	private images: Map<string, HTMLImageElement> = new Map<
+		string,
+		HTMLImageElement
+	>();
+	private imageLoadingPromises: Map<string, Promise<HTMLImageElement>> =
+		new Map<string, Promise<HTMLImageElement>>();
 
 	/**
 	 * @param canvas - Элемент canvas для отрисовки
@@ -39,7 +43,9 @@ export default class Engine {
 			return Promise.resolve(this.images.get(url) as HTMLImageElement);
 		}
 		if (this.imageLoadingPromises.has(url)) {
-			return this.imageLoadingPromises.get(url) as Promise<HTMLImageElement>;
+			return this.imageLoadingPromises.get(
+				url
+			) as Promise<HTMLImageElement>;
 		}
 		const promise = new Promise<HTMLImageElement>((resolve, reject) => {
 			const img = new Image();
@@ -64,7 +70,7 @@ export default class Engine {
 	 * @returns Промис с картой URL -> HTMLImageElement
 	 */
 	async loadImages(urls: string[]): Promise<Map<string, HTMLImageElement>> {
-		const promises = urls.map(url => this.loadImage(url));
+		const promises = urls.map((url) => this.loadImage(url));
 		await Promise.all(promises);
 		return this.images;
 	}
@@ -115,8 +121,14 @@ export default class Engine {
 	 */
 	drawSprite(
 		image: HTMLImageElement | string,
-		sx: number, sy: number, sw: number, sh: number,
-		dx: number, dy: number, dw: number, dh: number
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number,
+		dx: number,
+		dy: number,
+		dw: number,
+		dh: number
 	): void {
 		let img: HTMLImageElement;
 		if (typeof image === 'string') {
@@ -163,7 +175,13 @@ export default class Engine {
 		this.context.rotate(angle);
 		const drawWidth = width ?? img.width;
 		const drawHeight = height ?? img.height;
-		this.context.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+		this.context.drawImage(
+			img,
+			-drawWidth / 2,
+			-drawHeight / 2,
+			drawWidth,
+			drawHeight
+		);
 		this.context.restore();
 	}
 
@@ -286,13 +304,19 @@ export default class Engine {
 		url: string,
 		spriteWidth: number,
 		spriteHeight: number
-	): Promise<{ image: HTMLImageElement; getSprite: (x: number, y: number) => { sx: number; sy: number; sw: number; sh: number } }> {
+	): Promise<{
+		image: HTMLImageElement;
+		getSprite: (
+			x: number,
+			y: number
+		) => { sx: number; sy: number; sw: number; sh: number };
+	}> {
 		const image = await this.loadImage(url);
 		const getSprite = (x: number, y: number) => ({
 			sx: x * spriteWidth,
 			sy: y * spriteHeight,
 			sw: spriteWidth,
-			sh: spriteHeight
+			sh: spriteHeight,
 		});
 		return { image, getSprite };
 	}

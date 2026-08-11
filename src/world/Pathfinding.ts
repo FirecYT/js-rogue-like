@@ -1,5 +1,5 @@
-import { CHUNK_CONFIG } from "./Types";
-import { WorldManager } from "./WorldManager";
+import { CHUNK_CONFIG } from './Types';
+import { WorldManager } from './WorldManager';
 
 interface Node {
 	x: number;
@@ -42,8 +42,13 @@ export class Pathfinder {
 			x: start.globalTileX,
 			y: start.globalTileY,
 			g: 0,
-			h: Pathfinder.heuristic(start.globalTileX, start.globalTileY, target.globalTileX, target.globalTileY),
-			f: 0
+			h: Pathfinder.heuristic(
+				start.globalTileX,
+				start.globalTileY,
+				target.globalTileX,
+				target.globalTileY
+			),
+			f: 0,
 		};
 		startNode.f = startNode.g + startNode.h;
 		openSet.push(startNode);
@@ -58,25 +63,44 @@ export class Pathfinder {
 				}
 			}
 
-			if (currentNode.x === target.globalTileX && currentNode.y === target.globalTileY) {
-				return Pathfinder.buildPath(currentNode, worldManager, startWorldX, startWorldY);
+			if (
+				currentNode.x === target.globalTileX &&
+				currentNode.y === target.globalTileY
+			) {
+				return Pathfinder.buildPath(
+					currentNode,
+					worldManager,
+					startWorldX,
+					startWorldY
+				);
 			}
 
 			openSet.splice(currentIndex, 1);
 			closedSet.add(`${currentNode.x},${currentNode.y}`);
 
-			const neighbors = worldManager.getPassableNeighbors(currentNode.x, currentNode.y);
+			const neighbors = worldManager.getPassableNeighbors(
+				currentNode.x,
+				currentNode.y
+			);
 			for (const neighborPos of neighbors) {
-				if (closedSet.has(`${neighborPos.x},${neighborPos.y}`)) continue;
+				if (closedSet.has(`${neighborPos.x},${neighborPos.y}`))
+					continue;
 				const gScore = currentNode.g + 1;
-				let neighborNode = openSet.find(n => n.x === neighborPos.x && n.y === neighborPos.y);
+				let neighborNode = openSet.find(
+					(n) => n.x === neighborPos.x && n.y === neighborPos.y
+				);
 				if (!neighborNode) {
 					neighborNode = {
 						x: neighborPos.x,
 						y: neighborPos.y,
 						g: gScore,
-						h: Pathfinder.heuristic(neighborPos.x, neighborPos.y, target.globalTileX, target.globalTileY),
-						f: 0
+						h: Pathfinder.heuristic(
+							neighborPos.x,
+							neighborPos.y,
+							target.globalTileX,
+							target.globalTileY
+						),
+						f: 0,
 					};
 					neighborNode.f = neighborNode.g + neighborNode.h;
 					neighborNode.parent = currentNode;
@@ -91,20 +115,33 @@ export class Pathfinder {
 		return [];
 	}
 
-	private static heuristic(x1: number, y1: number, x2: number, y2: number): number {
+	private static heuristic(
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number
+	): number {
 		const dx = Math.abs(x1 - x2);
 		const dy = Math.abs(y1 - y2);
 		return Math.max(dx, dy);
 	}
 
-	private static buildPath(endNode: Node, worldManager: WorldManager, startWorldX: number, startWorldY: number): { x: number; y: number }[] {
+	private static buildPath(
+		endNode: Node,
+		worldManager: WorldManager,
+		startWorldX: number,
+		startWorldY: number
+	): { x: number; y: number }[] {
 		const path: { x: number; y: number }[] = [];
 		let currentNode: Node | undefined = endNode;
 		while (currentNode) {
-			const worldPos = worldManager.gridToWorld(currentNode.x, currentNode.y);
+			const worldPos = worldManager.gridToWorld(
+				currentNode.x,
+				currentNode.y
+			);
 			path.unshift({
 				x: worldPos.x + CHUNK_CONFIG.TILE_SIZE / 2,
-				y: worldPos.y + CHUNK_CONFIG.TILE_SIZE / 2
+				y: worldPos.y + CHUNK_CONFIG.TILE_SIZE / 2,
 			});
 			currentNode = currentNode.parent;
 		}
@@ -121,14 +158,23 @@ export class Pathfinder {
  * @param worldManager - Мир для проверки проходимости
  * @returns Упрощённый путь
  */
-export function simplifyPath(path: { x: number; y: number }[], worldManager: WorldManager): { x: number; y: number }[] {
+export function simplifyPath(
+	path: { x: number; y: number }[],
+	worldManager: WorldManager
+): { x: number; y: number }[] {
 	if (path.length <= 2) return path;
 	const simplified = [path[0]];
 	let current = 0;
 	while (current < path.length - 1) {
 		let furthest = current + 1;
 		for (let i = current + 2; i < path.length; i++) {
-			if (hasLineOfSight(simplified[simplified.length - 1], path[i], worldManager)) {
+			if (
+				hasLineOfSight(
+					simplified[simplified.length - 1],
+					path[i],
+					worldManager
+				)
+			) {
 				furthest = i;
 			} else {
 				break;
@@ -143,7 +189,11 @@ export function simplifyPath(path: { x: number; y: number }[], worldManager: Wor
 /**
  * Проверяет, есть ли прямая видимость между двумя точками (шаги по 8 пикселей).
  */
-function hasLineOfSight(a: { x: number; y: number }, b: { x: number; y: number }, world: WorldManager): boolean {
+function hasLineOfSight(
+	a: { x: number; y: number },
+	b: { x: number; y: number },
+	world: WorldManager
+): boolean {
 	const dx = b.x - a.x;
 	const dy = b.y - a.y;
 	const dist = Math.hypot(dx, dy);

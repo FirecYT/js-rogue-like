@@ -111,10 +111,19 @@ function addExperience(amount: number): void {
 
 		lvlUpWin.setOnChoose((choice) => {
 			screenManager.closeWindow(lvlUpWin);
-			floatingTexts.push(new FloatingText(controlled.x, controlled.y, choice, 60));
+			floatingTexts.push(
+				new FloatingText(controlled.x, controlled.y, choice, 60)
+			);
 		});
 
-		floatingTexts.push(new FloatingText(controlled.x, controlled.y - 20, `LEVEL UP! ${playerProgression.level}`, 120));
+		floatingTexts.push(
+			new FloatingText(
+				controlled.x,
+				controlled.y - 20,
+				`LEVEL UP! ${playerProgression.level}`,
+				120
+			)
+		);
 	}
 }
 
@@ -127,13 +136,15 @@ eventBus.on('enemyKilled', ({ killer, victim }) => {
 		}
 
 		addExperience(experience);
-		floatingTexts.push(new FloatingText(victim.x, victim.y, `+${experience}`, 60));
+		floatingTexts.push(
+			new FloatingText(victim.x, victim.y, `+${experience}`, 60)
+		);
 	}
 });
 
 eventBus.on('chunkUnloaded', ({ chunkX, chunkY }) => {
 	chunkViewManager.unloadView(chunkX, chunkY);
-})
+});
 
 const bossSpawnSystem = new BossSpawnSystem(
 	worldManager,
@@ -143,10 +154,8 @@ const bossSpawnSystem = new BossSpawnSystem(
 	[]
 );
 
-const screenManager = new ScreenManager(
-	engine,
-	mouse,
-	() => controlSwitchSystem.getCurrentControlled()
+const screenManager = new ScreenManager(engine, mouse, () =>
+	controlSwitchSystem.getCurrentControlled()
 );
 
 screenManager.getHud().setPlayerProgression(playerProgression);
@@ -154,7 +163,7 @@ screenManager.getHud().setPickupInRangeGetter(() => pickupInRange);
 
 const controlSwitchSystem = new ControlSwitchSystem(
 	player,
-	new PlayerController(mouse),
+	new PlayerController(mouse)
 );
 
 new RebirthSystem(entities, controlSwitchSystem);
@@ -184,21 +193,23 @@ player.inventory.addModifier(new DamageBoostModifier(2.0));
 player.inventory.addModifier(new SinusoidalModifier());
 player.inventory.addModifier(new ExplosiveModifier(effectSystem));
 
-player.inventory.addChip(new TeleportChip);
-player.inventory.addChip(new DashChip);
+player.inventory.addChip(new TeleportChip());
+player.inventory.addChip(new DashChip());
 player.inventory.addChip(new RebirthChip());
 
-entities.push(new WeaponPickup(500, 0, new BasicPistol));
-entities.push(new WeaponPickup(500, 100, new Flamethrower));
-entities.push(new WeaponPickup(500, 200, new LaserRifle));
+entities.push(new WeaponPickup(500, 0, new BasicPistol()));
+entities.push(new WeaponPickup(500, 100, new Flamethrower()));
+entities.push(new WeaponPickup(500, 200, new LaserRifle()));
 
 entities.push(new ModifierPickup(600, 0, new DamageBoostModifier(2.0)));
 entities.push(new ModifierPickup(600, 50, new PierceModifier()));
 entities.push(new ModifierPickup(600, 100, new SinusoidalModifier()));
-entities.push(new ModifierPickup(600, 150, new ExplosiveModifier(effectSystem)));
+entities.push(
+	new ModifierPickup(600, 150, new ExplosiveModifier(effectSystem))
+);
 
-entities.push(new ChipPickup(700, 0, new TeleportChip));
-entities.push(new ChipPickup(700, 50, new DashChip));
+entities.push(new ChipPickup(700, 0, new TeleportChip()));
+entities.push(new ChipPickup(700, 50, new DashChip()));
 
 /**
  * Игровой цикл обновления: камера, мир, боссы, сущности, коллизии, подбор предметов, эффекты, окна и клавиатура.
@@ -209,14 +220,18 @@ function update(): void {
 	camera.update();
 	camera.follow(controlled);
 
-	const halfW = Math.ceil(engine.canvas.width / 2 / (2 ** scale) / CHUNK_CONFIG.FULL_SIZE);
-	const halfH = Math.ceil(engine.canvas.height / 2 / (2 ** scale) / CHUNK_CONFIG.FULL_SIZE);
+	const halfW = Math.ceil(
+		engine.canvas.width / 2 / 2 ** scale / CHUNK_CONFIG.FULL_SIZE
+	);
+	const halfH = Math.ceil(
+		engine.canvas.height / 2 / 2 ** scale / CHUNK_CONFIG.FULL_SIZE
+	);
 
 	worldManager.update(controlled.x, controlled.y, halfW, halfH);
 	bossSpawnSystem.update();
 
 	if (!screenManager.hasActiveWindows()) {
-		entities.forEach(e => {
+		entities.forEach((e) => {
 			if (!e.isDead()) {
 				if (isControllable(e)) {
 					e.controller?.update(e, worldManager, effectSystem);
@@ -289,11 +304,16 @@ function update(): void {
 							if (isWeapon(item)) {
 								const newWeapon = item;
 								const oldWeapon = controlled.inventory.weapon;
-								const oldModifiers = controlled.inventory.modifiers.filter(m => m !== null);
+								const oldModifiers =
+									controlled.inventory.modifiers.filter(
+										(m) => m !== null
+									);
 
 								controlled.inventory.setWeapon(newWeapon);
 
-								const newModifiers: (Modifier | null)[] = Array(newWeapon.modifiersSlots).fill(null);
+								const newModifiers: (Modifier | null)[] = Array(
+									newWeapon.modifiersSlots
+								).fill(null);
 
 								const droppedModifiers: Modifier[] = [];
 								for (let i = 0; i < oldModifiers.length; i++) {
@@ -307,27 +327,53 @@ function update(): void {
 								controlled.inventory.modifiers = newModifiers;
 
 								if (oldWeapon) {
-									entities.push(createPickupFromItem(oldWeapon, controlled.x, controlled.y));
+									entities.push(
+										createPickupFromItem(
+											oldWeapon,
+											controlled.x,
+											controlled.y
+										)
+									);
 								}
 								for (const mod of droppedModifiers) {
 									mod.onUnequip?.(controlled);
 									entities.push(
-										createPickupFromItem(mod, controlled.x + (Math.random() - 0.5) * 40, controlled.y + (Math.random() - 0.5) * 40)
+										createPickupFromItem(
+											mod,
+											controlled.x +
+												(Math.random() - 0.5) * 40,
+											controlled.y +
+												(Math.random() - 0.5) * 40
+										)
 									);
 								}
 							} else if (isModifier(item)) {
-								const oldMod = controlled.inventory.modifiers[slotIndex];
+								const oldMod =
+									controlled.inventory.modifiers[slotIndex];
 								if (oldMod) {
 									oldMod.onUnequip?.(controlled);
-									entities.push(createPickupFromItem(oldMod, controlled.x, controlled.y));
+									entities.push(
+										createPickupFromItem(
+											oldMod,
+											controlled.x,
+											controlled.y
+										)
+									);
 								}
-								controlled.inventory.modifiers[slotIndex] = item;
+								controlled.inventory.modifiers[slotIndex] =
+									item;
 								item.onEquip?.(controlled);
-
 							} else if (isChip(item)) {
-								const oldChip = controlled.inventory.chips[slotIndex];
+								const oldChip =
+									controlled.inventory.chips[slotIndex];
 								if (oldChip) {
-									entities.push(createPickupFromItem(oldChip, controlled.x, controlled.y));
+									entities.push(
+										createPickupFromItem(
+											oldChip,
+											controlled.x,
+											controlled.y
+										)
+									);
 								}
 								const newChip = item;
 								controlled.inventory.chips[slotIndex] = newChip;
@@ -371,12 +417,14 @@ function update(): void {
 
 			invWin.setOnItemDropped((pickupItem: PickupItem) => {
 				entities.push(pickupItem);
-				floatingTexts.push(new FloatingText(
-					controlled.x,
-					controlled.y - 20,
-					`Выброшено: ${pickupItem.item.name}`,
-					60
-				));
+				floatingTexts.push(
+					new FloatingText(
+						controlled.x,
+						controlled.y - 20,
+						`Выброшено: ${pickupItem.item.name}`,
+						60
+					)
+				);
 			});
 
 			screenManager.openWindow(invWin);
@@ -386,8 +434,10 @@ function update(): void {
 	if (keyboard.isKeyPressedOnce('F12')) {
 		if (document.fullscreenElement) {
 			document.exitFullscreen().then(() => {
-				engine.canvas.width = engine.canvas.parentElement?.clientWidth || 640;
-				engine.canvas.height = engine.canvas.parentElement?.clientHeight || 480;
+				engine.canvas.width =
+					engine.canvas.parentElement?.clientWidth || 640;
+				engine.canvas.height =
+					engine.canvas.parentElement?.clientHeight || 480;
 
 				engine.context.imageSmoothingEnabled = false;
 			});
@@ -420,8 +470,8 @@ function drawWorld(): void {
 
 		const camX = camera.x;
 		const camY = camera.y;
-		const halfW = engine.canvas.width / 2 / (2 ** scale);
-		const halfH = engine.canvas.height / 2 / (2 ** scale);
+		const halfW = engine.canvas.width / 2 / 2 ** scale;
+		const halfH = engine.canvas.height / 2 / 2 ** scale;
 
 		if (worldX + CHUNK_CONFIG.FULL_SIZE < camX - halfW) continue;
 		if (worldY + CHUNK_CONFIG.FULL_SIZE < camY - halfH) continue;
@@ -454,12 +504,18 @@ function render(): void {
 
 	if (!controlled.isDead()) {
 		const mouseWorld = getMousePosition();
-		Crosshair.render(engine.context, controlled.x, controlled.y, mouseWorld.x, mouseWorld.y);
+		Crosshair.render(
+			engine.context,
+			controlled.x,
+			controlled.y,
+			mouseWorld.x,
+			mouseWorld.y
+		);
 	}
 
 	effectSystem.render(engine.context);
 
-	entities.forEach(entity => {
+	entities.forEach((entity) => {
 		if (!entity.isDead()) {
 			entity.render(engine.context);
 		}

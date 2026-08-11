@@ -1,4 +1,4 @@
-import MouseInput from "../components/MouseInput";
+import MouseInput from '../components/MouseInput';
 
 /**
  * Базовый класс для всех UI-компонентов
@@ -31,14 +31,18 @@ export abstract class Component {
 	 * @param offsetX Смещение по оси X от родителя
 	 * @param offsetY Смещение по оси Y от родителя
 	 */
-	abstract render(ctx: CanvasRenderingContext2D, offsetX?: number, offsetY?: number): void;
+	abstract render(
+		ctx: CanvasRenderingContext2D,
+		offsetX?: number,
+		offsetY?: number
+	): void;
 
 	/**
-   * Обновление состояния компонента
-   * @param mouse Входные данные мыши
-   * @param globalX Глобальная координата X компонента на экране
-   * @param globalY Глобальная координата Y компонента на экране
-   */
+	 * Обновление состояния компонента
+	 * @param mouse Входные данные мыши
+	 * @param globalX Глобальная координата X компонента на экране
+	 * @param globalY Глобальная координата Y компонента на экране
+	 */
 	abstract update(mouse: MouseInput, globalX: number, globalY: number): void;
 
 	/**
@@ -48,8 +52,12 @@ export abstract class Component {
 	 * @returns true, если точка внутри компонента
 	 */
 	isPointInside(px: number, py: number): boolean {
-		return px >= this.x && px <= this.x + this.width &&
-			py >= this.y && py <= this.y + this.height;
+		return (
+			px >= this.x &&
+			px <= this.x + this.width &&
+			py >= this.y &&
+			py <= this.y + this.height
+		);
 	}
 
 	/**

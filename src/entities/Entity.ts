@@ -28,7 +28,10 @@ export default abstract class Entity extends GameObject {
 		this.hp -= damage;
 		if (this.hp <= 0) {
 			if (attacker) {
-				eventBus.emit('enemyKilled', { killer: attacker, victim: this });
+				eventBus.emit('enemyKilled', {
+					killer: attacker,
+					victim: this,
+				});
 			}
 			eventBus.emit('entityDied', { entity: this });
 		}
@@ -44,14 +47,17 @@ export default abstract class Entity extends GameObject {
 			if (chip && chip.cooldown && !chip.cooldown.isReady()) {
 				cooldowns.push({
 					name: chip.name,
-					val: chip.cooldown.progress()
+					val: chip.cooldown.progress(),
 				});
 			}
 		}
-		if (this.inventory.weapon?.cooldown && !this.inventory.weapon.cooldown.isReady()) {
+		if (
+			this.inventory.weapon?.cooldown &&
+			!this.inventory.weapon.cooldown.isReady()
+		) {
 			cooldowns.push({
 				name: 'fire',
-				val: this.inventory.weapon.cooldown.progress()
+				val: this.inventory.weapon.cooldown.progress(),
 			});
 		}
 		return cooldowns;

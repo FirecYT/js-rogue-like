@@ -73,12 +73,24 @@ export abstract class Window extends Component {
 		// Внутренняя подсветка
 		ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
 		ctx.lineWidth = 1;
-		this.roundRect(ctx, x + 1, y + 1, width - 2, height - 2, cornerRadius - 1);
+		this.roundRect(
+			ctx,
+			x + 1,
+			y + 1,
+			width - 2,
+			height - 2,
+			cornerRadius - 1
+		);
 		ctx.stroke();
 
 		if (this.title) {
 			const titleHeight = 30;
-			const titleGradient = ctx.createLinearGradient(x, y, x, y + titleHeight);
+			const titleGradient = ctx.createLinearGradient(
+				x,
+				y,
+				x,
+				y + titleHeight
+			);
 			titleGradient.addColorStop(0, '#1a1a1a');
 			titleGradient.addColorStop(1, '#0f0f0f');
 			ctx.fillStyle = titleGradient;
@@ -110,7 +122,14 @@ export abstract class Window extends Component {
 	 * @param height Высота
 	 * @param radius Радиус закругления
 	 */
-	private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {
+	private roundRect(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number,
+		width: number,
+		height: number,
+		radius: number
+	): void {
 		ctx.beginPath();
 		ctx.moveTo(x + radius, y);
 		ctx.arcTo(x + width, y, x + width, y + height, radius);

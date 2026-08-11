@@ -6,7 +6,10 @@ import { Controller } from './controllers/Controller';
 /**
  * Игрок: управляемая сущность с большим HP, уроном и отрисовкой с интерполяцией цвета по HP.
  */
-export default class Player extends Entity implements HasPosition, HasStats, Controllable {
+export default class Player
+	extends Entity
+	implements HasPosition, HasStats, Controllable
+{
 	public controller: Controller | null = null;
 	public damage = 10;
 	public width = 10;
@@ -29,7 +32,11 @@ export default class Player extends Entity implements HasPosition, HasStats, Con
 		const hpPercent = this.getHP() / this.maxHP;
 		let isDashActive = false;
 		for (const chip of this.inventory.chips) {
-			if (chip?.id === 'dash' && chip.cooldown && !chip.cooldown.isReady()) {
+			if (
+				chip?.id === 'dash' &&
+				chip.cooldown &&
+				!chip.cooldown.isReady()
+			) {
 				isDashActive = true;
 				break;
 			}
@@ -38,6 +45,11 @@ export default class Player extends Entity implements HasPosition, HasStats, Con
 		const damageColor = '#f00';
 		const color = interpolateColor(normalColor, damageColor, 1 - hpPercent);
 		ctx.fillStyle = color;
-		ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+		ctx.fillRect(
+			this.x - this.width / 2,
+			this.y - this.height / 2,
+			this.width,
+			this.height
+		);
 	}
 }

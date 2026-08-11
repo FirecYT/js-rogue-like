@@ -1,5 +1,11 @@
 import { BaseGenerator, SeededRandom } from './BaseGenerator';
-import { OptimizedChunk, TileType, RegionType, CHUNK_CONFIG, StructureType } from '../Types';
+import {
+	OptimizedChunk,
+	TileType,
+	RegionType,
+	CHUNK_CONFIG,
+	StructureType,
+} from '../Types';
 
 /**
  * Конфигурация генерации поселения.
@@ -18,7 +24,7 @@ const SETTLEMENT_CONFIG = {
 	/** Вероятность повреждения стен дома */
 	DAMAGE_CHANCE: 0.15,
 	/** Минимальный отступ от краёв чанка */
-	MARGIN: 2
+	MARGIN: 2,
 } as const;
 
 /**
@@ -35,12 +41,17 @@ export class SettlementGenerator extends BaseGenerator {
 	 */
 	generate(chunkX: number, chunkY: number, seed?: number): OptimizedChunk {
 		const rng = this.createRng(chunkX, chunkY, seed);
-		const chunk = this.createEmptyChunk(chunkX, chunkY, RegionType.SETTLEMENT, rng.getSeed());
-		
+		const chunk = this.createEmptyChunk(
+			chunkX,
+			chunkY,
+			RegionType.SETTLEMENT,
+			rng.getSeed()
+		);
+
 		this.generateHouses(chunk, rng);
 		this.generateStreets(chunk, rng);
 		this.generateDebris(chunk, rng);
-		
+
 		this.finalizeChunk(chunk, true);
 		return chunk;
 	}
@@ -51,16 +62,35 @@ export class SettlementGenerator extends BaseGenerator {
 	 * @param rng - Генератор случайных чисел
 	 */
 	private generateHouses(chunk: OptimizedChunk, rng: SeededRandom): void {
-		const houseCount = rng.nextInt(SETTLEMENT_CONFIG.MIN_HOUSES, SETTLEMENT_CONFIG.MAX_HOUSES + 1);
+		const houseCount = rng.nextInt(
+			SETTLEMENT_CONFIG.MIN_HOUSES,
+			SETTLEMENT_CONFIG.MAX_HOUSES + 1
+		);
 		const maxAttempts = houseCount * 15;
 		let attempts = 0;
 
 		for (let i = 0; i < houseCount && attempts < maxAttempts; attempts++) {
-			const width = rng.nextInt(SETTLEMENT_CONFIG.MIN_HOUSE_SIZE, SETTLEMENT_CONFIG.MAX_HOUSE_SIZE + 1);
-			const height = rng.nextInt(SETTLEMENT_CONFIG.MIN_HOUSE_SIZE, SETTLEMENT_CONFIG.MAX_HOUSE_SIZE + 1);
-			
-			const x = SETTLEMENT_CONFIG.MARGIN + rng.nextInt(0, CHUNK_CONFIG.SIZE - width - SETTLEMENT_CONFIG.MARGIN * 2);
-			const y = SETTLEMENT_CONFIG.MARGIN + rng.nextInt(0, CHUNK_CONFIG.SIZE - height - SETTLEMENT_CONFIG.MARGIN * 2);
+			const width = rng.nextInt(
+				SETTLEMENT_CONFIG.MIN_HOUSE_SIZE,
+				SETTLEMENT_CONFIG.MAX_HOUSE_SIZE + 1
+			);
+			const height = rng.nextInt(
+				SETTLEMENT_CONFIG.MIN_HOUSE_SIZE,
+				SETTLEMENT_CONFIG.MAX_HOUSE_SIZE + 1
+			);
+
+			const x =
+				SETTLEMENT_CONFIG.MARGIN +
+				rng.nextInt(
+					0,
+					CHUNK_CONFIG.SIZE - width - SETTLEMENT_CONFIG.MARGIN * 2
+				);
+			const y =
+				SETTLEMENT_CONFIG.MARGIN +
+				rng.nextInt(
+					0,
+					CHUNK_CONFIG.SIZE - height - SETTLEMENT_CONFIG.MARGIN * 2
+				);
 
 			if (this.overlapsStructures(chunk, x, y, width, height, 2)) {
 				continue;
@@ -105,11 +135,16 @@ export class SettlementGenerator extends BaseGenerator {
 		this.addDamageToHouse(chunk, x, y, width, height, rng);
 
 		// Добавляем структуру дома
-		this.addStructure(chunk, StructureType.ROOM, { x, y, w: width, h: height }, {
-			type: 'house',
-			difficulty: rng.nextInt(1, 3),
-			seed: rng.nextInt(0, 0x7FFFFFFF)
-		});
+		this.addStructure(
+			chunk,
+			StructureType.ROOM,
+			{ x, y, w: width, h: height },
+			{
+				type: 'house',
+				difficulty: rng.nextInt(1, 3),
+				seed: rng.nextInt(0, 0x7fffffff),
+			}
+		);
 	}
 
 	/**
@@ -173,8 +208,10 @@ export class SettlementGenerator extends BaseGenerator {
 	): void {
 		const sides: number[] = [];
 		if (y > SETTLEMENT_CONFIG.MARGIN) sides.push(0); // top
-		if (x + width < CHUNK_CONFIG.SIZE - SETTLEMENT_CONFIG.MARGIN) sides.push(1); // right
-		if (y + height < CHUNK_CONFIG.SIZE - SETTLEMENT_CONFIG.MARGIN) sides.push(2); // bottom
+		if (x + width < CHUNK_CONFIG.SIZE - SETTLEMENT_CONFIG.MARGIN)
+			sides.push(1); // right
+		if (y + height < CHUNK_CONFIG.SIZE - SETTLEMENT_CONFIG.MARGIN)
+			sides.push(2); // bottom
 		if (x > SETTLEMENT_CONFIG.MARGIN) sides.push(3); // left
 
 		if (sides.length === 0) return;
@@ -238,16 +275,25 @@ export class SettlementGenerator extends BaseGenerator {
 		for (let i = 0; i < damageCount; i++) {
 			// Собираем все стены дома
 			const walls: { x: number; y: number }[] = [];
-			
+
 			// Верхняя и нижняя стены
 			for (let wx = x + 1; wx < x + width - 1; wx++) {
-				if (this.getTileType(chunk, wx, y) === TileType.WALL) walls.push({ x: wx, y });
-				if (this.getTileType(chunk, wx, y + height - 1) === TileType.WALL) walls.push({ x: wx, y: y + height - 1 });
+				if (this.getTileType(chunk, wx, y) === TileType.WALL)
+					walls.push({ x: wx, y });
+				if (
+					this.getTileType(chunk, wx, y + height - 1) ===
+					TileType.WALL
+				)
+					walls.push({ x: wx, y: y + height - 1 });
 			}
 			// Левая и правая стены
 			for (let wy = y + 1; wy < y + height - 1; wy++) {
-				if (this.getTileType(chunk, x, wy) === TileType.WALL) walls.push({ x, y: wy });
-				if (this.getTileType(chunk, x + width - 1, wy) === TileType.WALL) walls.push({ x: x + width - 1, y: wy });
+				if (this.getTileType(chunk, x, wy) === TileType.WALL)
+					walls.push({ x, y: wy });
+				if (
+					this.getTileType(chunk, x + width - 1, wy) === TileType.WALL
+				)
+					walls.push({ x: x + width - 1, y: wy });
 			}
 
 			if (walls.length > 0) {
@@ -258,9 +304,14 @@ export class SettlementGenerator extends BaseGenerator {
 				if (rng.next() > 0.7) {
 					const debrisX = wall.x + (rng.next() > 0.5 ? 1 : -1);
 					const debrisY = wall.y + (rng.next() > 0.5 ? 1 : -1);
-					if (debrisX >= x && debrisX < x + width &&
-						debrisY >= y && debrisY < y + height &&
-						this.getTileType(chunk, debrisX, debrisY) === TileType.EMPTY) {
+					if (
+						debrisX >= x &&
+						debrisX < x + width &&
+						debrisY >= y &&
+						debrisY < y + height &&
+						this.getTileType(chunk, debrisX, debrisY) ===
+							TileType.EMPTY
+					) {
 						this.setTile(chunk, debrisX, debrisY, TileType.ROCK);
 					}
 				}
@@ -276,29 +327,41 @@ export class SettlementGenerator extends BaseGenerator {
 	private generateStreets(chunk: OptimizedChunk, rng: SeededRandom): void {
 		// Горизонтальная улица — обеспечиваем проходимость и добавляем структуру по центру чанка
 		if (rng.next() > 0.3) {
-			const streetY = Math.floor(CHUNK_CONFIG.SIZE / 2) + rng.nextInt(-1, 2);
+			const streetY =
+				Math.floor(CHUNK_CONFIG.SIZE / 2) + rng.nextInt(-1, 2);
 			// Улица — это просто проходимость, тайл остаётся EMPTY (уже пустой)
 			// Можно добавить специальный тайл для дороги в будущем: TileType.ROAD
 			// Добавляем структуру улицы для логики навигации/лута (используем streetY)
-			this.addStructure(chunk, StructureType.CORRIDOR, {
-				x: 0,
-				y: streetY,
-				w: CHUNK_CONFIG.SIZE,
-				h: 1
-			}, { type: 'street', direction: 'horizontal' });
+			this.addStructure(
+				chunk,
+				StructureType.CORRIDOR,
+				{
+					x: 0,
+					y: streetY,
+					w: CHUNK_CONFIG.SIZE,
+					h: 1,
+				},
+				{ type: 'street', direction: 'horizontal' }
+			);
 		}
 
 		// Вертикальная улица — аналогично по центру чанка по оси X (используем streetX)
 		if (rng.next() > 0.3) {
-			const streetX = Math.floor(CHUNK_CONFIG.SIZE / 2) + rng.nextInt(-1, 2);
+			const streetX =
+				Math.floor(CHUNK_CONFIG.SIZE / 2) + rng.nextInt(-1, 2);
 			// Проходимость обеспечивается тайлом EMPTY — ничего не меняем, только "размечаем" зону как улицу через структуру
 			// Добавляем структуру улицы для логики навигации/лута (одна структура на всю улицу)
-			this.addStructure(chunk, StructureType.CORRIDOR, {
-				x: streetX,
-				y: 0,
-				w: 1,
-				h: CHUNK_CONFIG.SIZE
-			}, { type: 'street', direction: 'vertical' });
+			this.addStructure(
+				chunk,
+				StructureType.CORRIDOR,
+				{
+					x: streetX,
+					y: 0,
+					w: 1,
+					h: CHUNK_CONFIG.SIZE,
+				},
+				{ type: 'street', direction: 'vertical' }
+			);
 		}
 	}
 
@@ -310,7 +373,10 @@ export class SettlementGenerator extends BaseGenerator {
 	private generateDebris(chunk: OptimizedChunk, rng: SeededRandom): void {
 		for (let x = 0; x < CHUNK_CONFIG.SIZE; x++) {
 			for (let y = 0; y < CHUNK_CONFIG.SIZE; y++) {
-				if (this.isPassable(chunk, x, y) && rng.next() < SETTLEMENT_CONFIG.DEBRIS_CHANCE) {
+				if (
+					this.isPassable(chunk, x, y) &&
+					rng.next() < SETTLEMENT_CONFIG.DEBRIS_CHANCE
+				) {
 					this.setTile(chunk, x, y, TileType.ROCK);
 				}
 			}

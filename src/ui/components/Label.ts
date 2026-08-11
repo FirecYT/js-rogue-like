@@ -79,9 +79,9 @@ export class Label extends Component {
 
 	/**
 	 * Обновление состояния (не интерактивен)
-	   * @param mouse Входные данные мыши
-	   * @param globalX Глобальная координата X компонента на экране
-	   * @param globalY Глобальная координата Y компонента на экране
+	 * @param mouse Входные данные мыши
+	 * @param globalX Глобальная координата X компонента на экране
+	 * @param globalY Глобальная координата Y компонента на экране
 	 */
 	update(mouse: MouseInput, globalX: number, globalY: number): void {
 		void mouse;
@@ -105,7 +105,11 @@ export class Label extends Component {
 		ctx.textBaseline = this.baseline;
 
 		// Draw the text
-		ctx.fillText(this.text, offsetX + this.x, offsetY + this.y + this.height);
+		ctx.fillText(
+			this.text,
+			offsetX + this.x,
+			offsetY + this.y + this.height
+		);
 
 		ctx.restore();
 	}

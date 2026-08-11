@@ -1,4 +1,4 @@
-import GameObject from "./GameObject";
+import GameObject from './GameObject';
 
 /**
  * Всплывающий текст с ограниченным временем жизни (HP как счётчик кадров).

@@ -38,12 +38,11 @@ export class ItemSlot extends Component {
 	 * @param globalY Глобальная координата Y компонента на экране
 	 */
 	update(mouse: MouseInput, globalX: number, globalY: number): void {
-		const isOverSlot = (
+		const isOverSlot =
 			mouse.x >= globalX &&
 			mouse.x <= globalX + this.width &&
 			mouse.y >= globalY &&
-			mouse.y <= globalY + this.height
-		);
+			mouse.y <= globalY + this.height;
 		this.setHovered(isOverSlot);
 	}
 
@@ -86,7 +85,17 @@ export class ItemSlot extends Component {
 		ctx.shadowColor = 'transparent';
 
 		// Граница
-		ctx.strokeStyle = isOccupied ? (this.item?.cooldown ? (isHovered ? '#6f6' : '#4a4') : (isHovered ? '#6ff' : '#4aa')) : (isHovered ? '#777' : '#444');
+		ctx.strokeStyle = isOccupied
+			? this.item?.cooldown
+				? isHovered
+					? '#6f6'
+					: '#4a4'
+				: isHovered
+					? '#6ff'
+					: '#4aa'
+			: isHovered
+				? '#777'
+				: '#444';
 		ctx.lineWidth = isHovered ? 1.5 : 1;
 		ctx.strokeRect(x + 0.5, y + 0.5, this.width - 1, this.height - 1);
 
@@ -112,7 +121,11 @@ export class ItemSlot extends Component {
 	 * @param x Позиция X слота
 	 * @param y Позиция Y слота
 	 */
-	private renderItem(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+	private renderItem(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number
+	): void {
 		if (!this.item) return;
 
 		ctx.fillStyle = this.hovered ? '#fff' : '#ccc';
@@ -129,7 +142,11 @@ export class ItemSlot extends Component {
 	 * @param x Позиция X слота
 	 * @param y Позиция Y слота
 	 */
-	private renderCooldown(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+	private renderCooldown(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number
+	): void {
 		if (!this.item?.cooldown) return;
 
 		ctx.fillStyle = '#0004';
@@ -153,7 +170,10 @@ export class ItemSlot extends Component {
 			ctx.font = '10px Arial';
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'middle';
-			const remaining = Math.ceil(this.item.cooldown.getMaximum() * progress / 60 * 10) / 10;
+			const remaining =
+				Math.ceil(
+					((this.item.cooldown.getMaximum() * progress) / 60) * 10
+				) / 10;
 			ctx.fillText(remaining.toString(), centerX, centerY);
 		}
 	}
@@ -167,7 +187,9 @@ export class ItemSlot extends Component {
 			let tooltipText = `${this.item.name}`;
 
 			if (this.item.cooldown) {
-				const remaining = Math.ceil(this.item.cooldown.getMaximum() / 60);
+				const remaining = Math.ceil(
+					this.item.cooldown.getMaximum() / 60
+				);
 				tooltipText += `\nПерезарядка: ${remaining} сек`;
 			}
 
@@ -178,7 +200,7 @@ export class ItemSlot extends Component {
 			return {
 				text: tooltipText,
 				x: this.x + this.width / 2,
-				y: this.y + this.height
+				y: this.y + this.height,
 			};
 		}
 		return null;

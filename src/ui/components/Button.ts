@@ -59,12 +59,11 @@ export class Button extends Component {
 	 * @param globalY Глобальная координата Y компонента на экране
 	 */
 	update(mouse: MouseInput, globalX: number, globalY: number): void {
-		const isOverButton = (
+		const isOverButton =
 			mouse.x >= globalX &&
 			mouse.x <= globalX + this.width &&
 			mouse.y >= globalY &&
-			mouse.y <= globalY + this.height
-		);
+			mouse.y <= globalY + this.height;
 
 		this.setHovered(isOverButton);
 

@@ -1,5 +1,5 @@
-import Entity from "../entities/Entity";
-import Cooldown from "../components/Cooldown";
+import Entity from '../entities/Entity';
+import Cooldown from '../components/Cooldown';
 
 /**
  * Базовый интерфейс предмета: id, имя, тип, перезарядка, колбэки экипировки/снятия.

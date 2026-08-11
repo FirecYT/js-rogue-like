@@ -20,7 +20,11 @@ export class ScreenManager {
 	 * @param mouse Входные данные мыши
 	 * @param getControlledEntity Функция получения управляемой сущности
 	 */
-	constructor(private engine: Engine, mouse: MouseInput, getControlledEntity: () => Entity) {
+	constructor(
+		private engine: Engine,
+		mouse: MouseInput,
+		getControlledEntity: () => Entity
+	) {
 		this.mouse = mouse;
 		this.hud = new HudScreen(engine, getControlledEntity);
 	}
@@ -65,15 +69,19 @@ export class ScreenManager {
 	 * @param windowClass Класс окна для проверки
 	 * @returns true, если такое окно открыто
 	 */
-	isWindowOpen<T extends Window>(windowClass: new (...args: never[]) => T): boolean {
-		return this.windows.some(win => win instanceof windowClass);
+	isWindowOpen<T extends Window>(
+		windowClass: new (...args: never[]) => T
+	): boolean {
+		return this.windows.some((win) => win instanceof windowClass);
 	}
 
 	/**
 	 * Закрывает все окна указанного типа
 	 * @param windowClass Класс окна для закрытия
 	 */
-	closeWindowsOfType<T extends Window>(windowClass: new (...args: never[]) => T): void {
+	closeWindowsOfType<T extends Window>(
+		windowClass: new (...args: never[]) => T
+	): void {
 		for (let i = this.windows.length - 1; i >= 0; i--) {
 			if (this.windows[i] instanceof windowClass) {
 				this.windows.splice(i, 1);
@@ -127,7 +135,12 @@ export class ScreenManager {
 		this.hud.render(this.engine.context);
 		for (const window of this.windows) {
 			this.engine.context.fillStyle = '#0008';
-			this.engine.context.fillRect(0, 0, this.engine.canvas.width, this.engine.canvas.height);
+			this.engine.context.fillRect(
+				0,
+				0,
+				this.engine.canvas.width,
+				this.engine.canvas.height
+			);
 			window.render(this.engine.context);
 		}
 

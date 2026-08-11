@@ -1,6 +1,6 @@
-import Cooldown from "../../components/Cooldown";
-import Entity from "../../entities/Entity";
-import { Chip } from "../Chip";
+import Cooldown from '../../components/Cooldown';
+import Entity from '../../entities/Entity';
+import { Chip } from '../Chip';
 
 /**
  * Чип «Квантовый прыжок»: телепортация в случайном направлении на 100 единиц.

@@ -4,7 +4,12 @@ import { WorldManager } from '../world/WorldManager';
 import { CHUNK_CONFIG } from '../world/Types';
 
 /** Конструктор босса: (x, y, target, worldManager) => GameObject */
-type BossConstructor = new (x: number, y: number, target: GameObject, worldManager: WorldManager) => GameObject;
+type BossConstructor = new (
+	x: number,
+	y: number,
+	target: GameObject,
+	worldManager: WorldManager
+) => GameObject;
 
 /** Триггер появления босса: координаты триггера, точка спавна и класс босса */
 interface BossTrigger {
@@ -47,21 +52,34 @@ export class BossSpawnSystem {
 			if (this.spawned.has(trigger.bossClass)) continue;
 
 			const distX = Math.abs(
-				this.player.x - trigger.triggerX * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE
+				this.player.x -
+					trigger.triggerX * CHUNK_CONFIG.FULL_SIZE -
+					CHUNK_CONFIG.HALF_SIZE
 			);
 			const distY = Math.abs(
-				this.player.y - trigger.triggerY * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE
+				this.player.y -
+					trigger.triggerY * CHUNK_CONFIG.FULL_SIZE -
+					CHUNK_CONFIG.HALF_SIZE
 			);
 
 			if (distX < 300 && distY < 300) {
 				const boss = new trigger.bossClass(
-					trigger.spawnX * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE,
-					trigger.spawnY * CHUNK_CONFIG.FULL_SIZE - CHUNK_CONFIG.HALF_SIZE,
+					trigger.spawnX * CHUNK_CONFIG.FULL_SIZE -
+						CHUNK_CONFIG.HALF_SIZE,
+					trigger.spawnY * CHUNK_CONFIG.FULL_SIZE -
+						CHUNK_CONFIG.HALF_SIZE,
 					this.player,
 					this.worldManager
 				);
 				this.entities.push(boss);
-				this.floatingTexts.push(new FloatingText(this.player.x, this.player.y, 'BOSS APPEARED!', 180));
+				this.floatingTexts.push(
+					new FloatingText(
+						this.player.x,
+						this.player.y,
+						'BOSS APPEARED!',
+						180
+					)
+				);
 				this.spawned.add(trigger.bossClass);
 			}
 		}

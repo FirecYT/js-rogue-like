@@ -23,7 +23,11 @@ export class PlayerController extends Controller {
 	 * @param world - Мир
 	 * @param effectSystem - Система эффектов
 	 */
-	update(entity: Entity, world: WorldManager, effectSystem: EffectSystem): void {
+	update(
+		entity: Entity,
+		world: WorldManager,
+		effectSystem: EffectSystem
+	): void {
 		const keyboard = Keyboard.getInstance();
 		const speed = entity.speed;
 		const originalX = entity.x;
@@ -31,24 +35,33 @@ export class PlayerController extends Controller {
 
 		if (keyboard.isKeyDown('KeyA')) {
 			entity.x -= speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.x = originalX;
+			if (!world.isWorldPositionPassable(entity.x, entity.y))
+				entity.x = originalX;
 		}
 		if (keyboard.isKeyDown('KeyD')) {
 			entity.x += speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.x = originalX;
+			if (!world.isWorldPositionPassable(entity.x, entity.y))
+				entity.x = originalX;
 		}
 		if (keyboard.isKeyDown('KeyW')) {
 			entity.y -= speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.y = originalY;
+			if (!world.isWorldPositionPassable(entity.x, entity.y))
+				entity.y = originalY;
 		}
 		if (keyboard.isKeyDown('KeyS')) {
 			entity.y += speed;
-			if (!world.isWorldPositionPassable(entity.x, entity.y)) entity.y = originalY;
+			if (!world.isWorldPositionPassable(entity.x, entity.y))
+				entity.y = originalY;
 		}
 
 		if (keyboard.isKeyDown('ShiftLeft')) {
-			const dashChipIndex = entity.inventory.chips.findIndex(chip => chip?.id === 'dash');
-			if (dashChipIndex !== -1 && entity.inventory.isChipReady(dashChipIndex)) {
+			const dashChipIndex = entity.inventory.chips.findIndex(
+				(chip) => chip?.id === 'dash'
+			);
+			if (
+				dashChipIndex !== -1 &&
+				entity.inventory.isChipReady(dashChipIndex)
+			) {
 				entity.inventory.useChip(dashChipIndex);
 			}
 		}
@@ -56,7 +69,12 @@ export class PlayerController extends Controller {
 		if (entity.inventory.weapon) {
 			const mouseWorldX = entity.x + this.mouse.cx;
 			const mouseWorldY = entity.y + this.mouse.cy;
-			const angle = getAngleBetweenPoints(entity.x, entity.y, mouseWorldX, mouseWorldY);
+			const angle = getAngleBetweenPoints(
+				entity.x,
+				entity.y,
+				mouseWorldX,
+				mouseWorldY
+			);
 			if (this.mouse.pressed && entity.inventory.isWeaponReady()) {
 				entity.inventory.fire(angle, effectSystem);
 			}
@@ -64,15 +82,30 @@ export class PlayerController extends Controller {
 
 		if (keyboard.isKeyPressedOnce('KeyQ') && entity.inventory.chips[0]) {
 			entity.inventory.useChip(0);
-		} else if (keyboard.isKeyPressedOnce('Digit1') && entity.inventory.chips[0]) {
+		} else if (
+			keyboard.isKeyPressedOnce('Digit1') &&
+			entity.inventory.chips[0]
+		) {
 			entity.inventory.useChip(0);
-		} else if (keyboard.isKeyPressedOnce('Digit2') && entity.inventory.chips[1]) {
+		} else if (
+			keyboard.isKeyPressedOnce('Digit2') &&
+			entity.inventory.chips[1]
+		) {
 			entity.inventory.useChip(1);
-		} else if (keyboard.isKeyPressedOnce('Digit3') && entity.inventory.chips[2]) {
+		} else if (
+			keyboard.isKeyPressedOnce('Digit3') &&
+			entity.inventory.chips[2]
+		) {
 			entity.inventory.useChip(2);
-		} else if (keyboard.isKeyPressedOnce('Digit4') && entity.inventory.chips[3]) {
+		} else if (
+			keyboard.isKeyPressedOnce('Digit4') &&
+			entity.inventory.chips[3]
+		) {
 			entity.inventory.useChip(3);
-		} else if (keyboard.isKeyPressedOnce('Digit5') && entity.inventory.chips[4]) {
+		} else if (
+			keyboard.isKeyPressedOnce('Digit5') &&
+			entity.inventory.chips[4]
+		) {
 			entity.inventory.useChip(4);
 		}
 	}

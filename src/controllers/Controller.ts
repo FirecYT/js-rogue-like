@@ -12,5 +12,9 @@ export abstract class Controller {
 	 * @param world - Менеджер мира (коллизии, путь)
 	 * @param effectSystem - Система эффектов (для выстрелов)
 	 */
-	abstract update(entity: Entity, world: WorldManager, effectSystem: EffectSystem): void;
+	abstract update(
+		entity: Entity,
+		world: WorldManager,
+		effectSystem: EffectSystem
+	): void;
 }

@@ -15,7 +15,7 @@ export class Inventory {
 	/**
 	 * @param entity - Владелец инвентаря
 	 */
-	constructor(public entity: Entity) { }
+	constructor(public entity: Entity) {}
 
 	/**
 	 * Устанавливает текущее оружие; при смене вызывает onUnequip/onEquip, подстраивает длину modifiers.
@@ -39,7 +39,7 @@ export class Inventory {
 	 * @returns true, если слот найден и чип добавлен
 	 */
 	addChip(chip: Chip): boolean {
-		const emptySlot = this.chips.findIndex(c => c === null);
+		const emptySlot = this.chips.findIndex((c) => c === null);
 		if (emptySlot === -1) return false;
 		this.chips[emptySlot] = chip;
 		chip.onEquip?.(this.entity);
@@ -53,8 +53,13 @@ export class Inventory {
 	 */
 	addModifier(mod: Modifier): boolean {
 		if (!this.weapon) return false;
-		const emptySlot = this.modifiers.findIndex(m => m === null);
-		if ((emptySlot === -1 && this.modifiers.length === this.weapon.modifiersSlots) || (emptySlot >= this.weapon.modifiersSlots)) return false;
+		const emptySlot = this.modifiers.findIndex((m) => m === null);
+		if (
+			(emptySlot === -1 &&
+				this.modifiers.length === this.weapon.modifiersSlots) ||
+			emptySlot >= this.weapon.modifiersSlots
+		)
+			return false;
 		this.modifiers[emptySlot] = mod;
 		return true;
 	}
@@ -114,7 +119,7 @@ export class Inventory {
 				chip.cooldown.update();
 			}
 		}
-		this.chips.forEach(chip => {
+		this.chips.forEach((chip) => {
 			if (chip?.onUpdate) chip.onUpdate(this.entity);
 		});
 		this.weapon?.cooldown?.update();

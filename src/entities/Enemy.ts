@@ -1,14 +1,17 @@
-import Entity from "./Entity";
+import Entity from './Entity';
 import { Controllable, HasPosition, HasSpeed } from '../types/EntityTraits';
 import { AiController } from '../controllers/AiController';
 import { BasicPistol } from '../items/weapons/BasicPistol';
-import { RebirthChip } from "../items/chips/RebirthChip";
-import { Controller } from "../controllers/Controller";
+import { RebirthChip } from '../items/chips/RebirthChip';
+import { Controller } from '../controllers/Controller';
 
 /**
  * Враждебная сущность: ИИ-контроллер, случайное оружие/чип перерождения, опыт при убийстве.
  */
-export default class Enemy extends Entity implements HasPosition, HasSpeed, Controllable {
+export default class Enemy
+	extends Entity
+	implements HasPosition, HasSpeed, Controllable
+{
 	public controller: Controller | null;
 	public speed = 1;
 	public experience = 5;
@@ -18,7 +21,11 @@ export default class Enemy extends Entity implements HasPosition, HasSpeed, Cont
 	 * @param y - Мировая координата Y
 	 * @param player - Цель (игрок) для ИИ
 	 */
-	constructor(x: number, y: number, private player: Entity) {
+	constructor(
+		x: number,
+		y: number,
+		private player: Entity
+	) {
 		super(x, y, 5);
 		if (Math.random() > 0.5) {
 			this.inventory.setWeapon(new BasicPistol());

@@ -22,7 +22,11 @@ export abstract class Weapon implements Item {
 	 * @param angle - Угол выстрела в радианах
 	 * @param effectSystem - Система эффектов
 	 */
-	abstract fire(source: Entity, angle: number, effectSystem: EffectSystem): void;
+	abstract fire(
+		source: Entity,
+		angle: number,
+		effectSystem: EffectSystem
+	): void;
 
 	onEquip?(entity: Entity): void {
 		if (entity.inventory.weapon?.cooldown) {

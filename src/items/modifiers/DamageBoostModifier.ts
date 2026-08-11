@@ -1,5 +1,5 @@
-import { Effect } from "../../effects/Effect";
-import { Modifier } from "../Modifier";
+import { Effect } from '../../effects/Effect';
+import { Modifier } from '../Modifier';
 
 /**
  * Модификатор: увеличивает урон эффекта в multiplier раз.
@@ -12,7 +12,7 @@ export class DamageBoostModifier implements Modifier {
 	/**
 	 * @param multiplier - Множитель урона (например, 2.0 для удвоения)
 	 */
-	constructor(private multiplier: number) { }
+	constructor(private multiplier: number) {}
 
 	/**
 	 * Умножает base.damage на multiplier (с округлением вниз).

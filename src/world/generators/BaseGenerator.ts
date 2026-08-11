@@ -1,14 +1,14 @@
-import { 
-	OptimizedChunk, 
-	TileType, 
-	RegionType, 
+import {
+	OptimizedChunk,
+	TileType,
+	RegionType,
 	CHUNK_CONFIG,
 	createOptimizedChunk,
 	setTile,
 	isPassable,
 	buildPassableMask,
 	StructureType,
-	ChunkStructure
+	ChunkStructure,
 } from '../Types';
 
 /**
@@ -75,7 +75,11 @@ export abstract class BaseGenerator {
 	 * @param seed - Seed для детерминированной генерации (опционально)
 	 * @returns Оптимизированный чанк
 	 */
-	abstract generate(chunkX: number, chunkY: number, seed?: number): OptimizedChunk;
+	abstract generate(
+		chunkX: number,
+		chunkY: number,
+		seed?: number
+	): OptimizedChunk;
 
 	/**
 	 * Создаёт пустой проходимый чанк с заданным regionType.
@@ -100,7 +104,12 @@ export abstract class BaseGenerator {
 	 * @param y - Локальная Y
 	 * @param tileType - Тип тайла
 	 */
-	protected setTile(chunk: OptimizedChunk, x: number, y: number, tileType: TileType): void {
+	protected setTile(
+		chunk: OptimizedChunk,
+		x: number,
+		y: number,
+		tileType: TileType
+	): void {
 		setTile(chunk, x, y, tileType, true);
 	}
 
@@ -162,8 +171,14 @@ export abstract class BaseGenerator {
 			this.setTile(chunk, x, y, tileType);
 			if (x === x1 && y === y1) break;
 			const e2 = 2 * err;
-			if (e2 > -dy) { err -= dy; x += sx; }
-			if (e2 < dx) { err += dx; y += sy; }
+			if (e2 > -dy) {
+				err -= dy;
+				x += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				y += sy;
+			}
 		}
 	}
 
@@ -233,7 +248,11 @@ export abstract class BaseGenerator {
 	 * @param chunkY - Y чанка
 	 * @param seed - Базовый seed (по умолчанию комбинация координат)
 	 */
-	protected createRng(chunkX: number, chunkY: number, seed?: number): SeededRandom {
+	protected createRng(
+		chunkX: number,
+		chunkY: number,
+		seed?: number
+	): SeededRandom {
 		if (seed !== undefined) {
 			return new SeededRandom(seed);
 		}
@@ -255,12 +274,12 @@ export abstract class BaseGenerator {
 	): { chunkX: number; chunkY: number; tileX: number; tileY: number } {
 		const worldTileX = Math.floor(worldX / CHUNK_CONFIG.TILE_SIZE);
 		const worldTileY = Math.floor(worldY / CHUNK_CONFIG.TILE_SIZE);
-		
+
 		return {
 			chunkX: Math.floor(worldTileX / chunkSize),
 			chunkY: Math.floor(worldTileY / chunkSize),
 			tileX: ((worldTileX % chunkSize) + chunkSize) % chunkSize,
-			tileY: ((worldTileY % chunkSize) + chunkSize) % chunkSize
+			tileY: ((worldTileY % chunkSize) + chunkSize) % chunkSize,
 		};
 	}
 
@@ -279,7 +298,7 @@ export abstract class BaseGenerator {
 	): { x: number; y: number } {
 		return {
 			x: (chunkX * CHUNK_CONFIG.SIZE + tileX) * CHUNK_CONFIG.TILE_SIZE,
-			y: (chunkY * CHUNK_CONFIG.SIZE + tileY) * CHUNK_CONFIG.TILE_SIZE
+			y: (chunkY * CHUNK_CONFIG.SIZE + tileY) * CHUNK_CONFIG.TILE_SIZE,
 		};
 	}
 

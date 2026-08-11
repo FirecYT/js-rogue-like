@@ -29,22 +29,50 @@ export class AiController extends Controller {
 	 * @param world - Мир
 	 * @param effectSystem - Система эффектов
 	 */
-	update(entity: Entity, world: WorldManager, effectSystem: EffectSystem): void {
+	update(
+		entity: Entity,
+		world: WorldManager,
+		effectSystem: EffectSystem
+	): void {
 		this.pathUpdateCooldown--;
 		if (this.pathUpdateCooldown <= 0) {
-			const distance = Math.hypot(this.target.x - entity.x, this.target.y - entity.y);
+			const distance = Math.hypot(
+				this.target.x - entity.x,
+				this.target.y - entity.y
+			);
 			if (distance < CHUNK_CONFIG.FULL_SIZE * 4) {
-				const rawPath = Pathfinder.findPath(entity.x, entity.y, this.target.x, this.target.y, world);
-				this.path = rawPath.length > 0 ? simplifyPath(rawPath, world) : [];
+				const rawPath = Pathfinder.findPath(
+					entity.x,
+					entity.y,
+					this.target.x,
+					this.target.y,
+					world
+				);
+				this.path =
+					rawPath.length > 0 ? simplifyPath(rawPath, world) : [];
 			}
 			this.pathUpdateCooldown = 60;
 		}
 
 		if (entity.inventory.weapon && entity.inventory.isWeaponReady()) {
-			const distance = Math.hypot(this.target.x - entity.x, this.target.y - entity.y);
-			const canSeeTarget = world.hasLineOfSight(entity.x, entity.y, this.target.x, this.target.y, 400);
+			const distance = Math.hypot(
+				this.target.x - entity.x,
+				this.target.y - entity.y
+			);
+			const canSeeTarget = world.hasLineOfSight(
+				entity.x,
+				entity.y,
+				this.target.x,
+				this.target.y,
+				400
+			);
 			if (distance < 400 && canSeeTarget) {
-				const angle = getAngleBetweenPoints(entity.x, entity.y, this.target.x, this.target.y);
+				const angle = getAngleBetweenPoints(
+					entity.x,
+					entity.y,
+					this.target.x,
+					this.target.y
+				);
 				entity.inventory.fire(angle, effectSystem);
 			}
 		}

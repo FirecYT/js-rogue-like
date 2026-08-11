@@ -63,9 +63,11 @@ export class PickupWindow extends Window {
 
 		const layout = new VerticalLayout();
 		layout.spacing = 10;
-		layout.padding = {top: 40, right: 20, bottom: 20, left: 20};
+		layout.padding = { top: 40, right: 20, bottom: 20, left: 20 };
 
-		const instructionLabel = new Label(`Выберите слот для размещения ${this.pickupItem.item.type}`);
+		const instructionLabel = new Label(
+			`Выберите слот для размещения ${this.pickupItem.item.type}`
+		);
 		layout.addChild(instructionLabel);
 
 		const choiceLayout = new VerticalLayout();
@@ -77,7 +79,10 @@ export class PickupWindow extends Window {
 		let numSlots = 0;
 		if (isWeapon(this.pickupItem.item)) {
 			numSlots = 1;
-		} else if (isModifier(this.pickupItem.item) && this.entity.inventory.weapon) {
+		} else if (
+			isModifier(this.pickupItem.item) &&
+			this.entity.inventory.weapon
+		) {
 			numSlots = this.entity.inventory.weapon.modifiersSlots || 0;
 		} else if (isChip(this.pickupItem.item)) {
 			numSlots = 5;
@@ -113,7 +118,11 @@ export class PickupWindow extends Window {
 
 		layout.addChild(choiceLayout);
 
-		const skipButton = new Button('Пропустить', layout.width - layout.padding.left - layout.padding.right, 40);
+		const skipButton = new Button(
+			'Пропустить',
+			layout.width - layout.padding.left - layout.padding.right,
+			40
+		);
 		skipButton.setOnClick(() => {
 			if (this.onCancelCallback) {
 				this.onCancelCallback();

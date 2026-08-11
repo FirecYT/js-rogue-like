@@ -24,7 +24,10 @@ export class Flamethrower extends Weapon {
 	 */
 	fire(source: Entity, angle: number, effectSystem: EffectSystem): void {
 		const base = new FireZone(source.x, source.y, angle, source);
-		const finalEffect = EffectFactory.create(base, source.inventory.modifiers);
+		const finalEffect = EffectFactory.create(
+			base,
+			source.inventory.modifiers
+		);
 		effectSystem.addEffect(finalEffect);
 	}
 

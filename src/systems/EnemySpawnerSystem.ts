@@ -18,7 +18,7 @@ export class EnemySpawnerSystem {
 		private entities: GameObject[],
 		private worldManager: WorldManager,
 		private maxEnemies = 10
-	) { }
+	) {}
 
 	/**
 	 * До maxEnemies раз проверяет вероятность спавна (зависит от текущего числа живых врагов); при успехе создаёт Enemy и добавляет в entities.
@@ -26,7 +26,7 @@ export class EnemySpawnerSystem {
 	update(): void {
 		for (let i = 0; i < this.maxEnemies; i++) {
 			const enemyCount = this.entities.filter(
-				e => (e instanceof Enemy) && !e.isDead()
+				(e) => e instanceof Enemy && !e.isDead()
 			).length;
 			const chance = 1 / (enemyCount || 1);
 

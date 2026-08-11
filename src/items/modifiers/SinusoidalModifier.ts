@@ -1,5 +1,5 @@
-import { Effect } from "../../effects/Effect";
-import { Modifier } from "../Modifier";
+import { Effect } from '../../effects/Effect';
+import { Modifier } from '../Modifier';
 
 /**
  * Модификатор: траектория эффекта колеблется по синусоиде перпендикулярно направлению.

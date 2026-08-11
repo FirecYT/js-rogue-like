@@ -14,7 +14,7 @@ export class ExplosiveModifier implements Modifier {
 	/**
 	 * @param effectSystem - Система эффектов для добавления взрыва
 	 */
-	constructor(private effectSystem: EffectSystem) { }
+	constructor(private effectSystem: EffectSystem) {}
 
 	/**
 	 * Оборачивает onHit: после исходного onHit добавляет ExplosionEffect в (base.x, base.y).
@@ -25,7 +25,9 @@ export class ExplosiveModifier implements Modifier {
 		const originalOnHit = base.onHit;
 		base.onHit = (target) => {
 			originalOnHit?.(target);
-			this.effectSystem.addEffect(new ExplosionEffect(base.x, base.y, base.source));
+			this.effectSystem.addEffect(
+				new ExplosionEffect(base.x, base.y, base.source)
+			);
 		};
 		return base;
 	}

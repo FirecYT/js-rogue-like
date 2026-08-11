@@ -15,11 +15,7 @@ export class LevelUpWindow extends Window {
 	 * @param canvasWidth Ширина канваса
 	 * @param canvasHeight Высота канваса
 	 */
-	constructor(
-		options: string[],
-		canvasWidth: number,
-		canvasHeight: number
-	) {
+	constructor(options: string[], canvasWidth: number, canvasHeight: number) {
 		super();
 
 		this.options = options;

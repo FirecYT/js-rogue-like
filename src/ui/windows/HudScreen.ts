@@ -47,7 +47,12 @@ export class HudScreen extends Component {
 
 		this.hpBarContainer = new VerticalLayout();
 		this.hpBarContainer.spacing = 10;
-		this.hpBarContainer.padding = { top: 10, right: 10, bottom: 10, left: 10 };
+		this.hpBarContainer.padding = {
+			top: 10,
+			right: 10,
+			bottom: 10,
+			left: 10,
+		};
 
 		this.chipsBar = new VerticalLayout();
 		this.chipsBar.spacing = 5;
@@ -85,16 +90,26 @@ export class HudScreen extends Component {
 		this.updateWeaponBar(entity);
 
 		const chipSlots = this.chipsBar.children as ItemSlot[];
-		for (let i = 0; i < Math.min(chipSlots.length, entity.inventory.chips.length); i++) {
+		for (
+			let i = 0;
+			i < Math.min(chipSlots.length, entity.inventory.chips.length);
+			i++
+		) {
 			chipSlots[i].setItem(entity.inventory.chips[i]);
 		}
 
 		this.weaponBar.x = 10;
 		this.weaponBar.y = this.engine.canvas.height - 80;
 		this.weaponBar.update(mouse, this.weaponBar.x, this.weaponBar.y);
-		this.hpBarContainer.x = this.engine.canvas.width - this.hpBarContainer.width - 10;
-		this.hpBarContainer.y = this.engine.canvas.height - this.hpBarContainer.height - 10;
-		this.hpBarContainer.update(mouse, this.hpBarContainer.x, this.hpBarContainer.y);
+		this.hpBarContainer.x =
+			this.engine.canvas.width - this.hpBarContainer.width - 10;
+		this.hpBarContainer.y =
+			this.engine.canvas.height - this.hpBarContainer.height - 10;
+		this.hpBarContainer.update(
+			mouse,
+			this.hpBarContainer.x,
+			this.hpBarContainer.y
+		);
 	}
 
 	/**
@@ -106,7 +121,8 @@ export class HudScreen extends Component {
 		const currentModifiers = entity.inventory.modifiers;
 
 		const weaponChanged = currentWeapon?.id !== this.lastWeaponId;
-		const modifiersCountChanged = currentModifiers.length !== this.lastModifierCount;
+		const modifiersCountChanged =
+			currentModifiers.length !== this.lastModifierCount;
 
 		if (weaponChanged || modifiersCountChanged) {
 			this.weaponBar.children = [];
@@ -161,7 +177,9 @@ export class HudScreen extends Component {
 
 		const pickup = this.getPickupInRange?.();
 		if (pickup && !pickup.isDead()) {
-			this.pickupHintLabel.x = Math.floor(this.engine.canvas.width / 2 - this.pickupHintLabel.width / 2);
+			this.pickupHintLabel.x = Math.floor(
+				this.engine.canvas.width / 2 - this.pickupHintLabel.width / 2
+			);
 			this.pickupHintLabel.y = this.engine.canvas.height - 90;
 			this.pickupHintLabel.render(ctx, 0, 0);
 		}
@@ -184,10 +202,17 @@ export class HudScreen extends Component {
 		ctx.fillStyle = gradientBg;
 		ctx.fillRect(0, y, width, height);
 
-		const progress = this.playerProgression.experience / this.playerProgression.experienceToNext;
+		const progress =
+			this.playerProgression.experience /
+			this.playerProgression.experienceToNext;
 		const progressWidth = width * progress;
 
-		const gradientProgress = ctx.createLinearGradient(0, y, progressWidth, y);
+		const gradientProgress = ctx.createLinearGradient(
+			0,
+			y,
+			progressWidth,
+			y
+		);
 		gradientProgress.addColorStop(0, '#4caf50');
 		gradientProgress.addColorStop(1, '#8bc34a');
 		ctx.fillStyle = gradientProgress;
@@ -199,13 +224,19 @@ export class HudScreen extends Component {
 	 * @param ctx - Контекст канваса
 	 * @param entity - Сущность (HP)
 	 */
-	private renderHealthBar(ctx: CanvasRenderingContext2D, entity: Entity): void {
+	private renderHealthBar(
+		ctx: CanvasRenderingContext2D,
+		entity: Entity
+	): void {
 		const hp = entity.getHP();
 		const maxHp = entity.maxHP;
 		const hpPercent = hp / maxHp;
 
 		const barWidth = this.HP_BAR_WIDTH;
-		const barHeight = this.chipsBar.height + this.hpBarContainer.padding.top + this.hpBarContainer.padding.bottom;
+		const barHeight =
+			this.chipsBar.height +
+			this.hpBarContainer.padding.top +
+			this.hpBarContainer.padding.bottom;
 		const x = this.hpBarContainer.x;
 		const y = this.hpBarContainer.y;
 

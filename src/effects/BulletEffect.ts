@@ -17,7 +17,13 @@ export class BulletEffect extends Effect {
 	 * @param source - Источник
 	 * @param damage - Урон
 	 */
-	constructor(x: number, y: number, angle: number, source: Entity, damage: number) {
+	constructor(
+		x: number,
+		y: number,
+		angle: number,
+		source: Entity,
+		damage: number
+	) {
 		super(x, y, angle, source, damage);
 		this.damage = damage;
 	}
@@ -32,7 +38,10 @@ export class BulletEffect extends Effect {
 		this.y += Math.sin(this.angle) * this.speed;
 		this.lifetime--;
 
-		if (worldManager && !worldManager.isWorldPositionPassable(this.x, this.y)) {
+		if (
+			worldManager &&
+			!worldManager.isWorldPositionPassable(this.x, this.y)
+		) {
 			this.lifetime = 0;
 			return;
 		}
@@ -59,7 +68,12 @@ export class BulletEffect extends Effect {
 	 */
 	render(ctx: CanvasRenderingContext2D): void {
 		ctx.fillStyle = '#f99';
-		ctx.fillRect(this.x - this.half_size, this.y - this.half_size, this.half_size * 2, this.half_size * 2);
+		ctx.fillRect(
+			this.x - this.half_size,
+			this.y - this.half_size,
+			this.half_size * 2,
+			this.half_size * 2
+		);
 		if (this.lifetime <= 5) {
 			const alpha = this.lifetime / 5;
 			ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;

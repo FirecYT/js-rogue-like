@@ -1,5 +1,5 @@
-import { Effect } from "../../effects/Effect";
-import { Modifier } from "../Modifier";
+import { Effect } from '../../effects/Effect';
+import { Modifier } from '../Modifier';
 
 /**
  * Модификатор: снаряд проходит сквозь цели (shouldPassThrough всегда true).

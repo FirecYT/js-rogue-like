@@ -1,4 +1,4 @@
-import Entity from "../entities/Entity";
+import Entity from '../entities/Entity';
 
 /**
  * Камера: следование за сущностью или свободный режим, возврат смещения для отрисовки мира.
@@ -14,7 +14,7 @@ export class Camera {
 	/**
 	 * @param canvas - Канвас (для возможного использования размеров)
 	 */
-	constructor(private canvas: HTMLCanvasElement) { }
+	constructor(private canvas: HTMLCanvasElement) {}
 
 	/**
 	 * Включает режим следования за сущностью.
@@ -57,7 +57,7 @@ export class Camera {
 	getOffset(): { offsetX: number; offsetY: number } {
 		return {
 			offsetX: -this.x,
-			offsetY: -this.y
+			offsetY: -this.y,
 		};
 	}
 }

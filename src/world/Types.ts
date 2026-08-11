@@ -7,7 +7,7 @@ export enum TileType {
 	WALL = 1,
 	ROCK = 2,
 	BUILDING = 3,
-	WATER = 4
+	WATER = 4,
 }
 
 /**
@@ -17,7 +17,7 @@ export enum RegionType {
 	VOID = 'void',
 	RUINS = 'ruins',
 	BOSS_ALTAR = 'boss_altar',
-	SETTLEMENT = 'settlement'
+	SETTLEMENT = 'settlement',
 }
 
 /**
@@ -30,7 +30,7 @@ export enum StructureType {
 	LOOT_ZONE = 'loot_zone',
 	ENTRANCE = 'entrance',
 	TRAP_AREA = 'trap_area',
-	DECORATION = 'decoration'
+	DECORATION = 'decoration',
 }
 
 /**
@@ -91,7 +91,7 @@ export interface OptimizedChunk {
 	/** Структуры внутри чанка — для логики и процедурной генерации */
 	structures: ChunkStructure[];
 
-	/** 
+	/**
 	 * Опциональная битовая маска проходимости: 1 бит на тайл.
 	 * Если undefined — проходимость вычисляется на лету из tiles.
 	 * @remarks Хранится как Uint8Array, где каждый байт = 8 тайлов по горизонтали.
@@ -121,7 +121,7 @@ export const CHUNK_CONFIG = {
 		return Math.floor(this.FULL_SIZE / 2);
 	},
 	/** Максимальное значение для TileType (для валидации) */
-	MAX_TILE_TYPE: 255
+	MAX_TILE_TYPE: 255,
 } as const;
 
 // ============================================================================
@@ -139,7 +139,7 @@ export function createOptimizedChunk(
 	x: number,
 	y: number,
 	regionType: RegionType,
-	seed = Math.floor(Math.random() * 0x7FFFFFFF)
+	seed = Math.floor(Math.random() * 0x7fffffff)
 ): OptimizedChunk {
 	const size = CHUNK_CONFIG.SIZE;
 	return {
@@ -152,7 +152,7 @@ export function createOptimizedChunk(
 		size,
 		structures: [],
 		passableMask: undefined,
-		_passableCache: new Map()
+		_passableCache: new Map(),
 	};
 }
 
@@ -204,7 +204,11 @@ export function setTile(
  * @param x - Локальная координата X
  * @param y - Локальная координата Y
  */
-export function isPassable(chunk: OptimizedChunk, x: number, y: number): boolean {
+export function isPassable(
+	chunk: OptimizedChunk,
+	x: number,
+	y: number
+): boolean {
 	if (x < 0 || x >= chunk.size || y < 0 || y >= chunk.size) return false;
 
 	// Проверяем кэш
@@ -227,7 +231,11 @@ export function isPassable(chunk: OptimizedChunk, x: number, y: number): boolean
 
 	// Иначе вычисляем из типа тайла
 	const tileType = getTile(chunk, x, y);
-	const passable = [TileType.EMPTY, TileType.ROCK, TileType.BUILDING].includes(tileType);
+	const passable = [
+		TileType.EMPTY,
+		TileType.ROCK,
+		TileType.BUILDING,
+	].includes(tileType);
 	chunk._passableCache?.set(cacheKey, passable);
 	return passable;
 }
@@ -246,10 +254,14 @@ function updatePassableMask(chunk: OptimizedChunk, x: number, y: number): void {
 	const maskIndex = x * bytesPerRow + byteIndex;
 
 	const tileType = getTile(chunk, x, y);
-	const isPassable = [TileType.EMPTY, TileType.ROCK, TileType.BUILDING].includes(tileType);
+	const isPassable = [
+		TileType.EMPTY,
+		TileType.ROCK,
+		TileType.BUILDING,
+	].includes(tileType);
 
 	if (isPassable) {
-		mask[maskIndex] |= (1 << bitIndex);
+		mask[maskIndex] |= 1 << bitIndex;
 	} else {
 		mask[maskIndex] &= ~(1 << bitIndex);
 	}
@@ -267,12 +279,16 @@ export function buildPassableMask(chunk: OptimizedChunk): Uint8Array {
 	for (let x = 0; x < chunk.size; x++) {
 		for (let y = 0; y < chunk.size; y++) {
 			const tileType = getTile(chunk, x, y);
-			const isPass = [TileType.EMPTY, TileType.ROCK, TileType.BUILDING].includes(tileType);
+			const isPass = [
+				TileType.EMPTY,
+				TileType.ROCK,
+				TileType.BUILDING,
+			].includes(tileType);
 			if (isPass) {
 				const byteIndex = Math.floor(y / 8);
 				const bitIndex = y % 8;
 				const maskIndex = x * bytesPerRow + byteIndex;
-				mask[maskIndex] |= (1 << bitIndex);
+				mask[maskIndex] |= 1 << bitIndex;
 			}
 		}
 	}
@@ -304,22 +320,28 @@ export function buildPassableMask(chunk: OptimizedChunk): Uint8Array {
 export function serializeChunk(chunk: OptimizedChunk): ArrayBuffer {
 	const encoder = new TextEncoder();
 	const regionTypeBytes = encoder.encode(chunk.regionType);
-	
+
 	// Простой хэш для regionType (в продакшене лучше использовать Map<string, number>)
-	const regionTypeHash = [...regionTypeBytes].reduce((a, b) => ((a << 5) - a) + b, 0) >>> 0;
+	const regionTypeHash =
+		[...regionTypeBytes].reduce((a, b) => (a << 5) - a + b, 0) >>> 0;
 
 	// Считаем размер структур
 	const structuresData: Uint8Array[] = [];
 	for (const s of chunk.structures) {
 		const idBytes = encoder.encode(s.id.padEnd(16, '\0').slice(0, 16));
 		const typeIndex = Object.values(StructureType).indexOf(s.type);
-		const bounds = new Int16Array([s.bounds.x, s.bounds.y, s.bounds.w, s.bounds.h]);
+		const bounds = new Int16Array([
+			s.bounds.x,
+			s.bounds.y,
+			s.bounds.w,
+			s.bounds.h,
+		]);
 		const metaJson = JSON.stringify(s.metadata);
 		const metaBytes = encoder.encode(metaJson);
-		
+
 		const structBuf = new ArrayBuffer(16 + 1 + 8 + 4 + metaBytes.length);
 		const structView = new DataView(structBuf);
-		
+
 		new Uint8Array(structBuf, 0, 16).set(idBytes);
 		structView.setUint8(16, typeIndex);
 		structView.setInt16(17, bounds[0], true);
@@ -328,45 +350,66 @@ export function serializeChunk(chunk: OptimizedChunk): ArrayBuffer {
 		structView.setInt16(23, bounds[3], true);
 		structView.setUint32(25, metaBytes.length, true);
 		new Uint8Array(structBuf, 29).set(metaBytes);
-		
+
 		structuresData.push(new Uint8Array(structBuf));
 	}
-	const structuresTotalSize = structuresData.reduce((sum, arr) => sum + arr.length, 0);
+	const structuresTotalSize = structuresData.reduce(
+		(sum, arr) => sum + arr.length,
+		0
+	);
 
 	// Считаем общий размер
 	const hasMask = !!chunk.passableMask;
 	const maskSize = chunk.passableMask ? 4 + chunk.passableMask.length : 0;
-	
-	const totalSize = 
-		4 + 4 + 4 + 4 + 4 + 2 + // header: x,y,region,gen,seed,size
+
+	const totalSize =
+		4 +
+		4 +
+		4 +
+		4 +
+		4 +
+		2 + // header: x,y,region,gen,seed,size
 		chunk.tiles.length + // tiles
-		2 + structuresTotalSize + // structures count + data
-		1 + maskSize; // hasMask + mask data
+		2 +
+		structuresTotalSize + // structures count + data
+		1 +
+		maskSize; // hasMask + mask data
 
 	const buffer = new ArrayBuffer(totalSize);
 	const view = new DataView(buffer);
 	let offset = 0;
 
-	view.setInt32(offset, chunk.x, true); offset += 4;
-	view.setInt32(offset, chunk.y, true); offset += 4;
-	view.setUint32(offset, regionTypeHash, true); offset += 4;
-	view.setUint32(offset, chunk.generation, true); offset += 4;
-	view.setUint32(offset, chunk.seed, true); offset += 4;
-	view.setUint16(offset, chunk.size, true); offset += 2;
+	view.setInt32(offset, chunk.x, true);
+	offset += 4;
+	view.setInt32(offset, chunk.y, true);
+	offset += 4;
+	view.setUint32(offset, regionTypeHash, true);
+	offset += 4;
+	view.setUint32(offset, chunk.generation, true);
+	offset += 4;
+	view.setUint32(offset, chunk.seed, true);
+	offset += 4;
+	view.setUint16(offset, chunk.size, true);
+	offset += 2;
 
 	new Uint8Array(buffer, offset, chunk.tiles.length).set(chunk.tiles);
 	offset += chunk.tiles.length;
 
-	view.setUint16(offset, chunk.structures.length, true); offset += 2;
+	view.setUint16(offset, chunk.structures.length, true);
+	offset += 2;
 	for (const structData of structuresData) {
 		new Uint8Array(buffer, offset, structData.length).set(structData);
 		offset += structData.length;
 	}
 
-	view.setUint8(offset, hasMask ? 1 : 0); offset += 1;
+	view.setUint8(offset, hasMask ? 1 : 0);
+	offset += 1;
 	if (hasMask && chunk.passableMask) {
-		view.setUint32(offset, chunk.passableMask.length, true); offset += 4;
-		new Uint8Array(buffer, offset, chunk.passableMask.length).set(chunk.passableMask);
+		view.setUint32(offset, chunk.passableMask.length, true);
+		offset += 4;
+		new Uint8Array(buffer, offset, chunk.passableMask.length).set(
+			chunk.passableMask
+		);
 	}
 
 	return buffer;
@@ -385,46 +428,59 @@ export function deserializeChunk(
 	const view = new DataView(buffer);
 	let offset = 0;
 
-	const x = view.getInt32(offset, true); offset += 4;
-	const y = view.getInt32(offset, true); offset += 4;
-	const regionTypeHash = view.getUint32(offset, true); offset += 4;
-	const generation = view.getUint32(offset, true); offset += 4;
-	const seed = view.getUint32(offset, true); offset += 4;
-	const size = view.getUint16(offset, true); offset += 2;
+	const x = view.getInt32(offset, true);
+	offset += 4;
+	const y = view.getInt32(offset, true);
+	offset += 4;
+	const regionTypeHash = view.getUint32(offset, true);
+	offset += 4;
+	const generation = view.getUint32(offset, true);
+	offset += 4;
+	const seed = view.getUint32(offset, true);
+	offset += 4;
+	const size = view.getUint16(offset, true);
+	offset += 2;
 
 	const tiles = new Uint8Array(buffer, offset, size * size);
 	offset += size * size;
 
-	const structuresCount = view.getUint16(offset, true); offset += 2;
+	const structuresCount = view.getUint16(offset, true);
+	offset += 2;
 	const structures: ChunkStructure[] = [];
-	
+
 	for (let i = 0; i < structuresCount; i++) {
 		const idBytes = new Uint8Array(buffer, offset, 16);
 		const id = decoder.decode(idBytes).replace(/\0+$/, '');
 		offset += 16;
-		
-		const typeIndex = view.getUint8(offset); offset += 1;
+
+		const typeIndex = view.getUint8(offset);
+		offset += 1;
 		const type = Object.values(StructureType)[typeIndex] as StructureType;
-		
+
 		const bounds = {
 			x: view.getInt16(offset, true),
 			y: view.getInt16(offset + 2, true),
 			w: view.getInt16(offset + 4, true),
-			h: view.getInt16(offset + 6, true)
+			h: view.getInt16(offset + 6, true),
 		};
 		offset += 8;
-		
-		const metaLength = view.getUint32(offset, true); offset += 4;
-		const metaJson = decoder.decode(new Uint8Array(buffer, offset, metaLength));
+
+		const metaLength = view.getUint32(offset, true);
+		offset += 4;
+		const metaJson = decoder.decode(
+			new Uint8Array(buffer, offset, metaLength)
+		);
 		offset += metaLength;
-		
+
 		structures.push({ id, type, bounds, metadata: JSON.parse(metaJson) });
 	}
 
-	const hasMask = view.getUint8(offset) === 1; offset += 1;
+	const hasMask = view.getUint8(offset) === 1;
+	offset += 1;
 	let passableMask: Uint8Array | undefined;
 	if (hasMask) {
-		const maskLength = view.getUint32(offset, true); offset += 4;
+		const maskLength = view.getUint32(offset, true);
+		offset += 4;
 		passableMask = new Uint8Array(buffer, offset, maskLength);
 		offset += maskLength;
 	}
@@ -432,9 +488,16 @@ export function deserializeChunk(
 	const regionType = regionTypeMap?.get(regionTypeHash) ?? RegionType.VOID;
 
 	return {
-		x, y, regionType, generation, seed,
-		tiles, size, structures, passableMask,
-		_passableCache: new Map()
+		x,
+		y,
+		regionType,
+		generation,
+		seed,
+		tiles,
+		size,
+		structures,
+		passableMask,
+		_passableCache: new Map(),
 	};
 }
 
@@ -453,18 +516,18 @@ export function migrateChunk(oldChunk: LegacyChunk): OptimizedChunk {
 		oldChunk.y,
 		oldChunk.regionType
 	);
-	
+
 	// Копируем тайлы
 	for (let x = 0; x < CHUNK_CONFIG.SIZE; x++) {
 		for (let y = 0; y < CHUNK_CONFIG.SIZE; y++) {
 			setTile(newChunk, x, y, oldChunk.tiles[x][y], false);
 		}
 	}
-	
+
 	// Строим маску из старого passableGrid
 	newChunk.passableMask = buildPassableMask(newChunk);
 	newChunk.generation = oldChunk.generation;
-	
+
 	return newChunk;
 }
 
@@ -476,7 +539,7 @@ export function migrateChunk(oldChunk: LegacyChunk): OptimizedChunk {
 export function toLegacyChunk(chunk: OptimizedChunk): LegacyChunk {
 	const tiles: TileType[][] = [];
 	const passableGrid: boolean[][] = [];
-	
+
 	for (let x = 0; x < chunk.size; x++) {
 		tiles[x] = [];
 		passableGrid[x] = [];
@@ -485,13 +548,13 @@ export function toLegacyChunk(chunk: OptimizedChunk): LegacyChunk {
 			passableGrid[x][y] = isPassable(chunk, x, y);
 		}
 	}
-	
+
 	return {
 		x: chunk.x,
 		y: chunk.y,
 		tiles,
 		regionType: chunk.regionType,
 		passableGrid,
-		generation: chunk.generation
+		generation: chunk.generation,
 	};
 }

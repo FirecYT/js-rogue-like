@@ -12,7 +12,7 @@ export class ChunkViewManager {
 	constructor(
 		private worldManager: WorldManager,
 		private engine: Engine
-	) { }
+	) {}
 
 	/**
 	 * Возвращает или создаёт ChunkView для чанка; при отсутствии чанка выгружает вью и возвращает null.
@@ -37,7 +37,10 @@ export class ChunkViewManager {
 		if (!view) {
 			view = new ChunkView(chunk, this.worldManager, this.engine);
 			this.views.set(key, view);
-		} else if (chunk.generation !== view.getLastRenderedGeneration(view.getLODForScale(scale))) {
+		} else if (
+			chunk.generation !==
+			view.getLastRenderedGeneration(view.getLODForScale(scale))
+		) {
 			view.markDirty();
 		}
 

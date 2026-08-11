@@ -23,8 +23,17 @@ export class BasicPistol extends Weapon {
 	 * @param effectSystem - Система эффектов
 	 */
 	fire(source: Entity, angle: number, effectSystem: EffectSystem): void {
-		const base = new BulletEffect(source.x, source.y, angle, source, this.damage);
-		const finalEffect = EffectFactory.create(base, source.inventory.modifiers);
+		const base = new BulletEffect(
+			source.x,
+			source.y,
+			angle,
+			source,
+			this.damage
+		);
+		const finalEffect = EffectFactory.create(
+			base,
+			source.inventory.modifiers
+		);
 		effectSystem.addEffect(finalEffect);
 	}
 

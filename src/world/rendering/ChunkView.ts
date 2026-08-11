@@ -70,7 +70,10 @@ export class ChunkView {
 	 * @param lod - Уровень детализации
 	 */
 	private renderToCache(lod: number): void {
-		if (!this.isDirty[lod] && this.chunk.generation === this.lastRenderedGeneration[lod]) {
+		if (
+			!this.isDirty[lod] &&
+			this.chunk.generation === this.lastRenderedGeneration[lod]
+		) {
 			return;
 		}
 
@@ -111,7 +114,7 @@ export class ChunkView {
 		const worldX = tileX * tileSize;
 		const worldY = tileY * tileSize;
 
-		let image = "";
+		let image = '';
 		let seed = tileX;
 
 		for (let i = 0; i < tileY; i++) {
@@ -120,26 +123,35 @@ export class ChunkView {
 
 		switch (tileType) {
 			case TileType.EMPTY:
-				image = `/js-rogue-like/images/floor_${seed % 4 + 3}.png`;
+				image = `/js-rogue-like/images/floor_${(seed % 4) + 3}.png`;
 				ctx.fillStyle = '#333';
 				break;
 			case TileType.WALL: {
 				const wallIndex = this.worldManager.getWallTextureIndex(
-					this.chunk, 
-					tileX, 
-					tileY, 
+					this.chunk,
+					tileX,
+					tileY,
 					TileType.WALL
 				);
 				const spriteX = (wallIndex % 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
-				const spriteY = Math.floor(wallIndex / 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
-				const wallsImg = this.engine.getImage('/js-rogue-like/images/walls.png');
+				const spriteY =
+					Math.floor(wallIndex / 4) * (CHUNK_CONFIG.TILE_SIZE + 1);
+				const wallsImg = this.engine.getImage(
+					'/js-rogue-like/images/walls.png'
+				);
 
 				if (wallsImg) {
 					const sourceSize = CHUNK_CONFIG.TILE_SIZE;
 					ctx.drawImage(
 						wallsImg,
-						spriteX, spriteY, sourceSize, sourceSize,
-						worldX, worldY, tileSize, tileSize
+						spriteX,
+						spriteY,
+						sourceSize,
+						sourceSize,
+						worldX,
+						worldY,
+						tileSize,
+						tileSize
 					);
 				}
 				return;
@@ -175,7 +187,12 @@ export class ChunkView {
 	 * @param screenY - Позиция на экране по оси Y
 	 * @param scale - Текущий масштаб камеры
 	 */
-	draw(targetCtx: CanvasRenderingContext2D, screenX: number, screenY: number, scale: number): void {
+	draw(
+		targetCtx: CanvasRenderingContext2D,
+		screenX: number,
+		screenY: number,
+		scale: number
+	): void {
 		const lod = this.getLODForScale(scale);
 		const canvas = this.canvases.get(lod);
 
@@ -185,8 +202,14 @@ export class ChunkView {
 
 		targetCtx.drawImage(
 			canvas,
-			0, 0, canvas.width, canvas.height,
-			screenX, screenY, CHUNK_CONFIG.FULL_SIZE, CHUNK_CONFIG.FULL_SIZE
+			0,
+			0,
+			canvas.width,
+			canvas.height,
+			screenX,
+			screenY,
+			CHUNK_CONFIG.FULL_SIZE,
+			CHUNK_CONFIG.FULL_SIZE
 		);
 	}
 
@@ -213,6 +236,9 @@ export class ChunkView {
 	 * @returns true, если требуется перерисовка
 	 */
 	needsRedraw(lod: number): boolean {
-		return this.isDirty[lod] || this.chunk.generation !== this.lastRenderedGeneration[lod];
+		return (
+			this.isDirty[lod] ||
+			this.chunk.generation !== this.lastRenderedGeneration[lod]
+		);
 	}
 }

@@ -18,13 +18,13 @@ export default class MouseInput {
 	 * @param canvas - Элемент canvas
 	 */
 	constructor(canvas: HTMLCanvasElement) {
-		canvas.addEventListener('mousemove', e => {
+		canvas.addEventListener('mousemove', (e) => {
 			this.x = e.offsetX;
 			this.y = e.offsetY;
 			this.cx = e.offsetX - canvas.width / 2;
 			this.cy = e.offsetY - canvas.height / 2;
 		});
-		canvas.addEventListener('mousedown', () => this.pressed = true);
-		canvas.addEventListener('mouseup', () => this.pressed = false);
+		canvas.addEventListener('mousedown', () => (this.pressed = true));
+		canvas.addEventListener('mouseup', () => (this.pressed = false));
 	}
 }

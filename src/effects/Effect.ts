@@ -18,14 +18,17 @@ export abstract class Effect {
 		public angle: number,
 		public source: Entity,
 		public damage: number
-	) { }
+	) {}
 
 	/**
 	 * Обновление эффекта за один кадр (движение, проверка попаданий и т.д.).
 	 * @param enities - Список сущностей для проверки столкновений
 	 * @param worldManager - Менеджер мира (опционально, для проверки стен)
 	 */
-	abstract update(enities: Entity[], worldManager?: WorldManager | null): void;
+	abstract update(
+		enities: Entity[],
+		worldManager?: WorldManager | null
+	): void;
 
 	/**
 	 * Отрисовка эффекта на канвасе.

@@ -1,12 +1,12 @@
-import { 
-	OptimizedChunk, 
-	RegionType, 
-	CHUNK_CONFIG, 
+import {
+	OptimizedChunk,
+	RegionType,
+	CHUNK_CONFIG,
 	TileType,
 	getTile,
 	isPassable,
 	serializeChunk,
-	deserializeChunk
+	deserializeChunk,
 } from './Types';
 import { VoidGenerator } from './generators/VoidGenerator';
 import { RuinsGenerator } from './generators/RuinsGenerator';
@@ -15,7 +15,7 @@ import { eventBus } from '../events/EventBus';
 import { SettlementGenerator } from './generators/SettlementGenerator';
 
 /**
- * Менеджер мира: загрузка/выгрузка чанков, генерация по типу региона, 
+ * Менеджер мира: загрузка/выгрузка чанков, генерация по типу региона,
  * координаты тайлов, проходимость, соседи, рейкаст.
  * @remarks Работает с OptimizedChunk для оптимизации памяти и поддержки мультиплеера.
  */
@@ -26,7 +26,7 @@ export class WorldManager {
 		[RegionType.VOID]: new VoidGenerator(),
 		[RegionType.RUINS]: new RuinsGenerator(),
 		[RegionType.BOSS_ALTAR]: new BossAltarGenerator(),
-		[RegionType.SETTLEMENT]: new SettlementGenerator()
+		[RegionType.SETTLEMENT]: new SettlementGenerator(),
 	};
 
 	/**
@@ -37,12 +37,25 @@ export class WorldManager {
 	 * @param loadHalfDistanceY - Полувысота загрузки в чанках по Y
 	 * @emits chunkUnloaded при выгрузке чанка
 	 */
-	update(playerX: number, playerY: number, loadHalfDistanceX: number, loadHalfDistanceY: number): void {
+	update(
+		playerX: number,
+		playerY: number,
+		loadHalfDistanceX: number,
+		loadHalfDistanceY: number
+	): void {
 		const playerChunk = this.worldToChunk(playerX, playerY);
 
 		// Загрузка чанков в радиусе
-		for (let x = playerChunk.x - loadHalfDistanceX; x <= playerChunk.x + loadHalfDistanceX; x++) {
-			for (let y = playerChunk.y - loadHalfDistanceY; y <= playerChunk.y + loadHalfDistanceY; y++) {
+		for (
+			let x = playerChunk.x - loadHalfDistanceX;
+			x <= playerChunk.x + loadHalfDistanceX;
+			x++
+		) {
+			for (
+				let y = playerChunk.y - loadHalfDistanceY;
+				y <= playerChunk.y + loadHalfDistanceY;
+				y++
+			) {
 				this.loadChunk(x, y);
 			}
 		}
@@ -52,9 +65,15 @@ export class WorldManager {
 			const distanceX = Math.abs(chunk.x - playerChunk.x);
 			const distanceY = Math.abs(chunk.y - playerChunk.y);
 
-			if (distanceX > loadHalfDistanceX + 2 || distanceY > loadHalfDistanceY + 2) {
+			if (
+				distanceX > loadHalfDistanceX + 2 ||
+				distanceY > loadHalfDistanceY + 2
+			) {
 				this.chunks.delete(key);
-				eventBus.emit('chunkUnloaded', { chunkX: chunk.x, chunkY: chunk.y });
+				eventBus.emit('chunkUnloaded', {
+					chunkX: chunk.x,
+					chunkY: chunk.y,
+				});
 			}
 		}
 	}
@@ -71,7 +90,7 @@ export class WorldManager {
 
 		const regionType = this.getRegionType(chunkX, chunkY);
 		const generator = this.generators[regionType];
-		
+
 		// Генерация с детерминированным seed для мультиплеера
 		const seed = this.getChunkSeed(chunkX, chunkY);
 		const chunk = generator.generate(chunkX, chunkY, seed);
@@ -88,7 +107,7 @@ export class WorldManager {
 	private getChunkSeed(chunkX: number, chunkY: number): number {
 		// Простой хэш координат для детерминированной генерации
 		// В продакшене можно использовать более надёжный алгоритм
-		return ((chunkX * 73856093) ^ (chunkY * 19349663) ^ 0x9E3779B9) >>> 0;
+		return ((chunkX * 73856093) ^ (chunkY * 19349663) ^ 0x9e3779b9) >>> 0;
 	}
 
 	/**
@@ -105,8 +124,10 @@ export class WorldManager {
 		if (distanceFromCenter < 3) return RegionType.VOID;
 
 		const bossAltars = [
-			{ x: 3, y: 0 }, { x: 0, y: 3 },
-			{ x: -3, y: 0 }, { x: 0, y: -3 },
+			{ x: 3, y: 0 },
+			{ x: 0, y: 3 },
+			{ x: -3, y: 0 },
+			{ x: 0, y: -3 },
 			{ x: 16, y: 16 },
 		];
 
@@ -118,7 +139,9 @@ export class WorldManager {
 
 		// Детерминированный выбор между RUINS и SETTLEMENT
 		const seed = this.getChunkSeed(chunkX, chunkY);
-		return [RegionType.RUINS, RegionType.SETTLEMENT][(seed % 2)] as RegionType;
+		return [RegionType.RUINS, RegionType.SETTLEMENT][
+			seed % 2
+		] as RegionType;
 	}
 
 	/**
@@ -127,26 +150,40 @@ export class WorldManager {
 	 * @param worldY - Мировая координата Y
 	 * @returns Объект с координатами или null, если чанк не загружен
 	 */
-	worldToGrid(worldX: number, worldY: number): { 
-		chunkX: number; 
-		chunkY: number; 
-		tileX: number; 
-		tileY: number; 
-		globalTileX: number; 
-		globalTileY: number 
+	worldToGrid(
+		worldX: number,
+		worldY: number
+	): {
+		chunkX: number;
+		chunkY: number;
+		tileX: number;
+		tileY: number;
+		globalTileX: number;
+		globalTileY: number;
 	} | null {
 		const chunk = this.worldToChunk(worldX, worldY);
 		const chunkData = this.getChunk(chunk.x, chunk.y);
 
 		if (!chunkData) return null;
 
-		const chunkWorldX = chunk.x * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
-		const chunkWorldY = chunk.y * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
+		const chunkWorldX =
+			chunk.x * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
+		const chunkWorldY =
+			chunk.y * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE;
 
-		const localX = Math.floor((worldX - chunkWorldX) / CHUNK_CONFIG.TILE_SIZE);
-		const localY = Math.floor((worldY - chunkWorldY) / CHUNK_CONFIG.TILE_SIZE);
+		const localX = Math.floor(
+			(worldX - chunkWorldX) / CHUNK_CONFIG.TILE_SIZE
+		);
+		const localY = Math.floor(
+			(worldY - chunkWorldY) / CHUNK_CONFIG.TILE_SIZE
+		);
 
-		if (localX < 0 || localX >= CHUNK_CONFIG.SIZE || localY < 0 || localY >= CHUNK_CONFIG.SIZE) {
+		if (
+			localX < 0 ||
+			localX >= CHUNK_CONFIG.SIZE ||
+			localY < 0 ||
+			localY >= CHUNK_CONFIG.SIZE
+		) {
 			return null;
 		}
 
@@ -159,7 +196,7 @@ export class WorldManager {
 			tileX: localX,
 			tileY: localY,
 			globalTileX,
-			globalTileY
+			globalTileY,
 		};
 	}
 
@@ -169,7 +206,10 @@ export class WorldManager {
 	 * @param globalTileY - Глобальная координата тайла по Y
 	 * @returns Мировые координаты { x, y }
 	 */
-	gridToWorld(globalTileX: number, globalTileY: number): { x: number; y: number } {
+	gridToWorld(
+		globalTileX: number,
+		globalTileY: number
+	): { x: number; y: number } {
 		const chunkX = Math.floor(globalTileX / CHUNK_CONFIG.SIZE);
 		const chunkY = Math.floor(globalTileY / CHUNK_CONFIG.SIZE);
 
@@ -180,8 +220,12 @@ export class WorldManager {
 		if (localY < 0) localY += CHUNK_CONFIG.SIZE;
 
 		return {
-			x: chunkX * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE + localX * CHUNK_CONFIG.TILE_SIZE,
-			y: chunkY * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE + localY * CHUNK_CONFIG.TILE_SIZE
+			x:
+				chunkX * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE +
+				localX * CHUNK_CONFIG.TILE_SIZE,
+			y:
+				chunkY * CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE +
+				localY * CHUNK_CONFIG.TILE_SIZE,
 		};
 	}
 
@@ -226,8 +270,12 @@ export class WorldManager {
 	 * @returns Координаты чанка { x, y }
 	 */
 	private worldToChunk(worldX: number, worldY: number) {
-		const chunkX = Math.floor(worldX / (CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE));
-		const chunkY = Math.floor(worldY / (CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE));
+		const chunkX = Math.floor(
+			worldX / (CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE)
+		);
+		const chunkY = Math.floor(
+			worldY / (CHUNK_CONFIG.SIZE * CHUNK_CONFIG.TILE_SIZE)
+		);
 
 		return { x: chunkX, y: chunkY };
 	}
@@ -257,13 +305,20 @@ export class WorldManager {
 	 * @returns Массив координат проходимых соседних тайлов
 	 * @remarks Диагональные соседи возвращаются только если оба ортогональных соседа проходимы
 	 */
-	getPassableNeighbors(globalTileX: number, globalTileY: number): { x: number; y: number }[] {
+	getPassableNeighbors(
+		globalTileX: number,
+		globalTileY: number
+	): { x: number; y: number }[] {
 		const neighbors: { x: number; y: number }[] = [];
 		const directions = [
-			{ dx: -1, dy: 0 }, { dx: 1, dy: 0 },
-			{ dx: 0, dy: -1 }, { dx: 0, dy: 1 },
-			{ dx: -1, dy: -1 }, { dx: 1, dy: -1 },
-			{ dx: -1, dy: 1 }, { dx: 1, dy: 1 }
+			{ dx: -1, dy: 0 },
+			{ dx: 1, dy: 0 },
+			{ dx: 0, dy: -1 },
+			{ dx: 0, dy: 1 },
+			{ dx: -1, dy: -1 },
+			{ dx: 1, dy: -1 },
+			{ dx: -1, dy: 1 },
+			{ dx: 1, dy: 1 },
 		];
 
 		for (const dir of directions) {
@@ -276,7 +331,10 @@ export class WorldManager {
 				const horY = globalTileY;
 				const verX = globalTileX;
 				const verY = globalTileY + dir.dy;
-				if (!this.isTilePassable(horX, horY) || !this.isTilePassable(verX, verY)) {
+				if (
+					!this.isTilePassable(horX, horY) ||
+					!this.isTilePassable(verX, verY)
+				) {
 					continue;
 				}
 			}
@@ -340,8 +398,12 @@ export class WorldManager {
 		const neighborY = y + dy;
 
 		// Проверка в пределах текущего чанка
-		if (neighborX >= 0 && neighborX < CHUNK_CONFIG.SIZE &&
-			neighborY >= 0 && neighborY < CHUNK_CONFIG.SIZE) {
+		if (
+			neighborX >= 0 &&
+			neighborX < CHUNK_CONFIG.SIZE &&
+			neighborY >= 0 &&
+			neighborY < CHUNK_CONFIG.SIZE
+		) {
 			return getTile(chunk, neighborX, neighborY) === tileType;
 		}
 
@@ -356,8 +418,12 @@ export class WorldManager {
 
 		if (!neighborChunk) return false;
 
-		const localX = ((globalTileX % CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.SIZE) % CHUNK_CONFIG.SIZE;
-		const localY = ((globalTileY % CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.SIZE) % CHUNK_CONFIG.SIZE;
+		const localX =
+			((globalTileX % CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.SIZE) %
+			CHUNK_CONFIG.SIZE;
+		const localY =
+			((globalTileY % CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.SIZE) %
+			CHUNK_CONFIG.SIZE;
 
 		return getTile(neighborChunk, localX, localY) === tileType;
 	}
@@ -387,7 +453,10 @@ export class WorldManager {
 		const dy = endY - startY;
 		const distance = Math.hypot(dx, dy);
 
-		const actualDistance = maxDistance !== undefined ? Math.min(distance, maxDistance) : distance;
+		const actualDistance =
+			maxDistance !== undefined
+				? Math.min(distance, maxDistance)
+				: distance;
 
 		if (actualDistance === 0) {
 			return { hit: false, distance: 0 };
@@ -395,8 +464,8 @@ export class WorldManager {
 
 		// Шаг 4 пикселя для баланса точности и производительности
 		const steps = Math.ceil(actualDistance / 4);
-		const stepX = dx / distance * 4;
-		const stepY = dy / distance * 4;
+		const stepX = (dx / distance) * 4;
+		const stepY = (dy / distance) * 4;
 
 		let prevX = startX;
 		let prevY = startY;
@@ -408,18 +477,21 @@ export class WorldManager {
 			if (!this.isWorldPositionPassable(x, y)) {
 				const gridPos = this.worldToGrid(x, y);
 				if (gridPos) {
-					const normal = this.getWallNormal(gridPos.globalTileX, gridPos.globalTileY);
+					const normal = this.getWallNormal(
+						gridPos.globalTileX,
+						gridPos.globalTileY
+					);
 					return {
 						hit: true,
 						distance: Math.hypot(prevX - startX, prevY - startY),
 						point: { x: prevX, y: prevY },
-						normal: normal
+						normal: normal,
 					};
 				}
 				return {
 					hit: true,
 					distance: Math.hypot(prevX - startX, prevY - startY),
-					point: { x: prevX, y: prevY }
+					point: { x: prevX, y: prevY },
 				};
 			}
 
@@ -429,7 +501,7 @@ export class WorldManager {
 
 		return {
 			hit: false,
-			distance: actualDistance
+			distance: actualDistance,
 		};
 	}
 
@@ -439,7 +511,10 @@ export class WorldManager {
 	 * @param globalTileY - Глобальная координата тайла по оси Y
 	 * @returns Нормаль как вектор { x, y }
 	 */
-	private getWallNormal(globalTileX: number, globalTileY: number): { x: number; y: number } {
+	private getWallNormal(
+		globalTileX: number,
+		globalTileY: number
+	): { x: number; y: number } {
 		const hasLeft = this.isTilePassable(globalTileX - 1, globalTileY);
 		const hasRight = this.isTilePassable(globalTileX + 1, globalTileY);
 		const hasTop = this.isTilePassable(globalTileX, globalTileY - 1);
@@ -518,9 +593,12 @@ export class WorldManager {
 	 * @returns Массив структур, содержащих точку (или пересекающих её)
 	 */
 	getStructuresAt(chunk: OptimizedChunk, x: number, y: number) {
-		return chunk.structures.filter(s => 
-			x >= s.bounds.x && x < s.bounds.x + s.bounds.w &&
-			y >= s.bounds.y && y < s.bounds.y + s.bounds.h
+		return chunk.structures.filter(
+			(s) =>
+				x >= s.bounds.x &&
+				x < s.bounds.x + s.bounds.w &&
+				y >= s.bounds.y &&
+				y < s.bounds.y + s.bounds.h
 		);
 	}
 }

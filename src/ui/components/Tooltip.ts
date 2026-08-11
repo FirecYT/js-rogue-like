@@ -32,7 +32,10 @@ export class Tooltip {
 		}
 
 		const width = maxWidth + padding * 2;
-		const height = lines.length * lineHeight + (lines.length - 1) * linePadding + padding * 2;
+		const height =
+			lines.length * lineHeight +
+			(lines.length - 1) * linePadding +
+			padding * 2;
 
 		let adjustedX = x + offsetX;
 		let adjustedY = y + offsetY;
@@ -65,7 +68,11 @@ export class Tooltip {
 		ctx.textAlign = 'left';
 		ctx.textBaseline = 'top';
 		for (let i = 0; i < lines.length; i++) {
-			ctx.fillText(lines[i], adjustedX + padding, adjustedY + padding + i * lineHeight + i * linePadding);
+			ctx.fillText(
+				lines[i],
+				adjustedX + padding,
+				adjustedY + padding + i * lineHeight + i * linePadding
+			);
 		}
 	}
 
@@ -78,7 +85,14 @@ export class Tooltip {
 	 * @param height Высота
 	 * @param radius Радиус закругления
 	 */
-	private static roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {
+	private static roundRect(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number,
+		width: number,
+		height: number,
+		radius: number
+	): void {
 		ctx.beginPath();
 		ctx.moveTo(x + radius, y);
 		ctx.arcTo(x + width, y, x + width, y + height, radius);

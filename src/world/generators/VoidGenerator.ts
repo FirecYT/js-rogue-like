@@ -14,7 +14,12 @@ export class VoidGenerator extends BaseGenerator {
 	 * @returns Оптимизированный чанк с регионом VOID
 	 */
 	generate(chunkX: number, chunkY: number, seed?: number): OptimizedChunk {
-		const chunk = this.createEmptyChunk(chunkX, chunkY, RegionType.VOID, seed ?? 0);
+		const chunk = this.createEmptyChunk(
+			chunkX,
+			chunkY,
+			RegionType.VOID,
+			seed ?? 0
+		);
 		// Пустой чанк уже создан с правильными параметрами
 		// Просто финализируем его
 		this.finalizeChunk(chunk, true);

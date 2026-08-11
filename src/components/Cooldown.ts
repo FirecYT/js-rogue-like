@@ -39,7 +39,7 @@ export default class Cooldown {
 	 */
 	start(): this {
 		this.currentFrames = this.maxFrames;
-		this.onStartCallbacks.forEach(callback => callback());
+		this.onStartCallbacks.forEach((callback) => callback());
 		return this;
 	}
 
@@ -65,9 +65,11 @@ export default class Cooldown {
 	update(): void {
 		if (this.currentFrames > 0) {
 			this.currentFrames--;
-			this.onUpdateCallbacks.forEach(callback => callback(this.progress()));
+			this.onUpdateCallbacks.forEach((callback) =>
+				callback(this.progress())
+			);
 			if (this.currentFrames === 0) {
-				this.onReadyCallbacks.forEach(callback => callback());
+				this.onReadyCallbacks.forEach((callback) => callback());
 			}
 		}
 	}
@@ -108,7 +110,9 @@ export default class Cooldown {
 	 * @returns this для цепочки вызовов
 	 */
 	removeOnReady(callback: () => void): this {
-		this.onReadyCallbacks = this.onReadyCallbacks.filter(cb => cb !== callback);
+		this.onReadyCallbacks = this.onReadyCallbacks.filter(
+			(cb) => cb !== callback
+		);
 		return this;
 	}
 
@@ -118,7 +122,9 @@ export default class Cooldown {
 	 * @returns this для цепочки вызовов
 	 */
 	removeOnStart(callback: () => void): this {
-		this.onStartCallbacks = this.onStartCallbacks.filter(cb => cb !== callback);
+		this.onStartCallbacks = this.onStartCallbacks.filter(
+			(cb) => cb !== callback
+		);
 		return this;
 	}
 
@@ -128,7 +134,9 @@ export default class Cooldown {
 	 * @returns this для цепочки вызовов
 	 */
 	removeOnUpdate(callback: (progress: number) => void): this {
-		this.onUpdateCallbacks = this.onUpdateCallbacks.filter(cb => cb !== callback);
+		this.onUpdateCallbacks = this.onUpdateCallbacks.filter(
+			(cb) => cb !== callback
+		);
 		return this;
 	}
 

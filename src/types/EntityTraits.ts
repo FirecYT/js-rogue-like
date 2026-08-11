@@ -1,5 +1,5 @@
-import { Controller } from "../controllers/Controller";
-import Entity from "../entities/Entity";
+import { Controller } from '../controllers/Controller';
+import Entity from '../entities/Entity';
 
 /** Признак сущности с полем скорости */
 export interface HasSpeed {
@@ -32,6 +32,8 @@ export interface Controllable {
  * @param entity - Сущность для проверки
  * @returns true, если у сущности есть поле controller (type guard)
  */
-export function isControllable(entity: Entity): entity is Entity & Controllable {
+export function isControllable(
+	entity: Entity
+): entity is Entity & Controllable {
 	return 'controller' in entity;
 }

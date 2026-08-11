@@ -28,15 +28,14 @@ export class InventoryWindow extends Window {
 
 	// Состояние перетаскивания (всё хранится в окне!)
 	private draggedItem: Item | null = null;
-	private dragSource: { type: 'weapon' | 'modifier' | 'chip', index: number } | null = null;
-	private dragVisual: { x: number, y: number, item: Item } | null = null;
+	private dragSource: {
+		type: 'weapon' | 'modifier' | 'chip';
+		index: number;
+	} | null = null;
+	private dragVisual: { x: number; y: number; item: Item } | null = null;
 	private dropTargetSlot: ItemSlot | null = null;
 
-	constructor(
-		entity: Entity,
-		canvasWidth: number,
-		canvasHeight: number
-	) {
+	constructor(entity: Entity, canvasWidth: number, canvasHeight: number) {
 		super();
 
 		this.entity = entity;
@@ -96,7 +95,11 @@ export class InventoryWindow extends Window {
 		layout.addChild(itemsLayout);
 
 		// Кнопка закрытия
-		const closeButton = new Button('Закрыть', layout.width - layout.padding.left - layout.padding.right, 40);
+		const closeButton = new Button(
+			'Закрыть',
+			layout.width - layout.padding.left - layout.padding.right,
+			40
+		);
 		closeButton.setOnClick(() => {
 			if (this.onCloseCallback) this.onCloseCallback();
 		});
@@ -131,18 +134,33 @@ export class InventoryWindow extends Window {
 		// Проверяем все слоты на клик
 		const allSlots = [
 			{ slot: this.weaponSlot, type: 'weapon', index: -1 },
-			...this.modifierSlots.map((slot, i) => ({ slot, type: 'modifier' as const, index: i })),
-			...this.chipSlots.map((slot, i) => ({ slot, type: 'chip' as const, index: i }))
-		].filter(entry => entry.slot !== null) as { slot: ItemSlot; type: 'weapon' | 'modifier' | 'chip'; index: number }[];
+			...this.modifierSlots.map((slot, i) => ({
+				slot,
+				type: 'modifier' as const,
+				index: i,
+			})),
+			...this.chipSlots.map((slot, i) => ({
+				slot,
+				type: 'chip' as const,
+				index: i,
+			})),
+		].filter((entry) => entry.slot !== null) as {
+			slot: ItemSlot;
+			type: 'weapon' | 'modifier' | 'chip';
+			index: number;
+		}[];
 
 		for (const { slot, type, index } of allSlots) {
 			if (!slot.item) continue;
 
 			const globalPos = slot.getGlobalPosition();
 
-			if (mouse.x >= globalPos.x && mouse.x <= globalPos.x + slot.width &&
-				mouse.y >= globalPos.y && mouse.y <= globalPos.y + slot.height) {
-
+			if (
+				mouse.x >= globalPos.x &&
+				mouse.x <= globalPos.x + slot.width &&
+				mouse.y >= globalPos.y &&
+				mouse.y <= globalPos.y + slot.height
+			) {
 				// Сохраняем предмет и очищаем слот
 				this.draggedItem = slot.item;
 				this.dragSource = { type, index };
@@ -152,7 +170,7 @@ export class InventoryWindow extends Window {
 				this.dragVisual = {
 					x: mouse.x,
 					y: mouse.y,
-					item: this.draggedItem
+					item: this.draggedItem,
 				};
 				break;
 			}
@@ -168,19 +186,31 @@ export class InventoryWindow extends Window {
 		// Ищем новый слот под курсором
 		const allSlots = [
 			{ slot: this.weaponSlot, type: 'weapon' },
-			...this.modifierSlots.map(slot => ({ slot, type: 'modifier' as const })),
-			...this.chipSlots.map(slot => ({ slot, type: 'chip' as const }))
-		].filter(entry => entry.slot !== null) as { slot: ItemSlot; type: 'weapon' | 'modifier' | 'chip' }[];
+			...this.modifierSlots.map((slot) => ({
+				slot,
+				type: 'modifier' as const,
+			})),
+			...this.chipSlots.map((slot) => ({ slot, type: 'chip' as const })),
+		].filter((entry) => entry.slot !== null) as {
+			slot: ItemSlot;
+			type: 'weapon' | 'modifier' | 'chip';
+		}[];
 
 		for (const { slot, type } of allSlots) {
 			const globalPos = slot.getGlobalPosition();
 
 			// Проверяем попадание курсора в слот
-			if (mouse.x >= globalPos.x && mouse.x <= globalPos.x + slot.width &&
-				mouse.y >= globalPos.y && mouse.y <= globalPos.y + slot.height) {
-
+			if (
+				mouse.x >= globalPos.x &&
+				mouse.x <= globalPos.x + slot.width &&
+				mouse.y >= globalPos.y &&
+				mouse.y <= globalPos.y + slot.height
+			) {
 				// Проверяем совместимость типов предмета и слота
-				if (this.draggedItem && this.isValidDropTarget(type, this.draggedItem)) {
+				if (
+					this.draggedItem &&
+					this.isValidDropTarget(type, this.draggedItem)
+				) {
 					this.dropTargetSlot = slot;
 				}
 				break;
@@ -216,13 +246,17 @@ export class InventoryWindow extends Window {
 
 	private throwItem(item: Item): void {
 		if (this.onItemDropped) {
-			const pickup = createPickupFromItem(item, this.entity.x, this.entity.y);
+			const pickup = createPickupFromItem(
+				item,
+				this.entity.x,
+				this.entity.y
+			);
 			this.onItemDropped(pickup);
 		}
 	}
 
 	private setItemAt(
-		location: { type: 'weapon' | 'modifier' | 'chip', index: number },
+		location: { type: 'weapon' | 'modifier' | 'chip'; index: number },
 		item: Item | null
 	): void {
 		switch (location.type) {
@@ -232,13 +266,15 @@ export class InventoryWindow extends Window {
 				break;
 			case 'modifier': {
 				const slot = this.modifierSlots[location.index];
-				this.entity.inventory.modifiers[location.index] = item as Modifier | null;
+				this.entity.inventory.modifiers[location.index] =
+					item as Modifier | null;
 				slot?.setItem(item);
 				break;
 			}
 			case 'chip': {
 				const slot = this.chipSlots[location.index];
-				this.entity.inventory.chips[location.index] = item as Chip | null;
+				this.entity.inventory.chips[location.index] =
+					item as Chip | null;
 				slot?.setItem(item);
 				break;
 			}
@@ -248,30 +284,45 @@ export class InventoryWindow extends Window {
 	private updateEntityInventory(): void {
 		// Синхронизируем слоты с инвентарём сущности
 		if (this.weaponSlot) {
-			this.entity.inventory.setWeapon(this.weaponSlot.item as Weapon | null);
+			this.entity.inventory.setWeapon(
+				this.weaponSlot.item as Weapon | null
+			);
 		}
 
 		for (let i = 0; i < this.modifierSlots.length; i++) {
-			this.entity.inventory.modifiers[i] = this.modifierSlots[i].item as Modifier | null;
+			this.entity.inventory.modifiers[i] = this.modifierSlots[i]
+				.item as Modifier | null;
 		}
 
 		for (let i = 0; i < this.chipSlots.length; i++) {
-			this.entity.inventory.chips[i] = this.chipSlots[i].item as Chip | null;
+			this.entity.inventory.chips[i] = this.chipSlots[i]
+				.item as Chip | null;
 		}
 	}
 
-	private isValidDropTarget(slotType: 'weapon' | 'modifier' | 'chip', item: Item): boolean {
+	private isValidDropTarget(
+		slotType: 'weapon' | 'modifier' | 'chip',
+		item: Item
+	): boolean {
 		switch (slotType) {
-			case 'weapon': return item.type === 'weapon';
-			case 'modifier': return item.type === 'modifier';
-			case 'chip': return item.type === 'chip';
-			default: return false;
+			case 'weapon':
+				return item.type === 'weapon';
+			case 'modifier':
+				return item.type === 'modifier';
+			case 'chip':
+				return item.type === 'chip';
+			default:
+				return false;
 		}
 	}
 
 	private isPointInsideWindow(x: number, y: number): boolean {
-		return x >= this.x && x <= this.x + this.width &&
-			y >= this.y && y <= this.y + this.height;
+		return (
+			x >= this.x &&
+			x <= this.x + this.width &&
+			y >= this.y &&
+			y <= this.y + this.height
+		);
 	}
 
 	private resetDragState(): void {
@@ -290,11 +341,21 @@ export class InventoryWindow extends Window {
 
 		// Отрисовка перетаскиваемого предмета ПОВЕРХ окна
 		if (this.dragVisual) {
-			this.renderDraggedItem(ctx, this.dragVisual.x, this.dragVisual.y, this.dragVisual.item);
+			this.renderDraggedItem(
+				ctx,
+				this.dragVisual.x,
+				this.dragVisual.y,
+				this.dragVisual.item
+			);
 		}
 	}
 
-	private renderDraggedItem(ctx: CanvasRenderingContext2D, x: number, y: number, item: Item): void {
+	private renderDraggedItem(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number,
+		item: Item
+	): void {
 		// Полупрозрачный прямоугольник
 		ctx.globalAlpha = 0.9;
 		ctx.fillStyle = '#2a4a2a';
