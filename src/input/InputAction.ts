@@ -1,0 +1,15 @@
+export enum InputAction {
+	MoveUp = 'move_up',
+	MoveDown = 'move_down',
+	MoveLeft = 'move_left',
+	MoveRight = 'move_right',
+	Dash = 'dash',
+	Chip1 = 'chip_1',
+	Chip2 = 'chip_2',
+	Chip3 = 'chip_3',
+	Chip4 = 'chip_4',
+	Chip5 = 'chip_5',
+	Interact = 'interact',
+	Inventory = 'inventory',
+	Fullscreen = 'fullscreen',
+}

@@ -1,7 +1,8 @@
 import { Controller } from './Controller';
-import Keyboard from '../components/Keyboard';
 import MouseInput from '../components/MouseInput';
 import Entity from '../entities/Entity';
+import { InputAction } from '../input/InputAction';
+import { InputMapper } from '../input/InputMapper';
 
 /**
  * Контроллер игрока: WASD, прицеливание мышью, стрельба по ЛКМ, чипы по Q/1-5, даш по Shift.
@@ -10,7 +11,7 @@ export class PlayerController extends Controller {
 	/**
 	 * @param mouse - Состояние мыши (для прицела и нажатия)
 	 */
-	constructor(private mouse: MouseInput) {
+	constructor(private mouse: MouseInput, private input: InputMapper) {
 		super();
 	}
 
@@ -25,33 +26,32 @@ export class PlayerController extends Controller {
 		// world: WorldManager,
 		// effectSystem: EffectSystem
 	): void {
-		const keyboard = Keyboard.getInstance();
 		const speed = entity.speed;
 		// const originalX = entity.x;
 		// const originalY = entity.y;
 
-		if (keyboard.isKeyDown('KeyA')) {
+		if (this.input.isDown(InputAction.MoveLeft)) {
 			entity.x -= speed;
 			// if (!world.isWorldPositionPassable(entity.x, entity.y))
 			// 	entity.x = originalX;
 		}
-		if (keyboard.isKeyDown('KeyD')) {
+		if (this.input.isDown(InputAction.MoveRight)) {
 			entity.x += speed;
 			// if (!world.isWorldPositionPassable(entity.x, entity.y))
 			// 	entity.x = originalX;
 		}
-		if (keyboard.isKeyDown('KeyW')) {
+		if (this.input.isDown(InputAction.MoveUp)) {
 			entity.y -= speed;
 			// if (!world.isWorldPositionPassable(entity.x, entity.y))
 			// 	entity.y = originalY;
 		}
-		if (keyboard.isKeyDown('KeyS')) {
+		if (this.input.isDown(InputAction.MoveDown)) {
 			entity.y += speed;
 			// if (!world.isWorldPositionPassable(entity.x, entity.y))
 			// 	entity.y = originalY;
 		}
 
-		if (keyboard.isKeyDown('ShiftLeft')) {
+		if (this.input.isDown(InputAction.Dash)) {
 			const dashChipIndex = entity.inventory.chips.findIndex(
 				(chip) => chip?.id === 'dash'
 			);
@@ -77,30 +77,28 @@ export class PlayerController extends Controller {
 		// 	}
 		// }
 
-		if (keyboard.isKeyPressedOnce('KeyQ') && entity.inventory.chips[0]) {
-			entity.inventory.useChip(0);
-		} else if (
-			keyboard.isKeyPressedOnce('Digit1') &&
+		if (
+			this.input.isPressed(InputAction.Chip1) &&
 			entity.inventory.chips[0]
 		) {
 			entity.inventory.useChip(0);
 		} else if (
-			keyboard.isKeyPressedOnce('Digit2') &&
+			this.input.isPressed(InputAction.Chip2) &&
 			entity.inventory.chips[1]
 		) {
 			entity.inventory.useChip(1);
 		} else if (
-			keyboard.isKeyPressedOnce('Digit3') &&
+			this.input.isPressed(InputAction.Chip3) &&
 			entity.inventory.chips[2]
 		) {
 			entity.inventory.useChip(2);
 		} else if (
-			keyboard.isKeyPressedOnce('Digit4') &&
+			this.input.isPressed(InputAction.Chip4) &&
 			entity.inventory.chips[3]
 		) {
 			entity.inventory.useChip(3);
 		} else if (
-			keyboard.isKeyPressedOnce('Digit5') &&
+			this.input.isPressed(InputAction.Chip5) &&
 			entity.inventory.chips[4]
 		) {
 			entity.inventory.useChip(4);

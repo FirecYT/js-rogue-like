@@ -47,6 +47,8 @@ import type {
 } from '@firec/map-module';
 import { TILE_DEFS, TILES } from './map/Types';
 import { RuinsGenerator } from './map/generation/RuinsGenerator';
+import { InputMapper } from './input/InputMapper';
+import { InputAction } from './input/InputAction';
 
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
@@ -60,6 +62,7 @@ const mouse = new MouseInput(canvas);
 const engine = new Engine(canvas);
 // const worldManager = new WorldManager();
 const keyboard = Keyboard.getInstance();
+const input = new InputMapper();
 const camera = new Camera(canvas);
 
 const world = new World({
@@ -87,7 +90,7 @@ const player = new Player(
 	world.config.chunkSize / 2 + world.config.tileSize / 2
 );
 
-player.controller = new PlayerController(mouse);
+player.controller = new PlayerController(mouse, input);
 
 await engine.loadImages([
 	'/js-rogue-like/images/trash_0.png',
@@ -269,7 +272,7 @@ screenManager.getHud().setPickupInRangeGetter(() => pickupInRange);
 
 const controlSwitchSystem = new ControlSwitchSystem(
 	player,
-	new PlayerController(mouse)
+	new PlayerController(mouse, input)
 );
 
 new RebirthSystem(entities, controlSwitchSystem);
@@ -378,7 +381,7 @@ function update(): void {
 				const dy = controlled.y - entity.y;
 				const distance = Math.sqrt(dx * dx + dy * dy);
 				if (distance < 20) {
-					if (keyboard.isKeyPressedOnce('KeyE')) {
+					if (input.isPressed(InputAction.Interact)) {
 						const pickupWin = new PickupWindow(
 							entity,
 							controlled,
@@ -490,7 +493,7 @@ function update(): void {
 		// effectSystem.update(entities);
 	}
 
-	if (keyboard.isKeyPressedOnce('Tab')) {
+	if (input.isPressed(InputAction.Inventory)) {
 		if (screenManager.isWindowOpen(InventoryWindow)) {
 			screenManager.closeWindowsOfType(InventoryWindow);
 		} else {
@@ -520,7 +523,7 @@ function update(): void {
 		}
 	}
 
-	if (keyboard.isKeyPressedOnce('F12')) {
+	if (input.isPressed(InputAction.Fullscreen)) {
 		if (document.fullscreenElement) {
 			document.exitFullscreen().then(() => {
 				engine.canvas.width =
