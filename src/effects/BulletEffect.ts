@@ -1,6 +1,5 @@
 import { Effect } from './Effect';
 import Entity from '../entities/Entity';
-import { WorldManager } from '../world/WorldManager';
 
 /**
  * Снаряд: движется по прямой, наносит урон при пересечении с сущностями, уничтожается о стены или по времени.
@@ -33,18 +32,18 @@ export class BulletEffect extends Effect {
 	 * @param entities - Список сущностей
 	 * @param worldManager - Менеджер мира (проверка проходимости)
 	 */
-	update(entities: Entity[], worldManager?: WorldManager | null): void {
+	update(entities: Entity[]): void {
 		this.x += Math.cos(this.angle) * this.speed;
 		this.y += Math.sin(this.angle) * this.speed;
 		this.lifetime--;
 
-		if (
-			worldManager &&
-			!worldManager.isWorldPositionPassable(this.x, this.y)
-		) {
-			this.lifetime = 0;
-			return;
-		}
+		// if (
+		// 	worldManager &&
+		// 	!worldManager.isWorldPositionPassable(this.x, this.y)
+		// ) {
+		// 	this.lifetime = 0;
+		// 	return;
+		// }
 
 		for (const entity of entities) {
 			if (entity === this.source || entity.isDead()) continue;

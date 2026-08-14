@@ -1,11 +1,6 @@
 import { Controller } from './Controller';
-import { Pathfinder, simplifyPath } from '../world/Pathfinding';
-import { WorldManager } from '../world/WorldManager';
 import Entity from '../entities/Entity';
 import { HasSpeed } from '../types/EntityTraits';
-import { EffectSystem } from '../systems/EffectSystem';
-import { CHUNK_CONFIG } from '../world/Types';
-import { getAngleBetweenPoints } from '../utils';
 
 /**
  * ИИ-контроллер: движение к цели по пути или напрямую, стрельба при видимости цели.
@@ -29,59 +24,55 @@ export class AiController extends Controller {
 	 * @param world - Мир
 	 * @param effectSystem - Система эффектов
 	 */
-	update(
-		entity: Entity,
-		world: WorldManager,
-		effectSystem: EffectSystem
-	): void {
+	update(_entity: Entity): void {
 		this.pathUpdateCooldown--;
 		if (this.pathUpdateCooldown <= 0) {
-			const distance = Math.hypot(
-				this.target.x - entity.x,
-				this.target.y - entity.y
-			);
-			if (distance < CHUNK_CONFIG.FULL_SIZE * 4) {
-				const rawPath = Pathfinder.findPath(
-					entity.x,
-					entity.y,
-					this.target.x,
-					this.target.y,
-					world
-				);
-				this.path =
-					rawPath.length > 0 ? simplifyPath(rawPath, world) : [];
-			}
+			// const distance = Math.hypot(
+			// 	this.target.x - entity.x,
+			// 	this.target.y - entity.y
+			// );
+			// if (distance < CHUNK_CONFIG.FULL_SIZE * 4) {
+			// 	const rawPath = Pathfinder.findPath(
+			// 		entity.x,
+			// 		entity.y,
+			// 		this.target.x,
+			// 		this.target.y,
+			// 		world
+			// 	);
+			// 	this.path =
+			// 		rawPath.length > 0 ? simplifyPath(rawPath, world) : [];
+			// }
 			this.pathUpdateCooldown = 60;
 		}
 
-		if (entity.inventory.weapon && entity.inventory.isWeaponReady()) {
-			const distance = Math.hypot(
-				this.target.x - entity.x,
-				this.target.y - entity.y
-			);
-			const canSeeTarget = world.hasLineOfSight(
-				entity.x,
-				entity.y,
-				this.target.x,
-				this.target.y,
-				400
-			);
-			if (distance < 400 && canSeeTarget) {
-				const angle = getAngleBetweenPoints(
-					entity.x,
-					entity.y,
-					this.target.x,
-					this.target.y
-				);
-				entity.inventory.fire(angle, effectSystem);
-			}
-		}
+		// if (entity.inventory.weapon && entity.inventory.isWeaponReady()) {
+		// 	const distance = Math.hypot(
+		// 		this.target.x - entity.x,
+		// 		this.target.y - entity.y
+		// 	);
+		// 	const canSeeTarget = world.hasLineOfSight(
+		// 		entity.x,
+		// 		entity.y,
+		// 		this.target.x,
+		// 		this.target.y,
+		// 		400
+		// 	);
+		// 	if (distance < 400 && canSeeTarget) {
+		// 		const angle = getAngleBetweenPoints(
+		// 			entity.x,
+		// 			entity.y,
+		// 			this.target.x,
+		// 			this.target.y
+		// 		);
+		// 		entity.inventory.fire(angle, effectSystem);
+		// 	}
+		// }
 
-		if (this.path.length === 0) {
-			this.moveDirectly(entity, world);
-		} else {
-			this.followPath(entity, world);
-		}
+		// if (this.path.length === 0) {
+		// 	this.moveDirectly(entity, world);
+		// } else {
+		// 	this.followPath(entity, world);
+		// }
 	}
 
 	/**
@@ -89,7 +80,7 @@ export class AiController extends Controller {
 	 * @param entity - Сущность
 	 * @param world - Мир
 	 */
-	private moveDirectly(entity: Entity, world: WorldManager): void {
+	private moveDirectly(entity: Entity): void {
 		const dx = this.target.x - entity.x;
 		const dy = this.target.y - entity.y;
 		const dist = Math.sqrt(dx * dx + dy * dy);
@@ -97,8 +88,8 @@ export class AiController extends Controller {
 			const speed = this.getEntitySpeed(entity);
 			const newX = entity.x + (dx / dist) * speed;
 			const newY = entity.y + (dy / dist) * speed;
-			if (world.isWorldPositionPassable(newX, entity.y)) entity.x = newX;
-			if (world.isWorldPositionPassable(entity.x, newY)) entity.y = newY;
+			entity.x = newX;
+			entity.y = newY;
 		}
 	}
 
@@ -107,7 +98,7 @@ export class AiController extends Controller {
 	 * @param entity - Сущность
 	 * @param world - Мир
 	 */
-	private followPath(entity: Entity, world: WorldManager): void {
+	private followPath(entity: Entity): void {
 		if (this.path.length === 0) return;
 		const next = this.path[0];
 		const dx = next.x - entity.x;
@@ -120,8 +111,8 @@ export class AiController extends Controller {
 			const speed = this.getEntitySpeed(entity);
 			const newX = entity.x + Math.cos(angle) * speed;
 			const newY = entity.y + Math.sin(angle) * speed;
-			if (world.isWorldPositionPassable(newX, entity.y)) entity.x = newX;
-			if (world.isWorldPositionPassable(entity.x, newY)) entity.y = newY;
+			entity.x = newX;
+			entity.y = newY;
 		}
 	}
 

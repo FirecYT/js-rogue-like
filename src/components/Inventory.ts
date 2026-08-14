@@ -1,7 +1,6 @@
 import { Weapon } from '../items/Weapon';
 import { Chip } from '../items/Chip';
 import Entity from '../entities/Entity';
-import { EffectSystem } from '../systems/EffectSystem';
 import { Modifier } from '../items/Modifier';
 
 /**
@@ -69,12 +68,12 @@ export class Inventory {
 	 * @param angle - Угол в радианах
 	 * @param effectSystem - Система эффектов для добавления эффекта выстрела
 	 */
-	fire(angle: number, effectSystem: EffectSystem): void {
+	fire(angle: number): void {
 		if (!this.weapon || !this.isWeaponReady()) return;
 		if (this.weapon.cooldown) {
 			this.weapon.cooldown.start();
 		}
-		this.weapon.fire(this.entity, angle, effectSystem);
+		this.weapon.fire(this.entity, angle);
 	}
 
 	/**

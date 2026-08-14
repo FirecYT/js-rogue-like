@@ -3,31 +3,21 @@
 import Engine from './components/Engine';
 import FloatingText from './components/FloatingText';
 import Player from './Player';
-import { CHUNK_CONFIG } from './world/Types';
-import { WorldManager } from './world/WorldManager';
 import MouseInput from './components/MouseInput';
 import { PlayerProgression } from './systems/PlayerProgression';
-import { BossSpawnSystem } from './systems/BossSpawnSystem';
-import { EnemySpawnerSystem } from './systems/EnemySpawnerSystem';
 import { ScreenManager } from './ui/ScreenManager';
 import { PlayerController } from './controllers/PlayerController';
 import Entity from './entities/Entity';
-import { BasicPistol } from './items/weapons/BasicPistol';
 import { TeleportChip } from './items/chips/TeleportChip';
 import { DashChip } from './items/chips/DashChip';
 import { ControlSwitchSystem } from './systems/ControlSwitchSystem';
-import { EffectSystem } from './systems/EffectSystem';
 import { eventBus } from './events/EventBus';
 import Enemy from './entities/Enemy';
 import Keyboard from './components/Keyboard';
 import { Camera } from './components/Camera';
-import { ExplosiveModifier } from './items/modifiers/ExplosiveModifier';
 import { SinusoidalModifier } from './items/modifiers/SinusoidalModifier';
 import { PierceModifier } from './items/modifiers/PierceModifier';
 import { DamageBoostModifier } from './items/modifiers/DamageBoostModifier';
-import { WeaponPickup } from './entities/WeaponPickup';
-import { Flamethrower } from './items/weapons/Flamethrower';
-import { LaserRifle } from './items/weapons/LaserRifle';
 import { ChipPickup } from './entities/ChipPickup';
 import { ModifierPickup } from './entities/ModifierPickup';
 import { RebirthChip } from './items/chips/RebirthChip';
@@ -41,8 +31,22 @@ import { isWeapon } from './items/Weapon';
 import { isModifier, Modifier } from './items/Modifier';
 import { createPickupFromItem } from './utils';
 import { isChip } from './items/Chip';
-import { ChunkViewManager } from './world/rendering/ChunkViewManager';
 import { Crosshair } from './ui/components/Crosshair';
+import {
+	World,
+	CanvasChunkRenderer,
+	ChunkViewManager,
+	LODManager,
+	// DEFAULT_LOD_CONFIG,
+	SeededRandom,
+} from '@firec/map-module';
+import type {
+	TileVisualProvider,
+	TileVisualContext,
+	TileVisual,
+} from '@firec/map-module';
+import { TILE_DEFS, TILES } from './map/Types';
+import { RuinsGenerator } from './map/generation/RuinsGenerator';
 
 const canvas = document.querySelector<HTMLCanvasElement>(
 	'#canvas'
@@ -54,14 +58,33 @@ if (!canvas) {
 
 const mouse = new MouseInput(canvas);
 const engine = new Engine(canvas);
-const worldManager = new WorldManager();
+// const worldManager = new WorldManager();
 const keyboard = Keyboard.getInstance();
 const camera = new Camera(canvas);
-const chunkViewManager = new ChunkViewManager(worldManager, engine);
+
+const world = new World({
+	baseSeed: 42,
+	config: {
+		loadRadius: 8,
+	},
+});
+
+for (const def of TILE_DEFS) {
+	if (def.id === 0) continue;
+	world.registerTile({
+		id: def.id,
+		name: def.name,
+		passable: def.passable,
+		opaque: def.opaque,
+	});
+}
+
+// world.registerGenerator(new VoidGenerator());
+world.registerGenerator(new RuinsGenerator());
 
 const player = new Player(
-	CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE,
-	CHUNK_CONFIG.FULL_SIZE / 2 + CHUNK_CONFIG.HALF_SIZE
+	world.config.chunkSize / 2 + world.config.tileSize / 2,
+	world.config.chunkSize / 2 + world.config.tileSize / 2
 );
 
 player.controller = new PlayerController(mouse);
@@ -80,6 +103,89 @@ await engine.loadImages([
 	'/js-rogue-like/images/walls.png',
 ]);
 
+const visuals = new Map<number, TileVisualProvider>();
+
+const floor: TileVisualProvider = (ctx: TileVisualContext): TileVisual => {
+	const chunkHash = new SeededRandom(ctx.chunk.seed);
+	const blockHash = chunkHash.fork(ctx.localX + ctx.localY * 16);
+
+	return {
+		sprite: engine.getImage(
+			`/js-rogue-like/images/floor_${blockHash.nextInt(3, 7)}.png`
+		),
+	};
+};
+
+visuals.set(TILES.FLOOR, floor);
+
+visuals.set(TILES.WALL, (ctx: TileVisualContext): TileVisual => {
+	const { globalTileX: worldX, globalTileY: worldY } = ctx;
+	const tileSize = world.config.tileSize;
+	const gap = 1;
+
+	function isWall(dx: number, dy: number): boolean {
+		return world.getTileAtTile(worldX + dx, worldY + dy) === TILES.WALL;
+	}
+
+	let index = 0;
+	if (isWall(0, -1)) index |= 1;
+	if (isWall(1, 0)) index |= 2;
+	if (isWall(0, 1)) index |= 4;
+	if (isWall(-1, 0)) index |= 8;
+
+	const spriteX = (index % 4) * (tileSize + gap);
+	const spriteY = Math.floor(index / 4) * (tileSize + gap);
+
+	return {
+		sprite: engine.getImage('/js-rogue-like/images/walls.png'),
+		spriteRect: {
+			x: spriteX,
+			y: spriteY,
+			width: tileSize,
+			height: tileSize,
+		},
+	};
+});
+
+// visuals.set(TILES.ROCK, (ctx: TileVisualContext): TileVisual => {
+// 	const chunkHash = new SeededRandom(ctx.chunk.seed);
+// 	const blockHash = chunkHash.fork(ctx.localX + ctx.localY * 16);
+
+// 	return {
+// 		sprite: engine.getImage(`/js-rogue-like/images/trash_${blockHash.nextInt(0, 4)}.png`)
+// 	}
+// });
+
+visuals.set(TILES.ROCK, floor);
+
+visuals.set(TILES.BUILDING, (ctx: TileVisualContext): TileVisual => {
+	const chunkHash = new SeededRandom(ctx.chunk.seed);
+	const blockHash = chunkHash.fork(ctx.localX + ctx.localY * 16);
+
+	return {
+		sprite: engine.getImage(
+			`/js-rogue-like/images/floor_${blockHash.nextInt(0, 4)}.png`
+		),
+	};
+});
+
+visuals.set(TILES.WATER, {
+	color: '#369',
+});
+
+const renderer = new CanvasChunkRenderer({
+	tiles: world.tiles,
+	worldConfig: world.config,
+	visuals: visuals,
+	useCache: true,
+});
+
+const viewManager = new ChunkViewManager({
+	worldConfig: world.config,
+	renderer,
+	lodManager: new LODManager(),
+});
+
 let scale = 0;
 
 const playerProgression = new PlayerProgression();
@@ -90,7 +196,7 @@ const entities: Entity[] = [player];
 /** Пикап, рядом с которым игрок (для подсказки "[E] Подобрать"); обновляется каждый кадр. */
 let pickupInRange: PickupItem | null = null;
 
-const enemySpawner = new EnemySpawnerSystem(player, entities, worldManager);
+// const enemySpawner = new EnemySpawnerSystem(player, entities, worldManager);
 
 canvas.addEventListener('wheel', (event) => {
 	scale -= Math.sign(event.deltaY);
@@ -142,17 +248,17 @@ eventBus.on('enemyKilled', ({ killer, victim }) => {
 	}
 });
 
-eventBus.on('chunkUnloaded', ({ chunkX, chunkY }) => {
-	chunkViewManager.unloadView(chunkX, chunkY);
-});
+// eventBus.on('chunkUnloaded', ({ chunkX, chunkY }) => {
+// 	chunkViewManager.unloadView(chunkX, chunkY);
+// });
 
-const bossSpawnSystem = new BossSpawnSystem(
-	worldManager,
-	entities,
-	player,
-	floatingTexts,
-	[]
-);
+// const bossSpawnSystem = new BossSpawnSystem(
+// 	worldManager,
+// 	entities,
+// 	player,
+// 	floatingTexts,
+// 	[]
+// );
 
 const screenManager = new ScreenManager(engine, mouse, () =>
 	controlSwitchSystem.getCurrentControlled()
@@ -168,7 +274,7 @@ const controlSwitchSystem = new ControlSwitchSystem(
 
 new RebirthSystem(entities, controlSwitchSystem);
 
-const effectSystem = new EffectSystem(worldManager);
+// const effectSystem = new EffectSystem(worldManager);
 
 let controlled = controlSwitchSystem.getCurrentControlled();
 
@@ -183,30 +289,20 @@ function getMousePosition(): { x: number; y: number } {
 	};
 }
 
-const bestWeapon = new BasicPistol();
-
-bestWeapon.fireRate = 0;
-
-player.inventory.setWeapon(bestWeapon);
-
 player.inventory.addModifier(new DamageBoostModifier(2.0));
 player.inventory.addModifier(new SinusoidalModifier());
-player.inventory.addModifier(new ExplosiveModifier(effectSystem));
+// player.inventory.addModifier(new ExplosiveModifier(effectSystem));
 
 player.inventory.addChip(new TeleportChip());
 player.inventory.addChip(new DashChip());
 player.inventory.addChip(new RebirthChip());
 
-entities.push(new WeaponPickup(500, 0, new BasicPistol()));
-entities.push(new WeaponPickup(500, 100, new Flamethrower()));
-entities.push(new WeaponPickup(500, 200, new LaserRifle()));
-
 entities.push(new ModifierPickup(600, 0, new DamageBoostModifier(2.0)));
 entities.push(new ModifierPickup(600, 50, new PierceModifier()));
 entities.push(new ModifierPickup(600, 100, new SinusoidalModifier()));
-entities.push(
-	new ModifierPickup(600, 150, new ExplosiveModifier(effectSystem))
-);
+// entities.push(
+// 	new ModifierPickup(600, 150, new ExplosiveModifier(effectSystem))
+// );
 
 entities.push(new ChipPickup(700, 0, new TeleportChip()));
 entities.push(new ChipPickup(700, 50, new DashChip()));
@@ -220,27 +316,20 @@ function update(): void {
 	camera.update();
 	camera.follow(controlled);
 
-	const halfW = Math.ceil(
-		engine.canvas.width / 2 / 2 ** scale / CHUNK_CONFIG.FULL_SIZE
-	);
-	const halfH = Math.ceil(
-		engine.canvas.height / 2 / 2 ** scale / CHUNK_CONFIG.FULL_SIZE
-	);
-
-	worldManager.update(controlled.x, controlled.y, halfW, halfH);
-	bossSpawnSystem.update();
+	world.update(controlled.x, controlled.y);
+	// bossSpawnSystem.update();
 
 	if (!screenManager.hasActiveWindows()) {
 		entities.forEach((e) => {
 			if (!e.isDead()) {
 				if (isControllable(e)) {
-					e.controller?.update(e, worldManager, effectSystem);
+					e.controller?.update(e);
 				}
 				e.inventory.update();
 			}
 		});
 
-		enemySpawner.update();
+		// enemySpawner.update();
 
 		for (let i = floatingTexts.length - 1; i >= 0; i--) {
 			floatingTexts[i].update();
@@ -398,7 +487,7 @@ function update(): void {
 			}
 		}
 
-		effectSystem.update(entities);
+		// effectSystem.update(entities);
 	}
 
 	if (keyboard.isKeyPressedOnce('Tab')) {
@@ -457,32 +546,6 @@ function update(): void {
 }
 
 /**
- * Отрисовывает мир: активные чанки с фрустум-клиннингом и LOD.
- */
-function drawWorld(): void {
-	const chunks = worldManager.getActiveChunks();
-	for (const chunk of chunks) {
-		const chunkView = chunkViewManager.getView(chunk.x, chunk.y, scale);
-		if (!chunkView) continue;
-
-		const worldX = chunk.x * CHUNK_CONFIG.FULL_SIZE;
-		const worldY = chunk.y * CHUNK_CONFIG.FULL_SIZE;
-
-		const camX = camera.x;
-		const camY = camera.y;
-		const halfW = engine.canvas.width / 2 / 2 ** scale;
-		const halfH = engine.canvas.height / 2 / 2 ** scale;
-
-		if (worldX + CHUNK_CONFIG.FULL_SIZE < camX - halfW) continue;
-		if (worldY + CHUNK_CONFIG.FULL_SIZE < camY - halfH) continue;
-		if (worldX > camX + halfW) continue;
-		if (worldY > camY + halfH) continue;
-
-		chunkView.draw(engine.context, worldX, worldY, scale);
-	}
-}
-
-/**
  * Очищает канвас, рисует фон, применяет трансформ камеры, мир, прицел, эффекты, сущности, всплывающие тексты и UI.
  */
 function render(): void {
@@ -490,6 +553,18 @@ function render(): void {
 
 	engine.context.fillStyle = '#222';
 	engine.context.fillRect(0, 0, engine.canvas.width, engine.canvas.height);
+
+	const chunks = world.getLoadedChunks();
+
+	viewManager.render(
+		chunks,
+		engine.context,
+		camera.x,
+		camera.y,
+		engine.canvas.width,
+		engine.canvas.height,
+		2 ** scale
+	);
 
 	engine.context.save();
 	engine.context.translate(
@@ -499,8 +574,6 @@ function render(): void {
 	engine.context.scale(2 ** scale, 2 ** scale);
 	const { offsetX, offsetY } = camera.getOffset();
 	engine.context.translate(offsetX, offsetY);
-
-	drawWorld();
 
 	if (!controlled.isDead()) {
 		const mouseWorld = getMousePosition();
@@ -513,7 +586,7 @@ function render(): void {
 		);
 	}
 
-	effectSystem.render(engine.context);
+	// effectSystem.render(engine.context);
 
 	entities.forEach((entity) => {
 		if (!entity.isDead()) {

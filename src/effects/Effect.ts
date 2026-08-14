@@ -1,5 +1,4 @@
 import Entity from '../entities/Entity';
-import { WorldManager } from '../world/WorldManager';
 
 /**
  * Базовый класс игрового эффекта (снаряд, луч, зона, взрыв): позиция, угол, источник, урон, update/render/isDead.
@@ -25,10 +24,7 @@ export abstract class Effect {
 	 * @param enities - Список сущностей для проверки столкновений
 	 * @param worldManager - Менеджер мира (опционально, для проверки стен)
 	 */
-	abstract update(
-		enities: Entity[],
-		worldManager?: WorldManager | null
-	): void;
+	abstract update(enities: Entity[]): void;
 
 	/**
 	 * Отрисовка эффекта на канвасе.

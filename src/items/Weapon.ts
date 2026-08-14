@@ -1,5 +1,4 @@
 import Entity from '../entities/Entity';
-import { EffectSystem } from '../systems/EffectSystem';
 import { Item } from './Item';
 import Cooldown from '../components/Cooldown';
 
@@ -22,11 +21,7 @@ export abstract class Weapon implements Item {
 	 * @param angle - Угол выстрела в радианах
 	 * @param effectSystem - Система эффектов
 	 */
-	abstract fire(
-		source: Entity,
-		angle: number,
-		effectSystem: EffectSystem
-	): void;
+	abstract fire(source: Entity, angle: number): void;
 
 	onEquip?(entity: Entity): void {
 		if (entity.inventory.weapon?.cooldown) {
