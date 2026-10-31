@@ -15,6 +15,9 @@ export abstract class PickupItem extends Entity {
 	constructor(x: number, y: number, item: Item) {
 		super(x, y, 1);
 		this.item = item;
+		// Предметы на земле: пули пролетают сквозь, расталкивание не действует
+		this.targetable = false;
+		this.solid = false;
 	}
 
 	/**

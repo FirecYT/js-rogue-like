@@ -13,9 +13,10 @@ export class ExplosionEffect extends Effect {
 	 * @param x - Центр взрыва X
 	 * @param y - Центр взрыва Y
 	 * @param source - Источник
+	 * @param damage - Урон взрыва (по умолчанию 15)
 	 */
-	constructor(x: number, y: number, source: Entity) {
-		super(x, y, 0, source, 15);
+	constructor(x: number, y: number, source: Entity, damage = 15) {
+		super(x, y, 0, source, damage);
 	}
 
 	/**
@@ -27,7 +28,7 @@ export class ExplosionEffect extends Effect {
 		this.duration--;
 		if (this.duration === 6) {
 			for (const entity of entities) {
-				if (entity === this.source || entity.isDead()) continue;
+				if (!this.canHit(entity)) continue;
 				const dx = entity.x - this.x;
 				const dy = entity.y - this.y;
 				const dist = Math.sqrt(dx * dx + dy * dy);

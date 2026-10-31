@@ -1,5 +1,4 @@
 import type { GameContext } from './GameContext';
-import type Entity from '../entities/Entity';
 import { Crosshair } from '../ui/components/Crosshair';
 import Keyboard from '../components/Keyboard';
 
@@ -24,13 +23,6 @@ export class Game {
 	private running = false;
 	private lastTime = 0;
 	private accumulator = 0;
-
-	/** Текущий показатель масштаба рендеринга (worldScale = 2 ** scale). */
-	private scale = 0;
-	/** Минимальный показатель масштаба (2^-1 = 0.5x). */
-	private static readonly MIN_SCALE = -1;
-	/** Максимальный показатель масштаба (2^2 = 4x). */
-	private static readonly MAX_SCALE = 2;
 
 	/**
 	 * @param ctx - Контекст игры со всеми сервисами
@@ -96,12 +88,9 @@ export class Game {
 		camera.follow(controlled);
 		worldService.update(controlled.x, controlled.y);
 
-		// Обработка прокрутки колеса мыши для зума (с ограничением диапазона)
+		// Зум колесом мыши (диапазон ограничен внутри Camera)
 		if (mouse.wheelDelta !== 0) {
-			this.scale = Math.min(
-				Game.MAX_SCALE,
-				Math.max(Game.MIN_SCALE, this.scale - mouse.wheelDelta)
-			);
+			camera.zoomBySteps(mouse.wheelDelta);
 		}
 		mouse.update();
 
@@ -119,11 +108,11 @@ export class Game {
 	 * Отрисовка кадра: фон, мир, прицел, сущности, эффекты и тексты, UI.
 	 */
 	private render(): void {
-		const { engine, camera, worldService, chunkView, systemManager, screenManager, controlSwitch, entityWorld } =
+		const { engine, camera, worldService, chunkView, systemManager, screenManager, controlSwitch, entityWorld, mouse } =
 			this.ctx;
 		const ctx = engine.context;
 		const controlled = controlSwitch.getCurrentControlled();
-		const worldScale = 2 ** this.scale;
+		const worldScale = camera.zoom;
 
 		engine.clear();
 		ctx.fillStyle = '#222';
@@ -149,7 +138,7 @@ export class Game {
 		ctx.translate(offsetX, offsetY);
 
 		if (!controlled.isDead()) {
-			const mouseWorld = this.getMousePosition(controlled);
+			const mouseWorld = camera.screenToWorld(mouse.x, mouse.y);
 			Crosshair.render(ctx, controlled.x, controlled.y, mouseWorld.x, mouseWorld.y);
 		}
 
@@ -166,15 +155,4 @@ export class Game {
 		screenManager.render();
 	}
 
-	/**
-	 * Возвращает мировые координаты курсора мыши.
-	 * TODO(этап 2): учесть зум и lag камеры — сейчас предполагается scale=1
-	 * и что управляемая сущность находится точно в центре экрана.
-	 */
-	private getMousePosition(controlled: Entity): { x: number; y: number } {
-		return {
-			x: this.ctx.mouse.x + controlled.x - this.ctx.engine.canvas.width / 2,
-			y: this.ctx.mouse.y + controlled.y - this.ctx.engine.canvas.height / 2,
-		};
-	}
 }

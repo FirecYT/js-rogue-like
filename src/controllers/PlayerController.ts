@@ -1,5 +1,6 @@
 import { IController } from './Controller';
 import MouseInput from '../components/MouseInput';
+import { Camera } from '../components/Camera';
 import Entity from '../entities/Entity';
 import { InputAction } from '../input/InputAction';
 import { InputMapper } from '../input/InputMapper';
@@ -12,10 +13,12 @@ export class PlayerController implements IController {
 	/**
 	 * @param mouse - Состояние мыши для прицеливания и стрельбы.
 	 * @param input - Маппер действий для абстрагирования от конкретных клавиш.
+	 * @param camera - Камера: преобразование координат курсора в мировые.
 	 */
 	constructor(
 		private mouse: MouseInput,
-		private input: InputMapper
+		private input: InputMapper,
+		private camera: Camera
 	) { }
 
 	update(entity: Entity, world: WorldService): void {
@@ -89,20 +92,16 @@ export class PlayerController implements IController {
 	}
 
 	/**
-	 * Стрельба по ЛКМ: вычисляет угол к курсору и вызывает fire на инвентаре.
+	 * Стрельба по ЛКМ: вычисляет угол к мировой точке под курсором
+	 * (через камеру — с учётом зума и «догоняния» камеры) и вызывает fire.
 	 * Оружие само эмитит событие weaponFired через EventBus.
 	 */
 	private handleShooting(entity: Entity): void {
 		if (!this.mouse.pressed || !entity.inventory.weapon) return;
 		if (!entity.inventory.isWeaponReady()) return;
 
-		// mouse.cx/cy — смещение от центра канваса, entity — в мировых координатах
-		const targetX = entity.x + this.mouse.cx;
-		const targetY = entity.y + this.mouse.cy;
-		const angle = Math.atan2(
-			targetY - entity.y,
-			targetX - entity.x
-		);
+		const target = this.camera.screenToWorld(this.mouse.x, this.mouse.y);
+		const angle = Math.atan2(target.y - entity.y, target.x - entity.x);
 		entity.inventory.fire(angle);
 	}
 }

@@ -2,7 +2,7 @@ import { Effect } from '../../effects/Effect';
 import { Modifier } from '../Modifier';
 
 /**
- * Модификатор: снаряд проходит сквозь цели (shouldPassThrough всегда true).
+ * Модификатор: снаряд проходит сквозь цели (флаг pierce).
  */
 export class PierceModifier implements Modifier {
 	id = 'pierce';
@@ -10,12 +10,12 @@ export class PierceModifier implements Modifier {
 	type = 'modifier' as const;
 
 	/**
-	 * Устанавливает shouldPassThrough так, чтобы снаряд не останавливался при попадании.
+	 * Помечает эффект как пронзающий: снаряд не останавливается при попадании.
 	 * @param base - Базовый эффект
-	 * @returns Тот же эффект с изменённым shouldPassThrough
+	 * @returns Тот же эффект с флагом pierce
 	 */
 	apply(base: Effect): Effect {
-		base.shouldPassThrough = (_target) => true;
+		base.pierce = true;
 		return base;
 	}
 }

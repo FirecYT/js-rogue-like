@@ -52,6 +52,7 @@ export class RebirthSystem implements ISystem {
 				e !== victim &&
 				e !== this.controlSwitch.getCurrentControlled() &&
 				!e.isDead() &&
+				e.team === victim.team &&
 				isControllable(e)
 		);
 

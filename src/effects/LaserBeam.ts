@@ -27,7 +27,7 @@ export class LaserBeam extends Effect {
 	update(entities: Entity[], _world?: WorldService): void {
 		this.duration--;
 		for (const entity of entities) {
-			if (entity === this.source || entity.isDead()) continue;
+			if (!this.canHit(entity)) continue;
 			const dx = entity.x - this.x;
 			const dy = entity.y - this.y;
 			const distToLine = Math.abs(

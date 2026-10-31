@@ -36,6 +36,7 @@ export class BulletEffect extends Effect {
 	update(entities: readonly Entity[], world?: WorldService): void {
 		this.x += Math.cos(this.angle) * this.speed;
 		this.y += Math.sin(this.angle) * this.speed;
+		this.applyWave();
 		this.lifetime--;
 
 		// Проверка коллизии со стенами
@@ -45,14 +46,14 @@ export class BulletEffect extends Effect {
 		}
 
 		for (const entity of entities) {
-			if (entity === this.source || entity.isDead()) continue;
+			if (!this.canHit(entity)) continue;
 			const dx = entity.x - this.x;
 			const dy = entity.y - this.y;
 			const dist = Math.sqrt(dx * dx + dy * dy);
 			if (dist < this.half_size) {
 				entity.takeDamage(this.damage, this.source);
 				this.onHit?.(entity);
-				if (!this.shouldPassThrough(entity)) {
+				if (!this.pierce) {
 					this.lifetime = 0;
 					break;
 				}

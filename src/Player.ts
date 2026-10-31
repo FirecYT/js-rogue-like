@@ -22,6 +22,7 @@ export default class Player
 	 */
 	constructor(x: number, y: number) {
 		super(x, y, 1000);
+		this.team = 'player';
 	}
 
 	/**

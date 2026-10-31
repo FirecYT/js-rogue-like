@@ -31,6 +31,7 @@ export default class Enemy
 		private pathfinder: Pathfinder
 	) {
 		super(x, y, 5);
+		this.team = 'enemy';
 
 		// Случайное оружие: 70% дробовик, 30% пистолет
 		if (Math.random() > 0.3) {

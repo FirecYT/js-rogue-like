@@ -1,10 +1,9 @@
 import { Effect } from '../../effects/Effect';
 import { Modifier } from '../Modifier';
-import type { WorldService } from '../../services/WorldService';
-import type Entity from '../../entities/Entity';
 
 /**
  * Модификатор: траектория эффекта колеблется по синусоиде перпендикулярно направлению.
+ * Реализован как данные (поле wave эффекта), а не подменой метода update.
  */
 export class SinusoidalModifier implements Modifier {
 	id = 'sinusoidal';
@@ -14,22 +13,14 @@ export class SinusoidalModifier implements Modifier {
 	private frequency = 0.5;
 
 	/**
-	 * Оборачивает base.update: перед вызовом сдвигает (x, y) эффекта по перпендикуляру к angle.
-	 * Сохраняет все параметры вызова (entities и world).
+	 * Задаёт эффекту синусоидальное отклонение траектории.
 	 * @param base - Базовый эффект
-	 * @returns Тот же эффект с изменённым update
+	 * @returns Тот же эффект с полем wave
 	 */
 	apply(base: Effect): Effect {
-		let phase = 0;
-		const originalUpdate = base.update.bind(base);
-		base.update = (entities: Entity[], world?: WorldService): void => {
-			const perpX = -Math.sin(base.angle);
-			const perpY = Math.cos(base.angle);
-			const offset = Math.cos(phase) * this.amplitude;
-			base.x += perpX * offset;
-			base.y += perpY * offset;
-			phase += this.frequency;
-			originalUpdate(entities, world);
+		base.wave = {
+			amplitude: (base.wave?.amplitude ?? 0) + this.amplitude,
+			frequency: this.frequency,
 		};
 		return base;
 	}

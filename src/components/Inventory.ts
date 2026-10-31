@@ -2,6 +2,7 @@ import { Weapon } from '../items/Weapon';
 import { Chip } from '../items/Chip';
 import Entity from '../entities/Entity';
 import { Modifier } from '../items/Modifier';
+import type { Item } from '../items/Item';
 
 /**
  * Инвентарь сущности: оружие, слоты модификаторов и чипов, стрельба и использование чипов.
@@ -41,6 +42,68 @@ export class Inventory {
 		this.chips[emptySlot] = chip;
 		chip.onEquip?.(this.entity);
 		return true;
+	}
+
+	/**
+	 * Заменяет оружие на новое, сохраняя модификаторы, которые помещаются
+	 * в слоты нового оружия. Возвращает предметы «навылет»: старое оружие
+	 * и модификаторы, не поместившиеся в новые слоты (они уже сняты: onUnequip вызван).
+	 * @param weapon - Новое оружие
+	 * @returns Массив предметов для выброса в мир
+	 */
+	replaceWeapon(weapon: Weapon): Item[] {
+		const dropped: Item[] = [];
+		const oldWeapon = this.weapon;
+		const oldModifiers = this.modifiers.filter(
+			(m): m is Modifier => m !== null
+		);
+
+		this.setWeapon(weapon);
+
+		// Восстанавливаем модификаторы по мере свободных слотов нового оружия
+		const slots = weapon.modifiersSlots;
+		const nextModifiers: (Modifier | null)[] = oldModifiers.slice(0, slots);
+		while (nextModifiers.length < slots) {
+			nextModifiers.push(null);
+		}
+		this.modifiers = nextModifiers;
+
+		// Лишние модификаторы снимаются и возвращаются наружу
+		for (const mod of oldModifiers.slice(slots)) {
+			mod.onUnequip?.(this.entity);
+			dropped.push(mod);
+		}
+		if (oldWeapon) {
+			dropped.push(oldWeapon);
+		}
+		return dropped;
+	}
+
+	/**
+	 * Устанавливает модификатор в слот, возвращая прежний (снятый) модификатор.
+	 * @param mod - Новый модификатор
+	 * @param slotIndex - Индекс слота модификаторов
+	 * @returns Прежний модификатор слота или null
+	 */
+	installModifier(mod: Modifier, slotIndex: number): Modifier | null {
+		const old = this.modifiers[slotIndex] ?? null;
+		old?.onUnequip?.(this.entity);
+		this.modifiers[slotIndex] = mod;
+		mod.onEquip?.(this.entity);
+		return old;
+	}
+
+	/**
+	 * Устанавливает чип в слот, возвращая прежний чип.
+	 * @param chip - Новый чип
+	 * @param slotIndex - Индекс слота чипов
+	 * @returns Прежний чип слота или null
+	 */
+	installChip(chip: Chip, slotIndex: number): Chip | null {
+		const old = this.chips[slotIndex] ?? null;
+		this.chips[slotIndex] = chip;
+		chip.onEquip?.(this.entity);
+		return old;
 	}
 
 	/**

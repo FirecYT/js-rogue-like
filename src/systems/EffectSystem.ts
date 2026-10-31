@@ -10,6 +10,7 @@ import { BulletEffect } from '../effects/BulletEffect';
 import { LaserBeam } from '../effects/LaserBeam';
 import { FireZone } from '../effects/FireZone';
 import { ExplosionEffect } from '../effects/ExplosionEffect';
+import { RocketEffect } from '../effects/RocketEffect';
 import type { Weapon } from '../items/Weapon';
 
 /**
@@ -73,12 +74,19 @@ export class EffectSystem implements ISystem, IRenderable {
 			return [new FireZone(source.x, source.y, angle, source)];
 		});
 
-		// Взрыв в точке попадания (используется для взрывных оружий)
-		this.effectFactories.set('explosion', (source, _angle) => {
-			// Взрыв создаётся в точке цели (примерно 200 единиц вперёд)
-			const tx = source.x + Math.cos(_angle) * 200;
-			const ty = source.y + Math.sin(_angle) * 200;
-			return [new ExplosionEffect(tx, ty, source)];
+		// Ракета: летит и детонирует; взрыв создаётся в точке детонации
+		this.effectFactories.set('rocket', (source, angle, weapon) => {
+			const rocket = new RocketEffect(
+				source.x,
+				source.y,
+				angle,
+				source,
+				weapon.damage
+			);
+			rocket.onDeath = () => {
+				this.add(new ExplosionEffect(rocket.x, rocket.y, source, rocket.damage));
+			};
+			return [rocket];
 		});
 	}
 

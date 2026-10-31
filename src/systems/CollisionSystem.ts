@@ -1,6 +1,8 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
 import type { EntityWorld } from '../core/EntityWorld';
+import type { WorldService } from '../services/WorldService';
+import type Entity from '../entities/Entity';
 
 /**
  * Система коллизий между сущностями: отталкивание при слишком малой дистанции.
@@ -17,40 +19,62 @@ export class CollisionSystem implements ISystem {
 
 	/**
 	 * @param entityWorld - Контейнер всех сущностей игры
+	 * @param world - Сервис мира: расталкивание не должно протаскивать сущности сквозь стены
 	 */
-	constructor(private readonly entityWorld: EntityWorld) {}
+	constructor(
+		private readonly entityWorld: EntityWorld,
+		private readonly world: WorldService
+	) {}
 
 	/**
-	 * Проверяет все пары сущностей и отталкивает их друг от друга,
-	 * если расстояние между центрами меньше MIN_DISTANCE.
+	 * Проверяет все пары «твёрдых» сущностей и разводит их до MIN_DISTANCE
+	 * (по половине перекрытия каждой), не протаскивая сквозь стены.
 	 * Использует O(n²) алгоритм, что приемлемо для малого количества сущностей.
 	 */
 	update(): void {
 		const entities = this.entityWorld.all;
 		for (let i = 0; i < entities.length; i++) {
-			if (entities[i].isDead()) continue;
+			const a = entities[i];
+			if (a.isDead() || !a.solid) continue;
 
 			for (let j = i + 1; j < entities.length; j++) {
-				if (entities[j].isDead()) continue;
+				const b = entities[j];
+				if (b.isDead() || !b.solid) continue;
 
-				const dx = entities[i].x - entities[j].x;
-				const dy = entities[i].y - entities[j].y;
+				const dx = a.x - b.x;
+				const dy = a.y - b.y;
 				const distSq = dx * dx + dy * dy;
 
-				// Если расстояние меньше минимального и не ноль (чтобы избежать деления на ноль)
-				if (distSq < CollisionSystem.MIN_DISTANCE_SQ && distSq > 0) {
-					const dist = Math.sqrt(distSq);
-					const force = CollisionSystem.MIN_DISTANCE / dist;
-
-					// Отталкиваем сущности в противоположные стороны
-					entities[i].x += (dx / dist) * force;
-					entities[i].y += (dy / dist) * force;
-
-					entities[j].x -= (dx / dist) * force;
-					entities[j].y -= (dy / dist) * force;
+				if (distSq >= CollisionSystem.MIN_DISTANCE_SQ || distSq === 0) {
+					continue;
 				}
+
+				const dist = Math.sqrt(distSq);
+				// Ровно столько, чтобы развести центры до MIN_DISTANCE (по половине каждой)
+				const push = (CollisionSystem.MIN_DISTANCE - dist) / 2;
+				const ux = dx / dist;
+				const uy = dy / dist;
+
+				this.pushEntity(a, ux * push, uy * push);
+				this.pushEntity(b, -ux * push, -uy * push);
 			}
 		}
+	}
+
+	/**
+	 * Смещает сущность с проверкой коллизий со стенами (скольжение вдоль них).
+	 */
+	private pushEntity(entity: Entity, dx: number, dy: number): void {
+		const next = this.world.tryMove(
+			entity.x,
+			entity.y,
+			dx,
+			dy,
+			entity.width,
+			entity.height
+		);
+		entity.x = next.x;
+		entity.y = next.y;
 	}
 
 	/**

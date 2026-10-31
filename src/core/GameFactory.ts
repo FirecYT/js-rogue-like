@@ -60,7 +60,7 @@ export class GameFactory {
 		const engine = new Engine(canvas);
 		const mouse = new MouseInput(canvas);
 		const input = new InputMapper();
-		const camera = new Camera();
+		const camera = new Camera(canvas);
 
 		// 2. Загрузка изображений (пути относительные — работают и локально, и на GitHub Pages)
 		await engine.loadImages([
@@ -104,7 +104,7 @@ export class GameFactory {
 			(worldService.config.chunkSize * worldService.config.tileSize) / 2,
 			(worldService.config.chunkSize * worldService.config.tileSize) / 2
 		);
-		const playerController = new PlayerController(mouse, input);
+		const playerController = new PlayerController(mouse, input, camera);
 		player.controller = playerController;
 		player.inventory.setWeapon(new PistolWeapon());
 		entityWorld.spawn(player);
@@ -131,7 +131,7 @@ export class GameFactory {
 		);
 
 		systemManager.register(new MovementSystem(entityWorld, worldService));
-		systemManager.register(new CollisionSystem(entityWorld));
+		systemManager.register(new CollisionSystem(entityWorld, worldService));
 		systemManager.register(new RebirthSystem(entityWorld, controlSwitch));
 		systemManager.register(floatingTextSystem);
 		systemManager.register(new EffectSystem(entityWorld, worldService));

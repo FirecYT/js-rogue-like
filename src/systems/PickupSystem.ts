@@ -10,8 +10,9 @@ import type { ScreenManager } from '../ui/ScreenManager';
 import type Engine from '../components/Engine';
 import { createPickupFromItem } from '../utils';
 import { isWeapon } from '../items/Weapon';
-import { isModifier, Modifier } from '../items/Modifier';
+import { isModifier } from '../items/Modifier';
 import { isChip } from '../items/Chip';
+import type { Item } from '../items/Item';
 
 /**
  * Система подбора предметов: обнаруживает пикапы рядом с управляемой сущностью
@@ -90,65 +91,18 @@ export class PickupSystem implements ISystem {
 
 		pickupWin.setOnConfirm((slotIndex) => {
 			const item = pickup.item;
+			const inventory = controlled.inventory;
 
 			if (isWeapon(item)) {
-				const newWeapon = item;
-				const oldWeapon = controlled.inventory.weapon;
-				const oldModifiers = controlled.inventory.modifiers.filter(
-					(m) => m !== null
-				);
-
-				controlled.inventory.setWeapon(newWeapon);
-
-				const newModifiers: (Modifier | null)[] = Array(
-					newWeapon.modifiersSlots
-				).fill(null);
-
-				const droppedModifiers: Modifier[] = [];
-				for (let i = 0; i < oldModifiers.length; i++) {
-					if (i < newWeapon.modifiersSlots) {
-						newModifiers[i] = oldModifiers[i];
-					} else {
-						droppedModifiers.push(oldModifiers[i]);
-					}
-				}
-
-				controlled.inventory.modifiers = newModifiers;
-
-				if (oldWeapon) {
-					this.entityWorld.spawn(
-						createPickupFromItem(oldWeapon, controlled.x, controlled.y)
-					);
-				}
-				for (const mod of droppedModifiers) {
-					mod.onUnequip?.(controlled);
-					this.entityWorld.spawn(
-						createPickupFromItem(
-							mod,
-							controlled.x + (Math.random() - 0.5) * 40,
-							controlled.y + (Math.random() - 0.5) * 40
-						)
-					);
+				for (const dropped of inventory.replaceWeapon(item)) {
+					this.dropItem(dropped, controlled);
 				}
 			} else if (isModifier(item)) {
-				const oldMod = controlled.inventory.modifiers[slotIndex];
-				if (oldMod) {
-					oldMod.onUnequip?.(controlled);
-					this.entityWorld.spawn(
-						createPickupFromItem(oldMod, controlled.x, controlled.y)
-					);
-				}
-				controlled.inventory.modifiers[slotIndex] = item;
-				item.onEquip?.(controlled);
+				const old = inventory.installModifier(item, slotIndex);
+				if (old) this.dropItem(old, controlled);
 			} else if (isChip(item)) {
-				const oldChip = controlled.inventory.chips[slotIndex];
-				if (oldChip) {
-					this.entityWorld.spawn(
-						createPickupFromItem(oldChip, controlled.x, controlled.y)
-					);
-				}
-				controlled.inventory.chips[slotIndex] = item;
-				item.onEquip?.(controlled);
+				const old = inventory.installChip(item, slotIndex);
+				if (old) this.dropItem(old, controlled);
 			}
 
 			// Удаляем пикап из мира ТОЛЬКО после подтверждения
@@ -163,6 +117,17 @@ export class PickupSystem implements ISystem {
 		});
 
 		this.screenManager.openWindow(pickupWin);
+	}
+
+	/**
+	 * Выбрасывает предмет рядом с сущностью (с лёгким разбросом).
+	 * @param item - Предмет для выброса
+	 * @param from - Сущность, рядом с которой создаётся пикап
+	 */
+	private dropItem(item: Item, from: Entity): void {
+		const x = from.x + (Math.random() - 0.5) * 40;
+		const y = from.y + (Math.random() - 0.5) * 40;
+		this.entityWorld.spawn(createPickupFromItem(item, x, y));
 	}
 
 	/**

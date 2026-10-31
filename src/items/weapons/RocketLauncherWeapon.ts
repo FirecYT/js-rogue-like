@@ -11,7 +11,7 @@ export class RocketLauncherWeapon extends Weapon {
 	damage = 15;
 	projectileCount = 1;
 	modifiersSlots = 0;
-	effectType = 'explosion';
+	effectType = 'rocket';
 
 	constructor() {
 		super();

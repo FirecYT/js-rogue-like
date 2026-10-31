@@ -1,6 +1,7 @@
 import GameObject from '../components/GameObject';
 import { Inventory } from '../components/Inventory';
 import { eventBus } from '../events/EventBus';
+import type { Team } from '../types/Team';
 
 /**
  * Базовый класс сущности: инвентарь, получение урона, события смерти и убийства.
@@ -17,6 +18,12 @@ export default abstract class Entity extends GameObject {
 	 * true для сущностей, которые респавнятся сами (например, тренировочный манекен).
 	 */
 	public readonly persistent: boolean = false;
+	/** Фракция сущности (кто её союзники и противники). */
+	public team: Team = 'neutral';
+	/** Может ли сущность быть поражена снарядами/зонами урона. */
+	public targetable = true;
+	/** Участвует ли сущность в расталкивании с другими сущностями. */
+	public solid = true;
 
 	/**
 	 * @param x - Мировая координата X

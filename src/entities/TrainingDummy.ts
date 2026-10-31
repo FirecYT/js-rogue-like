@@ -29,6 +29,8 @@ export class TrainingDummy extends Entity implements HasPosition {
 		this.spawnY = y;
 		this.width = 12;
 		this.height = 12;
+		// Манекен стоит на месте: не участвует в расталкивании
+		this.solid = false;
 	}
 
 	/**
