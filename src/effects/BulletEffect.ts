@@ -9,6 +9,12 @@ export class BulletEffect extends Effect {
 	private speed = 6;
 	private lifetime = 100;
 	private half_size = 8;
+	/** Снаряд разрушает непроходимые тайлы на своём пути. */
+	public destruct = false;
+	/** Взрыв при пронзании цели и в конце полёта. */
+	public explodeOnHit = false;
+	/** onDeath вызывается однократно. */
+	private deathNotified = false;
 
 	/**
 	 * @param x - Начальная X
@@ -39,10 +45,12 @@ export class BulletEffect extends Effect {
 		this.applyWave();
 		this.lifetime--;
 
-		// Проверка коллизии со стенами
+		// Проверка коллизии со стенами: разрушающий снаряд пробивает тайл
 		if (world && !world.isPassable(this.x, this.y)) {
-			this.lifetime = 0;
-			return;
+			if (!this.destruct || !world.destroyTile(this.x, this.y)) {
+				this.die();
+				return;
+			}
 		}
 
 		for (const entity of entities) {
@@ -54,10 +62,25 @@ export class BulletEffect extends Effect {
 				entity.takeDamage(this.damage, this.source);
 				this.onHit?.(entity);
 				if (!this.pierce) {
-					this.lifetime = 0;
+					this.die();
 					break;
 				}
 			}
+		}
+
+		if (this.lifetime <= 0) {
+			this.die();
+		}
+	}
+
+	/**
+	 * Завершает жизнь снаряда и однократно вызывает onDeath.
+	 */
+	private die(): void {
+		this.lifetime = 0;
+		if (!this.deathNotified) {
+			this.deathNotified = true;
+			this.onDeath?.();
 		}
 	}
 

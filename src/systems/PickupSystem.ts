@@ -10,7 +10,7 @@ import type { ScreenManager } from '../ui/ScreenManager';
 import type Engine from '../components/Engine';
 import { createPickupFromItem } from '../utils';
 import { isWeapon } from '../items/Weapon';
-import { isSpell } from '../items/spells/Spell';
+import { isModifier } from '../items/modifiers/Modifier';
 import { isChip } from '../items/Chip';
 import type { Item } from '../items/Item';
 
@@ -97,8 +97,8 @@ export class PickupSystem implements ISystem {
 				for (const dropped of inventory.replaceWeapon(item)) {
 					this.dropItem(dropped, controlled);
 				}
-			} else if (isSpell(item)) {
-				const old = inventory.installSpell(item, slotIndex);
+			} else if (isModifier(item)) {
+				const old = inventory.installModifier(item, slotIndex);
 				if (old) this.dropItem(old, controlled);
 			} else if (isChip(item)) {
 				const old = inventory.installChip(item, slotIndex);

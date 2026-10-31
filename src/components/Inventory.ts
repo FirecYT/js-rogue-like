@@ -2,19 +2,19 @@ import { Weapon } from '../items/Weapon';
 import { Chip } from '../items/Chip';
 import Entity from '../entities/Entity';
 import type { Item } from '../items/Item';
-import type { Spell } from '../items/spells/Spell';
+import type { Modifier } from '../items/modifiers/Modifier';
 
 /** Ссылка на слот инвентаря (для UI-операций: drag-and-drop, тултипы). */
 export interface SlotRef {
-	type: 'weapon' | 'spell' | 'chip';
+	type: 'weapon' | 'modifier' | 'chip';
 	index: number;
 }
 
 /**
- * Инвентарь сущности: оружие с очередью заклинаний и слоты чипов.
+ * Инвентарь сущности: оружие со слотами модификаторов и слоты чипов.
  * Единственный источник истины для UI: окна читают и изменяют слоты только через него.
- * Очередь заклинаний принадлежит экземпляру оружия (как в Noita), поэтому
- * смена оружия меняет и набор слотов заклинаний.
+ * Слоты модификаторов принадлежат экземпляру оружия, поэтому смена оружия
+ * меняет и набор слотов модификаторов.
  */
 export class Inventory {
 	public weapon: Weapon | null = null;
@@ -45,16 +45,16 @@ export class Inventory {
 	}
 
 	/**
-	 * Устанавливает заклинание в слот очереди текущего оружия, возвращая прежнее.
-	 * @param spell - Новое заклинание
-	 * @param slotIndex - Индекс слота очереди
-	 * @returns Прежнее заклинание слота или null (нет оружия/слота)
+	 * Устанавливает модификатор в слот текущего оружия, возвращая прежний.
+	 * @param modifier - Новый модификатор
+	 * @param slotIndex - Индекс слота модификаторов оружия
+	 * @returns Прежний модификатор слота или null (нет оружия/слота)
 	 */
-	installSpell(spell: Spell, slotIndex: number): Spell | null {
-		const queue = this.weapon?.queue;
-		if (!queue || slotIndex < 0 || slotIndex >= queue.length) return null;
-		const old = queue[slotIndex] ?? null;
-		queue[slotIndex] = spell;
+	installModifier(modifier: Modifier, slotIndex: number): Modifier | null {
+		const slots = this.weapon?.modifierSlots;
+		if (!slots || slotIndex < 0 || slotIndex >= slots.length) return null;
+		const old = slots[slotIndex] ?? null;
+		slots[slotIndex] = modifier;
 		return old;
 	}
 
@@ -79,6 +79,7 @@ export class Inventory {
 		const old = this.chips[slotIndex] ?? null;
 		this.chips[slotIndex] = chip;
 		chip.onEquip?.(this.entity);
+		old?.onUnequip?.(this.entity);
 		return old;
 	}
 
@@ -90,8 +91,8 @@ export class Inventory {
 		switch (ref.type) {
 			case 'weapon':
 				return this.weapon;
-			case 'spell':
-				return this.weapon?.queue[ref.index] ?? null;
+			case 'modifier':
+				return this.weapon?.modifierSlots[ref.index] ?? null;
 			case 'chip':
 				return this.chips[ref.index] ?? null;
 		}
@@ -121,6 +122,7 @@ export class Inventory {
 		const item = this.getAt(ref);
 		if (!item) return null;
 		this.setRaw(ref, null);
+		item.onUnequip?.(this.entity);
 		return item;
 	}
 
@@ -130,9 +132,9 @@ export class Inventory {
 			case 'weapon':
 				this.weapon = item as Weapon | null;
 				break;
-			case 'spell': {
-				const queue = this.weapon?.queue;
-				if (queue) queue[ref.index] = item as Spell | null;
+			case 'modifier': {
+				const slots = this.weapon?.modifierSlots;
+				if (slots) slots[ref.index] = item as Modifier | null;
 				break;
 			}
 			case 'chip':

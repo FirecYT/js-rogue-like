@@ -8,8 +8,10 @@ import { Chip } from '../Chip';
 const DASH_SPEED_MULTIPLIER = 3;
 
 /**
- * Чип «Рывок»: при использовании временно увеличивает скорость сущности.
- * Использует множитель от базовой скорости, чтобы не перезаписывать оригинальное значение (SRP).
+ * Чип «Рывок»: при использовании временно умножает скорость сущности.
+ * Умножение и снятие множителя попарны (use → onUpdate по окончании фазы),
+ * поэтому одновременное использование нескольких чипов корректно
+ * компонуется и не оставляет перманентного ускорения.
  */
 export class DashChip implements Chip {
 	id = 'dash';
@@ -19,38 +21,40 @@ export class DashChip implements Chip {
 	cooldown = new Cooldown(60);
 	/** Таймер активной фазы рывка. */
 	public activeCooldown = new Cooldown(30);
-	/** Сохранённая базовая скорость (для восстановления после рывка). */
-	private baseSpeed: number | null = null;
+	/** Применён ли множитель (для парного снятия). */
+	private boostedEntity: Entity | null = null;
 
 	/**
-	 * Поддерживает активную фазу: умножает базовую скорость на множитель.
-	 * При окончании активной фазы восстанавливает базовую скорость.
+	 * Завершает активную фазу: снимает множитель сущности.
 	 * @param entity - Сущность
 	 */
-	onUpdate(entity: Entity): void {
-		if (!this.activeCooldown.isReady()) {
-			// Активная фаза: сохраняем базовую скорость при первом вызове
-			if (this.baseSpeed === null) {
-				this.baseSpeed = entity.speed;
-			}
-			entity.speed = this.baseSpeed * DASH_SPEED_MULTIPLIER;
-		} else {
-			// Восстанавливаем базовую скорость
-			if (this.baseSpeed !== null) {
-				entity.speed = this.baseSpeed;
-				this.baseSpeed = null;
-			}
+	onUpdate(_entity: Entity): void {
+		if (this.boostedEntity && this.activeCooldown.isReady()) {
+			this.boostedEntity.speedMultiplier /= DASH_SPEED_MULTIPLIER;
+			this.boostedEntity = null;
 		}
 		this.activeCooldown.update();
 	}
 
 	/**
-	 * Запускает перезарядку и активную фазу рывка.
-	 * @param entity - Сущность (не используется напрямую)
+	 * Запускает рывок: умножает скорость сущности до конца активной фазы.
+	 * @param entity - Сущность
 	 */
 	use(entity: Entity): void {
-		void entity;
 		this.cooldown?.start();
 		this.activeCooldown.start();
+		entity.speedMultiplier *= DASH_SPEED_MULTIPLIER;
+		this.boostedEntity = entity;
+	}
+
+	/**
+	 * Снятие чипа: незамедлительно снимает множитель, если рывок активен.
+	 * @param entity - Сущность
+	 */
+	onUnequip(_entity: Entity): void {
+		if (this.boostedEntity) {
+			this.boostedEntity.speedMultiplier /= DASH_SPEED_MULTIPLIER;
+			this.boostedEntity = null;
+		}
 	}
 }

@@ -18,7 +18,17 @@ import { ProgressionSystem } from '../systems/ProgressionSystem';
 import { CutsceneSystem } from '../systems/CutsceneSystem';
 import { ControlSwitchService } from '../services/ControlSwitchService';
 import { EntityFactory } from '../services/EntityFactory';
+import { DashChip } from '../items/chips/DashChip';
 import { InteractSystem } from '../systems/InteractSystem';
+
+/** Отладочные хуки debug-сцены (?playground): доступ к миру и управляемой сущности. */
+export interface GameDebugHooks {
+	getControlled: () => import('../entities/Entity').default;
+	entityWorld: import('../core/EntityWorld').EntityWorld;
+	entityFactory: EntityFactory;
+	/** Выдать тестовый чип управляемой сущности (только debug-сцена). */
+	giveChip: (id: 'dash') => void;
+}
 import { RebirthSystem } from '../systems/RebirthSystem';
 import { PlayerProgression } from '../systems/PlayerProgression';
 import { ScreenManager } from '../ui/ScreenManager';
@@ -167,6 +177,17 @@ export class GameFactory {
 		// 9. Отладочный полигон (только при ?playground в URL)
 		if (isPlaygroundEnabled()) {
 			populatePlayground(entityWorld, player, entityFactory);
+			// Отладочный доступ только для debug-сцены: смоук-тесты и консоль
+			(window as unknown as { __debug?: GameDebugHooks }).__debug = {
+				getControlled,
+				entityWorld,
+				entityFactory,
+				giveChip: (id: 'dash') => {
+					if (id === 'dash') {
+						getControlled().inventory.addChip(new DashChip());
+					}
+				},
+			};
 		}
 
 		// 10. Контекст игры

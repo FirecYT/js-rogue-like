@@ -19,6 +19,7 @@ interface BoundSlot {
 
 /**
  * Окно инвентаря с перетаскиванием предметов.
+ * Раскладка — три колонки: оружие | модификаторы оружия | чипы.
  * Слоты окна — чистое представление инвентаря сущности (single source of truth):
  * содержимое читается каждый кадр через inventory.getAt, а все изменения
  * выполняются доменными методами (swapSlots/removeAt). Локальной копии предметов нет.
@@ -34,6 +35,9 @@ export class InventoryWindow extends Window {
 	private dragItem: Item | null = null;
 	/** Слот-цель под курсором (для подсветки). */
 	private dropTarget: BoundSlot | null = null;
+
+	/** Позиция курсора на последний update (для отрисовки «в руке»). */
+	private lastMousePos = { x: 0, y: 0 };
 
 	/**
 	 * @param entity - Сущность, чей инвентарь отображается
@@ -55,6 +59,10 @@ export class InventoryWindow extends Window {
 		this.centerWindow(canvasWidth, canvasHeight);
 	}
 
+	/**
+	 * Создаёт три колонки: оружие (со справкой о снаряде), модификаторы
+	 * текущего оружия и чипы.
+	 */
 	private createUI(): void {
 		this.root.children = [];
 		this.boundSlots = [];
@@ -64,42 +72,52 @@ export class InventoryWindow extends Window {
 		layout.padding = { top: 40, right: 20, bottom: 20, left: 20 };
 
 		const inventory = this.entity.inventory;
+		const columns = new HorizontalLayout();
+		columns.spacing = 28;
 
-		// === ОРУЖИЕ ===
-		const weaponLayout = new VerticalLayout();
-		weaponLayout.addChild(new Label('Оружие:'));
+		// === КОЛОНКА 1: ОРУЖИЕ ===
+		const weaponColumn = new VerticalLayout();
+		weaponColumn.spacing = 8;
+		weaponColumn.addChild(new Label('Оружие:'));
 		const weaponSlot = new ItemSlot(80, 80);
-		weaponLayout.addChild(weaponSlot);
-		this.boundSlots.push({ slot: weaponSlot, ref: { type: 'weapon', index: -1 } });
+		weaponColumn.addChild(weaponSlot);
+		this.boundSlots.push({
+			slot: weaponSlot,
+			ref: { type: 'weapon', index: -1 },
+		});
+		const projectileLabel = new Label(
+			`Снаряд: ${inventory.weapon?.projectileName ?? '—'}`
+		);
+		weaponColumn.addChild(projectileLabel);
+		columns.addChild(weaponColumn);
 
-		// === ОЧЕРЕДЬ ЗАКЛИНАНИЙ ===
-		const spellsLayout = new VerticalLayout();
-		spellsLayout.addChild(new Label('Очередь заклинаний:'));
-		const spellsRow = new HorizontalLayout();
-		const queueLength = inventory.weapon?.queue.length ?? 0;
-		for (let i = 0; i < queueLength; i++) {
-			const slot = new ItemSlot(60, 60);
-			spellsRow.addChild(slot);
-			this.boundSlots.push({ slot, ref: { type: 'spell', index: i } });
+		// === КОЛОНКА 2: МОДИФИКАТОРЫ ОРУЖИЯ ===
+		const modifierColumn = new VerticalLayout();
+		modifierColumn.spacing = 8;
+		modifierColumn.addChild(new Label('Модификаторы:'));
+		const modifierSlots = inventory.weapon?.modifierSlots ?? [];
+		for (let i = 0; i < modifierSlots.length; i++) {
+			const slot = new ItemSlot(56, 56);
+			modifierColumn.addChild(slot);
+			this.boundSlots.push({ slot, ref: { type: 'modifier', index: i } });
 		}
-		spellsLayout.addChild(spellsRow);
+		if (modifierSlots.length === 0) {
+			modifierColumn.addChild(new Label('нет оружия'));
+		}
+		columns.addChild(modifierColumn);
 
-		// === ЧИПЫ ===
-		const chipsLayout = new VerticalLayout();
-		chipsLayout.addChild(new Label('Чипы:'));
-		const chipsRow = new HorizontalLayout();
+		// === КОЛОНКА 3: ЧИПЫ ===
+		const chipColumn = new VerticalLayout();
+		chipColumn.spacing = 8;
+		chipColumn.addChild(new Label('Чипы:'));
 		for (let i = 0; i < inventory.chips.length; i++) {
-			const slot = new ItemSlot(60, 60);
-			chipsRow.addChild(slot);
+			const slot = new ItemSlot(56, 56);
+			chipColumn.addChild(slot);
 			this.boundSlots.push({ slot, ref: { type: 'chip', index: i } });
 		}
-		chipsLayout.addChild(chipsRow);
+		columns.addChild(chipColumn);
 
-		const itemsLayout = new HorizontalLayout();
-		itemsLayout.addChild(weaponLayout);
-		itemsLayout.addChild(spellsLayout);
-		itemsLayout.addChild(chipsLayout);
-		layout.addChild(itemsLayout);
+		layout.addChild(columns);
 
 		const closeButton = new Button(
 			'Закрыть',
@@ -134,7 +152,7 @@ export class InventoryWindow extends Window {
 			this.dropTarget = this.findDropTarget(mouse);
 		}
 		if (!mouse.pressed && this.dragItem) {
-			this.handleDrop(mouse);
+			this.handleDrop();
 		}
 	}
 
@@ -168,17 +186,23 @@ export class InventoryWindow extends Window {
 		return null;
 	}
 
-	/** Завершает перетаскивание: обмен слотов, выброс наружу или отмена. */
-	private handleDrop(mouse: MouseInput): void {
+	/**
+	 * Завершает перетаскивание: обмен со слотом-целью (подсвеченным на этом
+	 * кадре), выброс наружу или отмена. Цель берётся из dropTarget, пока
+	 * состояние перетаскивания ещё не сброшено.
+	 */
+	private handleDrop(): void {
 		const ref = this.dragRef;
 		const item = this.dragItem;
+		const target = this.dropTarget;
+		const mouse = this.lastMousePos;
+
 		this.dragRef = null;
 		this.dragItem = null;
 		this.dropTarget = null;
 		if (!ref || !item) return;
 
 		// Цель — совместимый слот: обмен содержимым
-		const target = this.findDropTarget(mouse);
 		if (target) {
 			this.entity.inventory.swapSlots(ref, target.ref);
 			return;
@@ -251,9 +275,6 @@ export class InventoryWindow extends Window {
 		ctx.fillText(item.name, x, y);
 		ctx.globalAlpha = 1.0;
 	}
-
-	/** Позиция курсора на последний update (для отрисовки «в руке»). */
-	private lastMousePos = { x: 0, y: 0 };
 
 	setOnClose(callback: () => void): void {
 		this.onCloseCallback = callback;

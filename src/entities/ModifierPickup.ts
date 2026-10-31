@@ -1,9 +1,13 @@
 import { PickupItem } from './PickupItem';
 
 /**
- * Подбираемое заклинание: отображается зелёным кругом с «S».
+ * Пикап карты модификатора: зелёный маркер с буквой M.
  */
-export class SpellPickup extends PickupItem {
+export class ModifierPickup extends PickupItem {
+	/**
+	 * Отрисовка: зелёный круг с буквой M.
+	 * @param ctx - Контекст канваса
+	 */
 	render(ctx: CanvasRenderingContext2D): void {
 		ctx.fillStyle = '#0f0';
 		ctx.beginPath();
@@ -13,6 +17,6 @@ export class SpellPickup extends PickupItem {
 		ctx.font = '10px Arial';
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
-		ctx.fillText('S', this.x, this.y);
+		ctx.fillText('M', this.x, this.y);
 	}
 }

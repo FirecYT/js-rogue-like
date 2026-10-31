@@ -8,7 +8,23 @@ import type { Team } from '../types/Team';
  */
 export default abstract class Entity extends GameObject {
 	public inventory: Inventory;
-	public speed = 2;
+
+	/** Базовая скорость сущности (задаётся подклассами/определениями). */
+	private baseSpeedValue = 2;
+	/**
+	 * Временный множитель скорости (рывки и подобные эффекты).
+	 * Эффекты умножают и делят его попарно, поэтому не накапливается навсегда.
+	 */
+	public speedMultiplier = 1;
+
+	/** Эффективная скорость = базовая × множитель. */
+	get speed(): number {
+		return this.baseSpeedValue * this.speedMultiplier;
+	}
+
+	set speed(value: number) {
+		this.baseSpeedValue = value;
+	}
 	/** Ширина хитбокса в пикселях (для коллизий с тайлами). */
 	public width = 8;
 	/** Высота хитбокса в пикселях (для коллизий с тайлами). */

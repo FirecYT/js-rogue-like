@@ -15,7 +15,7 @@ export default class Enemy
 	implements HasPosition, HasSpeed, Controllable
 {
 	public controller: IController | null;
-	public speed = 1;
+
 	public experience = 5;
 
 	/**
@@ -31,6 +31,7 @@ export default class Enemy
 		private pathfinder: Pathfinder
 	) {
 		super(x, y, 5);
+		this.speed = 1;
 		this.team = 'enemy';
 
 		// Случайное оружие: 70% дробовик, 30% пистолет

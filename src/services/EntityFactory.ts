@@ -96,11 +96,11 @@ export class EntityFactory {
 		if (loadout.weapon) {
 			entity.inventory.setWeapon(loadout.weapon());
 		}
-		if (loadout.spells) {
-			const queue = entity.inventory.weapon?.queue;
-			if (queue) {
-				loadout.spells().forEach((spell, i) => {
-					if (i < queue.length) queue[i] = spell;
+		if (loadout.modifiers) {
+			const slots = entity.inventory.weapon?.modifierSlots;
+			if (slots) {
+				loadout.modifiers().forEach((modifier, i) => {
+					if (i < slots.length) slots[i] = modifier;
 				});
 			}
 		}

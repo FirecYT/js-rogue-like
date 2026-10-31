@@ -19,6 +19,8 @@ export class CutsceneSystem implements ISystem {
 	public readonly runsWhilePaused = true;
 
 	private activeWindow: CutsceneWindow | null = null;
+	/** Кадры блокировки ввода сразу после старта катсцены (защита от «съеденной» реплики). */
+	private inputLock = 0;
 
 	/** Функция отписки от шины событий (вызывается в dispose). */
 	private unsubscribe: Unsubscribe | null = null;
@@ -68,6 +70,8 @@ export class CutsceneSystem implements ISystem {
 
 		this.screenManager.openWindow(win);
 		this.activeWindow = win;
+		// Клавиша, открывшая катсцену (E у алтаря), не должна сразу пропустить реплику
+		this.inputLock = 12;
 	}
 
 	/**
@@ -75,6 +79,10 @@ export class CutsceneSystem implements ISystem {
 	 */
 	update(): void {
 		if (!this.activeWindow) return;
+		if (this.inputLock > 0) {
+			this.inputLock--;
+			return;
+		}
 		if (this.input.isPressed(InputAction.Interact)) {
 			this.activeWindow.nextLine();
 		}

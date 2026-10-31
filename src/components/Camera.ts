@@ -1,7 +1,7 @@
 import Entity from '../entities/Entity';
 
 /** Минимальный масштаб мира на экране. */
-const MIN_ZOOM = 0.5;
+const MIN_ZOOM = 0.2;
 /** Максимальный масштаб мира на экране. */
 const MAX_ZOOM = 4;
 

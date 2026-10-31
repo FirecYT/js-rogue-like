@@ -14,7 +14,6 @@ export default class Player
 	public damage = 10;
 	public width = 10;
 	public height = 10;
-	public speed = 2;
 
 	/**
 	 * @param x - Мировая координата X
@@ -22,6 +21,7 @@ export default class Player
 	 */
 	constructor(x: number, y: number) {
 		super(x, y, 1000);
+		this.speed = 3;
 		this.team = 'player';
 	}
 

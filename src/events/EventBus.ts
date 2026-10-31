@@ -1,5 +1,5 @@
 import Entity from '../entities/Entity';
-import type { ProjectileSpec } from '../items/spells/Spell';
+import type { ProjectileSpec } from '../items/CastState';
 
 /** Карта событий: имя события -> тип данных */
 export interface EventMap {

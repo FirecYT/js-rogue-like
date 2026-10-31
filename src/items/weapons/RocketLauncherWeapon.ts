@@ -1,17 +1,14 @@
 import { Weapon } from '../Weapon';
-import { RocketSpell } from '../spells/projectiles';
 
 /**
- * Ракетница: ракета с детонацией по площади. Очень медленная перезарядка.
+ * Ракетница: собственный снаряд — ракета с взрывом по площади.
  */
 export class RocketLauncherWeapon extends Weapon {
 	id = 'rocket_launcher';
 	name = 'Rocket Launcher';
 	fireRate = 90;
-	queueLength = 4;
-
-	constructor() {
-		super();
-		this.setDefaultQueue([new RocketSpell()]);
-	}
+	modifierSlotsCount = 4;
+	projectileId = 'rocket';
+	projectileName = 'Ракета';
+	baseDamage = 15;
 }

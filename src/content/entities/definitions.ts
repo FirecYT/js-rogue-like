@@ -1,7 +1,7 @@
 import type { Team } from '../../types/Team';
 import type { Weapon } from '../../items/Weapon';
 import type { Chip } from '../../items/Chip';
-import type { Spell } from '../../items/spells/Spell';
+import type { Modifier } from '../../items/modifiers/Modifier';
 import { ShotgunWeapon } from '../../items/weapons/ShotgunWeapon';
 import { BossCannonWeapon } from '../../items/weapons/BossCannonWeapon';
 import { RebirthChip } from '../../items/chips/RebirthChip';
@@ -62,10 +62,10 @@ export interface LoadoutSpec {
 	/** Фабрика оружия-оболочки. */
 	weapon?: () => Weapon;
 	/**
-	 * Заменяющие заклинания очереди оружия (по умолчанию — стартовая
-	 * очередь самого оружия). Пустые слоты остаются дырками.
+	 * Заменяющие модификаторы слотов оружия (по умолчанию — стартовый
+	 * набор самого оружия). Пустые слоты остаются дырками.
 	 */
-	spells?: () => Spell[];
+	modifiers?: () => Modifier[];
 	/** Фабрики чипов (кладутся в первые свободные слоты). */
 	chips?: (() => Chip)[];
 }

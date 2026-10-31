@@ -6,7 +6,7 @@ import type { WorldService } from '../services/WorldService';
 import type { EntityWorld } from '../core/EntityWorld';
 import { eventBus } from '../events/EventBus';
 import type { Unsubscribe } from '../events/EventBus';
-import type { ProjectileSpec } from '../items/spells/Spell';
+import type { ProjectileSpec } from '../items/CastState';
 import { BulletEffect } from '../effects/BulletEffect';
 import { LaserBeam } from '../effects/LaserBeam';
 import { FireZone } from '../effects/FireZone';
@@ -60,6 +60,22 @@ export class EffectSystem implements ISystem, IRenderable {
 			);
 			effect.pierce = spec.pierce;
 			effect.wave = spec.wave;
+			effect.destruct = spec.destruct;
+			effect.explodeOnHit = spec.explodeOnHit;
+			if (spec.explodeOnHit) {
+				// Взрыв при пронзании цели…
+				effect.onHit = (target) => {
+					this.add(
+						new ExplosionEffect(target.x, target.y, source, spec.damage)
+					);
+				};
+				// …и в конце полёта
+				effect.onDeath = () => {
+					this.add(
+						new ExplosionEffect(effect.x, effect.y, source, spec.damage)
+					);
+				};
+			}
 			return effect;
 		});
 

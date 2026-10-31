@@ -39,6 +39,16 @@ export class WorldService {
 	}
 
 	/**
+	 * Разрушает тайл в мировых координатах (делает его пустым).
+	 * @param worldX - Мировая координата X
+	 * @param worldY - Мировая координата Y
+	 * @returns true, если чанк загружен и тайл изменён
+	 */
+	destroyTile(worldX: number, worldY: number): boolean {
+		return this.world.setTileAt(worldX, worldY, 0);
+	}
+
+	/**
 	 * Проверяет, может ли прямоугольник (width, height) находиться в позиции (centerX, centerY)
 	 * без пересечения с непроходимыми тайлами.
 	 * Проверяет 4 угла хитбокса (позиция — центр прямоугольника).

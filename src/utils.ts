@@ -1,10 +1,10 @@
 import { ChipPickup } from './entities/ChipPickup';
-import { SpellPickup } from './entities/SpellPickup';
+import { ModifierPickup } from './entities/ModifierPickup';
 import { PickupItem } from './entities/PickupItem';
 import { WeaponPickup } from './entities/WeaponPickup';
 import { isChip } from './items/Chip';
 import { Item } from './items/Item';
-import { isSpell } from './items/spells/Spell';
+import { isModifier } from './items/modifiers/Modifier';
 import { isWeapon } from './items/Weapon';
 
 /**
@@ -75,8 +75,8 @@ export function createPickupFromItem(
 	y += 10;
 	if (isWeapon(item)) {
 		return new WeaponPickup(x, y, item);
-	} else if (isSpell(item)) {
-		return new SpellPickup(x, y, item);
+	} else if (isModifier(item)) {
+		return new ModifierPickup(x, y, item);
 	} else if (isChip(item)) {
 		return new ChipPickup(x, y, item);
 	}

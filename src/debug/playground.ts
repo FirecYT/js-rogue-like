@@ -3,7 +3,7 @@ import type Player from '../Player';
 import type { EntityFactory } from '../services/EntityFactory';
 import { Altar } from '../entities/Altar';
 import { WeaponPickup } from '../entities/WeaponPickup';
-import { SpellPickup } from '../entities/SpellPickup';
+import { ModifierPickup } from '../entities/ModifierPickup';
 import { ChipPickup } from '../entities/ChipPickup';
 import { TrainingDummy } from '../entities/TrainingDummy';
 import { ShotgunWeapon } from '../items/weapons/ShotgunWeapon';
@@ -11,12 +11,13 @@ import { LaserGunWeapon } from '../items/weapons/LaserGunWeapon';
 import { RocketLauncherWeapon } from '../items/weapons/RocketLauncherWeapon';
 import { FlamethrowerWeapon } from '../items/weapons/FlamethrowerWeapon';
 import {
-	DamageMultSpell,
-	PierceSpell,
-	SinusoidalSpell,
-	MulticastSpell,
-} from '../items/spells/modifiers';
-import { HeavyBulletSpell } from '../items/spells/projectiles';
+	DamageMultModifier,
+	PierceModifier,
+	SinusoidalModifier,
+	MulticastModifier,
+	ExplosiveEndModifier,
+	DestructModifier,
+} from '../items/modifiers/catalog';
 import { TeleportChip } from '../items/chips/TeleportChip';
 import { DashChip } from '../items/chips/DashChip';
 import { RebirthChip } from '../items/chips/RebirthChip';
@@ -58,12 +59,13 @@ export function populatePlayground(
 	entityWorld.spawn(new WeaponPickup(800, 100, new RocketLauncherWeapon()));
 	entityWorld.spawn(new WeaponPickup(800, 150, new FlamethrowerWeapon()));
 
-	// Заклинания-модификаторы и снаряды
-	entityWorld.spawn(new SpellPickup(600, 0, new DamageMultSpell()));
-	entityWorld.spawn(new SpellPickup(600, 50, new PierceSpell()));
-	entityWorld.spawn(new SpellPickup(600, 100, new SinusoidalSpell()));
-	entityWorld.spawn(new SpellPickup(600, 150, new MulticastSpell(3, 0.4)));
-	entityWorld.spawn(new SpellPickup(600, 200, new HeavyBulletSpell()));
+	// Карты модификаторов
+	entityWorld.spawn(new ModifierPickup(600, 0, new DamageMultModifier()));
+	entityWorld.spawn(new ModifierPickup(600, 50, new PierceModifier()));
+	entityWorld.spawn(new ModifierPickup(600, 100, new SinusoidalModifier()));
+	entityWorld.spawn(new ModifierPickup(600, 150, new MulticastModifier(3, 0.4)));
+	entityWorld.spawn(new ModifierPickup(600, 200, new ExplosiveEndModifier()));
+	entityWorld.spawn(new ModifierPickup(600, 250, new DestructModifier()));
 
 	// Чипы
 	entityWorld.spawn(new ChipPickup(700, 0, new TeleportChip()));

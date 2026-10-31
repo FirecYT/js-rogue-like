@@ -2,94 +2,117 @@ import Entity from '../entities/Entity';
 import { Item } from './Item';
 import Cooldown from '../components/Cooldown';
 import { eventBus } from '../events/EventBus';
-import type { ProjectileSpec, Spell } from './spells/Spell';
-import { freshCastState } from './spells/Spell';
+import type { Modifier } from './modifiers/Modifier';
+import type { ProjectileSpec } from './CastState';
+import { freshCastState } from './CastState';
 
 /**
- * Оружие-оболочка в духе Noita: характеристики корпуса + упорядоченная
- * очередь заклинаний. Выстрел = один «pull» очереди: модификаторы
- * накапливаются в состояние каста и потребляются ближайшим снарядом;
- * снаряд завершает цикл и порождает спецификации снарядов (ProjectileSpec),
- * которые EffectSystem материализует в эффекты.
+ * Оружие-оболочка: корпус с характеристиками (fireRate, damageMultiplier),
+ * СОБСТВЕННЫЙ неизменяемый снаряд и упорядоченные слоты модификаторов.
  *
- * Очередь принадлежит экземпляру оружия: подобранное оружие приносит
- * свои заклинания с собой, выброшенное — уносит их.
+ * В отличие от Noita снаряд нельзя заменить картами: пистолет всегда стреляет
+ * пулями, ракетница — ракетами. Модификаторы в слотах изменяют поведение
+ * этого снаряда при каждом выстреле (урон, копии, траектория, взрыв, разрушение).
+ *
+ * Слоты модификаторов принадлежат экземпляру оружия: подобранное оружие
+ * приносит свои модификаторы с собой, выброшенное — уносит их.
  */
 export abstract class Weapon implements Item {
 	abstract id: string;
 	abstract name: string;
 	type = 'weapon' as const;
-	/** Интервал между pull'ами очереди в тиках. */
+	/** Интервал между выстрелами в тиках. */
 	abstract fireRate: number;
-	/** Ёмкость очереди (число слотов заклинаний). */
-	abstract queueLength: number;
-	/** Множитель урона корпуса: применяется ко всем снарядам каста. */
+	/** Ёмкость слотов модификаторов. */
+	abstract modifierSlotsCount: number;
+
+	/** Идентификатор собственного снаряда оружия ('bullet', 'laser', …). */
+	abstract projectileId: string;
+	/** Название собственного снаряда (для UI). */
+	abstract projectileName: string;
+	/** Базовый урон собственного снаряда. */
+	abstract baseDamage: number;
+	/** Собственное число снарядов за выстрел (дробовик > 1). */
+	shots = 1;
+	/** Собственный разброс снарядов веером, радианы. */
+	shotSpread = 0;
+
+	/** Множитель урона корпуса: применяется ко всем снарядам выстрела. */
 	damageMultiplier = 1;
 
-	/** Перезарядка между pull'ами; длительность синхронизируется с fireRate при выстреле. */
+	/** Перезарядка между выстрелами; длительность синхронизируется с fireRate при выстреле. */
 	cooldown = new Cooldown(20);
 
-	private queueSlots: (Spell | null)[] | null = null;
-	private castIndex = 0;
+	private slots: (Modifier | null)[] | null = null;
 
-	/** Очередь заклинаний оружия (лениво создаётся под queueLength). */
-	get queue(): (Spell | null)[] {
-		if (this.queueSlots === null) {
-			this.queueSlots = Array<Spell | null>(this.queueLength).fill(null);
+	/** Слоты модификаторов оружия (лениво создаются под modifierSlotsCount). */
+	get modifierSlots(): (Modifier | null)[] {
+		if (this.slots === null) {
+			this.slots = Array<Modifier | null>(this.modifierSlotsCount).fill(null);
 		}
-		return this.queueSlots;
+		return this.slots;
 	}
 
 	/**
-	 * Заполняет очередь Starting-набором (используется конструкторами конкретных оружий).
-	 * @param spells - Заклинания по порядку слотов
+	 * Заполняет слоты стартовым набором модификаторов (конструкторы конкретных оружий).
+	 * @param modifiers - Модификаторы по порядку слотов
 	 */
-	protected setDefaultQueue(spells: Spell[]): void {
-		const queue = this.queue;
-		spells.forEach((spell, i) => {
-			if (i < queue.length) {
-				queue[i] = spell;
+	protected setDefaultModifiers(modifiers: Modifier[]): void {
+		const slots = this.modifierSlots;
+		modifiers.forEach((modifier, i) => {
+			if (i < slots.length) {
+				slots[i] = modifier;
 			}
 		});
 	}
 
 	/**
-	 * Производит pull очереди: разрешает каст и эмитит weaponFired
-	 * со спецификациями снарядов. Пустой каст (очередь из модификаторов)
-	 * выстрела не создаёт — pull всё равно потрачен.
+	 * Производит выстрел: все модификаторы слотов (по порядку) накапливают
+	 * состояние каста, затем собственный снаряд оружия выпускается с учётом
+	 * состояния (копии веером, урон, пронзание, волна, взрыв, разрушение).
+	 * Эмитит weaponFired со спецификациями снарядов.
 	 * @param source - Сущность-источник
 	 * @param angle - Угол выстрела в радианах
 	 */
 	fire(source: Entity, angle: number): void {
-		const specs = this.pullCast(angle);
+		const specs = this.resolveShot(angle);
 		if (specs.length > 0) {
 			eventBus.emit('weaponFired', { source, specs });
 		}
 	}
 
 	/**
-	 * Разрешает один цикл каста: идёт по очереди от castIndex, модификаторы
-	 * пополняют состояние каста, первый снаряд завершает цикл.
+	 * Разрешает выстрел: сворачивает модификаторы в состояние каста и строит
+	 * спецификации снарядов (копии распределяются веером вокруг угла выстрела).
 	 * @param angle - Базовый угол выстрела
-	 * @returns Спецификации снарядов (пусто, если снаряд не встретился)
+	 * @returns Спецификации снарядов выстрела
 	 */
-	private pullCast(angle: number): ProjectileSpec[] {
-		const specs: ProjectileSpec[] = [];
-		const queue = this.queue;
-		if (queue.length === 0) return specs;
-
+	private resolveShot(angle: number): ProjectileSpec[] {
 		const state = freshCastState();
-		let steps = 0;
-		while (steps++ < queue.length) {
-			const spell = queue[this.castIndex];
-			this.castIndex = (this.castIndex + 1) % queue.length;
-			if (!spell) continue;
-			if (spell.kind === 'modifier') {
-				spell.applyToCast?.(state);
-				continue;
-			}
-			spell.emitSpecs?.(specs, angle, state, this.damageMultiplier);
-			break;
+		for (const modifier of this.modifierSlots) {
+			modifier?.applyToCast(state);
+		}
+
+		const copies = Math.max(1, this.shots * state.copies);
+		const spread = this.shotSpread + state.spread;
+		const damage =
+			(this.baseDamage + state.damageAdd) *
+			state.damageMult *
+			this.damageMultiplier;
+
+		const specs: ProjectileSpec[] = [];
+		for (let i = 0; i < copies; i++) {
+			const offset =
+				copies > 1 ? -spread / 2 + (spread * i) / (copies - 1) : 0;
+			specs.push({
+				projectileId: this.projectileId,
+				angle: angle + offset,
+				damage,
+				pierce: state.pierce,
+				wave: state.wave,
+				explodeOnHit: state.explodeOnHit,
+				destruct: state.destruct,
+			});
 		}
 		return specs;
 	}

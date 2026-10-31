@@ -27,8 +27,9 @@ export class RebirthSystem implements ISystem {
 		private readonly entityWorld: EntityWorld,
 		private readonly controlSwitch: ControlSwitchService
 	) {
-		this.unsubscribe = eventBus.on('entityKilled', ({ victim }) =>
-			this.handleDeath(victim)
+		// entityDied, а не entityKilled: перерождение работает и без атакующего
+		this.unsubscribe = eventBus.on('entityDied', ({ entity }) =>
+			this.handleDeath(entity)
 		);
 	}
 
@@ -47,13 +48,15 @@ export class RebirthSystem implements ISystem {
 		);
 		if (chipIdx === -1) return;
 
+		// Перерождение — лор-хак сознания: тело может быть любым (враги, боссы),
+		// поэтому фильтр по команде намеренно отсутствует
 		const candidates = this.entityWorld.all.filter(
 			(e): e is Entity & Controllable =>
 				e !== victim &&
 				e !== this.controlSwitch.getCurrentControlled() &&
 				!e.isDead() &&
-				e.team === victim.team &&
-				isControllable(e)
+				isControllable(e) &&
+				e.controller !== null
 		);
 
 		if (candidates.length === 0) return;

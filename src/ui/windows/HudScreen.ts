@@ -131,7 +131,7 @@ export class HudScreen extends Component {
 	 */
 	private updateWeaponBar(entity: Entity): void {
 		const currentWeapon = entity.inventory.weapon;
-		const queue = currentWeapon?.queue ?? [];
+		const queue = currentWeapon?.modifierSlots ?? [];
 
 		const weaponChanged = currentWeapon?.id !== this.lastWeaponId;
 		const queueChanged = queue.length !== this.lastQueueLength;
@@ -153,14 +153,14 @@ export class HudScreen extends Component {
 				this.lastWeaponId = null;
 			}
 
-			for (const spell of queue) {
-				const spellSlot = new ItemSlot(
+			for (const modifier of queue) {
+				const modifierSlot = new ItemSlot(
 					this.SPELL_SLOT_SIZE,
 					this.SPELL_SLOT_SIZE,
-					spell
+					modifier
 				);
-				this.weaponBar.addChild(spellSlot);
-				this.spellSlots.push(spellSlot);
+				this.weaponBar.addChild(modifierSlot);
+				this.spellSlots.push(modifierSlot);
 			}
 
 			this.lastQueueLength = queue.length;
