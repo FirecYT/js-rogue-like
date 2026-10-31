@@ -15,8 +15,8 @@ export class LaserBeam extends Effect {
 	 * @param angle - Направление в радианах
 	 * @param source - Источник
 	 */
-	constructor(x: number, y: number, angle: number, source: Entity) {
-		super(x, y, angle, source, 25);
+	constructor(x: number, y: number, angle: number, source: Entity, damage = 25) {
+		super(x, y, angle, source, damage);
 	}
 
 	/**

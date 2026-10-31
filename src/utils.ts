@@ -1,10 +1,10 @@
 import { ChipPickup } from './entities/ChipPickup';
-import { ModifierPickup } from './entities/ModifierPickup';
+import { SpellPickup } from './entities/SpellPickup';
 import { PickupItem } from './entities/PickupItem';
 import { WeaponPickup } from './entities/WeaponPickup';
 import { isChip } from './items/Chip';
 import { Item } from './items/Item';
-import { isModifier } from './items/Modifier';
+import { isSpell } from './items/spells/Spell';
 import { isWeapon } from './items/Weapon';
 
 /**
@@ -61,7 +61,7 @@ export function interpolateColor(
 
 /**
  * Создаёт объект подбираемого предмета (PickupItem) по типу предмета и координатам.
- * @param item - Предмет (оружие, модификатор или чип)
+ * @param item - Предмет (оружие, заклинание или чип)
  * @param x - Мировая координата X
  * @param y - Мировая координата Y
  * @returns Экземпляр WeaponPickup, ModifierPickup или ChipPickup
@@ -75,8 +75,8 @@ export function createPickupFromItem(
 	y += 10;
 	if (isWeapon(item)) {
 		return new WeaponPickup(x, y, item);
-	} else if (isModifier(item)) {
-		return new ModifierPickup(x, y, item);
+	} else if (isSpell(item)) {
+		return new SpellPickup(x, y, item);
 	} else if (isChip(item)) {
 		return new ChipPickup(x, y, item);
 	}

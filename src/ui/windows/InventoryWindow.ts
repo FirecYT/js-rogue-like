@@ -72,16 +72,17 @@ export class InventoryWindow extends Window {
 		weaponLayout.addChild(weaponSlot);
 		this.boundSlots.push({ slot: weaponSlot, ref: { type: 'weapon', index: -1 } });
 
-		// === МОДИФИКАТОРЫ ===
-		const modifiersLayout = new VerticalLayout();
-		modifiersLayout.addChild(new Label('Модификаторы:'));
-		const modifiersRow = new HorizontalLayout();
-		for (let i = 0; i < inventory.modifiers.length; i++) {
+		// === ОЧЕРЕДЬ ЗАКЛИНАНИЙ ===
+		const spellsLayout = new VerticalLayout();
+		spellsLayout.addChild(new Label('Очередь заклинаний:'));
+		const spellsRow = new HorizontalLayout();
+		const queueLength = inventory.weapon?.queue.length ?? 0;
+		for (let i = 0; i < queueLength; i++) {
 			const slot = new ItemSlot(60, 60);
-			modifiersRow.addChild(slot);
-			this.boundSlots.push({ slot, ref: { type: 'modifier', index: i } });
+			spellsRow.addChild(slot);
+			this.boundSlots.push({ slot, ref: { type: 'spell', index: i } });
 		}
-		modifiersLayout.addChild(modifiersRow);
+		spellsLayout.addChild(spellsRow);
 
 		// === ЧИПЫ ===
 		const chipsLayout = new VerticalLayout();
@@ -96,7 +97,7 @@ export class InventoryWindow extends Window {
 
 		const itemsLayout = new HorizontalLayout();
 		itemsLayout.addChild(weaponLayout);
-		itemsLayout.addChild(modifiersLayout);
+		itemsLayout.addChild(spellsLayout);
 		itemsLayout.addChild(chipsLayout);
 		layout.addChild(itemsLayout);
 

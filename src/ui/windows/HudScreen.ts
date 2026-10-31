@@ -22,17 +22,17 @@ export class HudScreen extends Component {
 	private hpBarContainer: VerticalLayout;
 
 	private weaponSlot: ItemSlot | null = null;
-	private modifierSlots: ItemSlot[] = [];
+	private spellSlots: ItemSlot[] = [];
 
 	private readonly CHIP_SIZE = 50;
 	private readonly WEAPON_SLOT_WIDTH = 80;
 	private readonly WEAPON_SLOT_HEIGHT = 60;
-	private readonly MODIFIER_SLOT_SIZE = 50;
+	private readonly SPELL_SLOT_SIZE = 50;
 	private readonly HP_BAR_WIDTH = 12;
 	private readonly EXP_BAR_HEIGHT = 6;
 
 	private lastWeaponId: string | null = null;
-	private lastModifierCount = 0;
+	private lastQueueLength = -1;
 
 	private getPickupInRange: (() => PickupItem | null) | null = null;
 	private readonly pickupHintLabel = new Label('[E] Подобрать');
@@ -113,20 +113,19 @@ export class HudScreen extends Component {
 	}
 
 	/**
-	 * Пересоздаёт или обновляет слоты оружия и модификаторов в зависимости от инвентаря.
+	 * Пересоздаёт или обновляет слоты оружия и очереди заклинаний в зависимости от инвентаря.
 	 * @param entity - Управляемая сущность
 	 */
 	private updateWeaponBar(entity: Entity): void {
 		const currentWeapon = entity.inventory.weapon;
-		const currentModifiers = entity.inventory.modifiers;
+		const queue = currentWeapon?.queue ?? [];
 
 		const weaponChanged = currentWeapon?.id !== this.lastWeaponId;
-		const modifiersCountChanged =
-			currentModifiers.length !== this.lastModifierCount;
+		const queueChanged = queue.length !== this.lastQueueLength;
 
-		if (weaponChanged || modifiersCountChanged) {
+		if (weaponChanged || queueChanged) {
 			this.weaponBar.children = [];
-			this.modifierSlots = [];
+			this.spellSlots = [];
 
 			if (currentWeapon) {
 				this.weaponSlot = new ItemSlot(
@@ -141,24 +140,24 @@ export class HudScreen extends Component {
 				this.lastWeaponId = null;
 			}
 
-			for (const modifier of currentModifiers) {
-				const modSlot = new ItemSlot(
-					this.MODIFIER_SLOT_SIZE,
-					this.MODIFIER_SLOT_SIZE,
-					modifier
+			for (const spell of queue) {
+				const spellSlot = new ItemSlot(
+					this.SPELL_SLOT_SIZE,
+					this.SPELL_SLOT_SIZE,
+					spell
 				);
-				this.weaponBar.addChild(modSlot);
-				this.modifierSlots.push(modSlot);
+				this.weaponBar.addChild(spellSlot);
+				this.spellSlots.push(spellSlot);
 			}
 
-			this.lastModifierCount = currentModifiers.length;
+			this.lastQueueLength = queue.length;
 		} else {
 			if (this.weaponSlot && currentWeapon) {
 				this.weaponSlot.setItem(currentWeapon);
 			}
 
-			for (let i = 0; i < this.modifierSlots.length; i++) {
-				this.modifierSlots[i].setItem(currentModifiers[i]);
+			for (let i = 0; i < this.spellSlots.length; i++) {
+				this.spellSlots[i].setItem(queue[i] ?? null);
 			}
 		}
 	}

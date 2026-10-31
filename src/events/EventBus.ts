@@ -1,5 +1,5 @@
 import Entity from '../entities/Entity';
-import type { Weapon } from '../items/Weapon';
+import type { ProjectileSpec } from '../items/spells/Spell';
 
 /** Карта событий: имя события -> тип данных */
 export interface EventMap {
@@ -7,8 +7,8 @@ export interface EventMap {
 	entityKilled: { killer: Entity; victim: Entity };
 	/** Сущность умерла (независимо от причины). */
 	entityDied: { entity: Entity };
-	/** Оружие произвело выстрел. */
-	weaponFired: { source: Entity; angle: number; weapon: Weapon };
+	/** Оружие произвело выстрел: готовые спецификации снарядов. */
+	weaponFired: { source: Entity; specs: ProjectileSpec[] };
 	/** Запуск катсцены: массив строк для отображения. */
 	cutsceneStart: { lines: string[] };
 }

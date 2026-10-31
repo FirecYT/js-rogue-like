@@ -23,7 +23,7 @@ export const LEVEL_UP_UPGRADES: readonly UpgradeOption[] = [
 		apply: (entity) => {
 			const weapon = entity.inventory.weapon;
 			if (weapon) {
-				weapon.damage = Math.max(1, Math.round(weapon.damage * 1.15));
+				weapon.damageMultiplier *= 1.15;
 			}
 		},
 	},

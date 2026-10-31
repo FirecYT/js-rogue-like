@@ -18,6 +18,8 @@ import type Entity from '../entities/Entity';
 export class UISystem implements ISystem {
 	public readonly phase = UpdatePhase.UI;
 	public enabled = true;
+	/** UI-действия (инвентарь, фуллскрин) должны работать и на паузе окон. */
+	public readonly runsWhilePaused = true;
 
 	/**
 	 * @param getControlled - Функция для получения текущей управляемой сущности

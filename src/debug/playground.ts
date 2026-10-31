@@ -1,16 +1,20 @@
 import type { EntityWorld } from '../core/EntityWorld';
 import type Player from '../Player';
 import { WeaponPickup } from '../entities/WeaponPickup';
-import { ModifierPickup } from '../entities/ModifierPickup';
+import { SpellPickup } from '../entities/SpellPickup';
 import { ChipPickup } from '../entities/ChipPickup';
 import { TrainingDummy } from '../entities/TrainingDummy';
 import { ShotgunWeapon } from '../items/weapons/ShotgunWeapon';
 import { LaserGunWeapon } from '../items/weapons/LaserGunWeapon';
 import { RocketLauncherWeapon } from '../items/weapons/RocketLauncherWeapon';
 import { FlamethrowerWeapon } from '../items/weapons/FlamethrowerWeapon';
-import { DamageBoostModifier } from '../items/modifiers/DamageBoostModifier';
-import { PierceModifier } from '../items/modifiers/PierceModifier';
-import { SinusoidalModifier } from '../items/modifiers/SinusoidalModifier';
+import {
+	DamageMultSpell,
+	PierceSpell,
+	SinusoidalSpell,
+	MulticastSpell,
+} from '../items/spells/modifiers';
+import { HeavyBulletSpell } from '../items/spells/projectiles';
 import { TeleportChip } from '../items/chips/TeleportChip';
 import { DashChip } from '../items/chips/DashChip';
 import { RebirthChip } from '../items/chips/RebirthChip';
@@ -30,14 +34,13 @@ export function isPlaygroundEnabled(): boolean {
 }
 
 /**
- * Наполняет мир тестовым контентом: всё оружие, модификаторы, чипы и манекены
+ * Наполняет мир тестовым контентом: всё оружие, заклинания, чипы и манекены
  * раскладываются рядом со спавном игрока; выдаёт игроку тестовый стартовый набор.
  * @param entityWorld - Контейнер сущностей мира
- * @param player - Игрок (получает стартовые чипы и модификатор)
+ * @param player - Игрок (получает стартовые чипы)
  */
 export function populatePlayground(entityWorld: EntityWorld, player: Player): void {
 	// Тестовый стартовый набор игрока
-	player.inventory.addModifier(new DamageBoostModifier(2.0));
 	player.inventory.addChip(new TeleportChip());
 	player.inventory.addChip(new DashChip());
 	player.inventory.addChip(new RebirthChip());
@@ -48,10 +51,12 @@ export function populatePlayground(entityWorld: EntityWorld, player: Player): vo
 	entityWorld.spawn(new WeaponPickup(800, 100, new RocketLauncherWeapon()));
 	entityWorld.spawn(new WeaponPickup(800, 150, new FlamethrowerWeapon()));
 
-	// Все модификаторы
-	entityWorld.spawn(new ModifierPickup(600, 0, new DamageBoostModifier(2.0)));
-	entityWorld.spawn(new ModifierPickup(600, 50, new PierceModifier()));
-	entityWorld.spawn(new ModifierPickup(600, 100, new SinusoidalModifier()));
+	// Заклинания-модификаторы и снаряды
+	entityWorld.spawn(new SpellPickup(600, 0, new DamageMultSpell()));
+	entityWorld.spawn(new SpellPickup(600, 50, new PierceSpell()));
+	entityWorld.spawn(new SpellPickup(600, 100, new SinusoidalSpell()));
+	entityWorld.spawn(new SpellPickup(600, 150, new MulticastSpell(3, 0.4)));
+	entityWorld.spawn(new SpellPickup(600, 200, new HeavyBulletSpell()));
 
 	// Чипы
 	entityWorld.spawn(new ChipPickup(700, 0, new TeleportChip()));
@@ -67,7 +72,7 @@ export function populatePlayground(entityWorld: EntityWorld, player: Player): vo
 		eventBus.emit('cutsceneStart', {
 			lines: [
 				'Добро пожаловать в тестовую зону!',
-				'Здесь вы можете испытать всё оружие и модификаторы.',
+				'Здесь вы можете испытать всё оружие и заклинания.',
 				'Стреляйте по манекенам, подбирайте предметы, используйте чипы.',
 				'Удачи!',
 			],

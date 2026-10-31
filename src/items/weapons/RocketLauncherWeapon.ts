@@ -1,20 +1,17 @@
 import { Weapon } from '../Weapon';
+import { RocketSpell } from '../spells/projectiles';
 
 /**
- * Ракетница: создаёт взрыв в точке попадания, наносящий урон по площади.
- * Очень высокий урон, очень медленная перезарядка, нет слотов модификаторов.
+ * Ракетница: ракета с детонацией по площади. Очень медленная перезарядка.
  */
 export class RocketLauncherWeapon extends Weapon {
 	id = 'rocket_launcher';
 	name = 'Rocket Launcher';
 	fireRate = 90;
-	damage = 15;
-	projectileCount = 1;
-	modifiersSlots = 0;
-	effectType = 'rocket';
+	queueLength = 4;
 
 	constructor() {
 		super();
-		this.cooldown.setDuration(this.fireRate);
+		this.setDefaultQueue([new RocketSpell()]);
 	}
 }

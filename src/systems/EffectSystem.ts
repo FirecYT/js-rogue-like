@@ -6,27 +6,21 @@ import type { WorldService } from '../services/WorldService';
 import type { EntityWorld } from '../core/EntityWorld';
 import { eventBus } from '../events/EventBus';
 import type { Unsubscribe } from '../events/EventBus';
+import type { ProjectileSpec } from '../items/spells/Spell';
 import { BulletEffect } from '../effects/BulletEffect';
 import { LaserBeam } from '../effects/LaserBeam';
 import { FireZone } from '../effects/FireZone';
 import { ExplosionEffect } from '../effects/ExplosionEffect';
 import { RocketEffect } from '../effects/RocketEffect';
-import type { Weapon } from '../items/Weapon';
 
-/**
- * Карта типов эффектов: имя -> функция-конструктор.
- * Позволяет оружию декларативно указывать, какой эффект создавать при выстреле.
- */
-export type EffectFactoryFn = (
-	source: Entity,
-	angle: number,
-	weapon: Weapon
-) => Effect[];
+/** Фабрика эффекта по спецификации снаряда. */
+type SpecFactory = (source: Entity, spec: ProjectileSpec) => Effect;
 
 /**
  * Система эффектов: управляет жизненным циклом снарядов, лучей, зон и взрывов.
- * Подписан на событие weaponFired и создаёт соответствующие эффекты на основе типа оружия.
- * Применяет модификаторы оружия к создаваемым эффектам (DIP).
+ * Подписана на weaponFired и материализует готовые спецификации снарядов
+ * (ProjectileSpec) в эффекты: об очереди заклинаний и модификаторах здесь
+ * ничего не известно — только о том, что уже разрешено кастом.
  */
 export class EffectSystem implements ISystem, IRenderable {
 	public readonly phase = UpdatePhase.Effects;
@@ -37,11 +31,8 @@ export class EffectSystem implements ISystem, IRenderable {
 	/** Функция отписки от шины событий (вызывается в dispose). */
 	private unsubscribe: Unsubscribe | null = null;
 
-	/**
-	 * Реестр фабрик эффектов по ID оружия.
-	 * Позволяет оружию регистрировать свои типы эффектов (OCP).
-	 */
-	private effectFactories = new Map<string, EffectFactoryFn>();
+	/** Реестр фабрик эффектов по идентификатору снаряда. */
+	private specFactories = new Map<string, SpecFactory>();
 
 	/**
 	 * @param entityWorld - Контейнер сущностей для проверки попаданий
@@ -56,103 +47,70 @@ export class EffectSystem implements ISystem, IRenderable {
 	}
 
 	/**
-	 * Регистрирует стандартные фабрики эффектов.
+	 * Регистрирует фабрики стандартных снарядов.
 	 */
 	private registerDefaultFactories(): void {
-		// Базовая пуля (по умолчанию для любого оружия без своей фабрики)
-		this.effectFactories.set('bullet', (source, angle, weapon) => {
-			return [new BulletEffect(source.x, source.y, angle, source, weapon.damage)];
+		this.specFactories.set('bullet', (source, spec) => {
+			const effect = new BulletEffect(
+				source.x,
+				source.y,
+				spec.angle,
+				source,
+				spec.damage
+			);
+			effect.pierce = spec.pierce;
+			effect.wave = spec.wave;
+			return effect;
 		});
 
-		// Лазерный луч
-		this.effectFactories.set('laser', (source, angle) => {
-			return [new LaserBeam(source.x, source.y, angle, source)];
+		this.specFactories.set('laser', (source, spec) => {
+			return new LaserBeam(source.x, source.y, spec.angle, source, spec.damage);
 		});
 
-		// Огненная зона
-		this.effectFactories.set('fire_zone', (source, angle) => {
-			return [new FireZone(source.x, source.y, angle, source)];
+		this.specFactories.set('fire_zone', (source, spec) => {
+			return new FireZone(source.x, source.y, spec.angle, source, spec.damage);
 		});
 
-		// Ракета: летит и детонирует; взрыв создаётся в точке детонации
-		this.effectFactories.set('rocket', (source, angle, weapon) => {
+		this.specFactories.set('rocket', (source, spec) => {
 			const rocket = new RocketEffect(
 				source.x,
 				source.y,
-				angle,
+				spec.angle,
 				source,
-				weapon.damage
+				spec.damage
 			);
 			rocket.onDeath = () => {
 				this.add(new ExplosionEffect(rocket.x, rocket.y, source, rocket.damage));
 			};
-			return [rocket];
+			return rocket;
 		});
 	}
 
 	/**
-	 * Подписывается на событие weaponFired и создаёт эффекты на основе типа оружия.
+	 * Подписывается на weaponFired и материализует спецификации снарядов.
 	 */
 	private setupEventListeners(): void {
-		this.unsubscribe = eventBus.on('weaponFired', ({ source, angle, weapon }) => {
-			this.createEffects(source, angle, weapon);
+		this.unsubscribe = eventBus.on('weaponFired', ({ source, specs }) => {
+			for (const spec of specs) {
+				this.materialize(source, spec);
+			}
 		});
 	}
 
 	/**
-	 * Создаёт эффекты для выстрела: применяет модификаторы и создаёт нужное количество снарядов.
+	 * Создаёт эффект по спецификации; неизвестный снаряд становится обычной пулей.
 	 * @param source - Сущность-источник выстрела
-	 * @param angle - Угол выстрела в радианах
-	 * @param weapon - Оружие, из которого произведён выстрел
+	 * @param spec - Спецификация снаряда
 	 */
-	private createEffects(source: Entity, angle: number, weapon: Weapon): void {
-		// Получаем фабрику по типу эффекта; fallback — обычная пуля
+	private materialize(source: Entity, spec: ProjectileSpec): void {
 		const factory =
-			this.effectFactories.get(weapon.effectType ?? 'bullet') ??
-			this.effectFactories.get('bullet');
-
+			this.specFactories.get(spec.projectileId) ??
+			this.specFactories.get('bullet');
 		if (!factory) {
-			console.warn(
-				`No effect factory found for weapon "${weapon.id}" (effectType: "${weapon.effectType}")`
-			);
+			console.warn(`No effect factory for projectile "${spec.projectileId}"`);
 			return;
 		}
-
-		// Создаём нужное количество снарядов (с разбросом для нескольких)
-		const count = weapon.projectileCount ?? 1;
-		const spreadAngle = weapon.spreadAngle ?? 0;
-
-		for (let i = 0; i < count; i++) {
-			let projectileAngle = angle;
-			if (count > 1) {
-				// Равномерный разброс вокруг основного угла
-				const t = count === 1 ? 0 : i / (count - 1) - 0.5;
-				projectileAngle += t * spreadAngle;
-			}
-
-			const effects = factory(source, projectileAngle, weapon);
-
-			// Применяем модификаторы к каждому эффекту
-			for (let effect of effects) {
-				effect = this.applyModifiers(effect, source);
-				this.add(effect);
-			}
-		}
-	}
-
-	/**
-	 * Применяет все модификаторы из инвентаря источника к эффекту.
-	 * @param effect - Базовый эффект
-	 * @param source - Сущность-источник (для получения модификаторов)
-	 * @returns Модифицированный эффект
-	 */
-	private applyModifiers(effect: Effect, source: Entity): Effect {
-		for (const modifier of source.inventory.modifiers) {
-			if (modifier) {
-				effect = modifier.apply(effect);
-			}
-		}
-		return effect;
+		this.add(factory(source, spec));
 	}
 
 	/**

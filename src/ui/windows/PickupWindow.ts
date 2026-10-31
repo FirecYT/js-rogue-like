@@ -6,7 +6,7 @@ import { Label } from '../components/Label';
 import { ItemSlot } from '../components/ItemSlot';
 import { isChip } from '../../items/Chip';
 import { isWeapon } from '../../items/Weapon';
-import { isModifier } from '../../items/Modifier';
+import { isSpell } from '../../items/spells/Spell';
 import { Item } from '../../items/Item';
 import { VerticalLayout } from '../containers/VerticalLayout';
 import { HorizontalLayout } from '../containers/HorizontalLayout';
@@ -75,11 +75,8 @@ export class PickupWindow extends Window {
 		let numSlots = 0;
 		if (isWeapon(this.pickupItem.item)) {
 			numSlots = 1;
-		} else if (
-			isModifier(this.pickupItem.item) &&
-			this.entity.inventory.weapon
-		) {
-			numSlots = this.entity.inventory.weapon.modifiersSlots || 0;
+		} else if (isSpell(this.pickupItem.item)) {
+			numSlots = this.entity.inventory.weapon?.queue.length || 0;
 		} else if (isChip(this.pickupItem.item)) {
 			numSlots = 5;
 		}
@@ -90,8 +87,8 @@ export class PickupWindow extends Window {
 
 			if (isWeapon(this.pickupItem.item)) {
 				item = this.entity.inventory.weapon;
-			} else if (isModifier(this.pickupItem.item)) {
-				item = this.entity.inventory.modifiers[i];
+			} else if (isSpell(this.pickupItem.item)) {
+				item = this.entity.inventory.weapon?.queue[i] ?? null;
 			} else if (isChip(this.pickupItem.item)) {
 				item = this.entity.inventory.chips[i];
 			}

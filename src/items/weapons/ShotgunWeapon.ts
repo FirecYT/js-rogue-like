@@ -1,21 +1,19 @@
 import { Weapon } from '../Weapon';
+import { BulletSpell } from '../spells/projectiles';
+import { MulticastSpell } from '../spells/modifiers';
 
 /**
- * Дробовик: 5 снарядов с широким разбросом, медленная перезарядка, средний урон.
- * Эффективен на ближней дистанции.
+ * Дробовик: мультикаст ×5 широким веером. Эффективен на ближней дистанции.
+ * Очередь: [Мультикаст ×5, Пуля] — выстрел каждый второй pull.
  */
 export class ShotgunWeapon extends Weapon {
 	id = 'shotgun';
 	name = 'Shotgun';
-	fireRate = 40;
-	damage = 4;
-	projectileCount = 5;
-	modifiersSlots = 1;
-	effectType = 'bullet';
-	spreadAngle = 0.8; // ~45 градусов разброса
+	fireRate = 25;
+	queueLength = 6;
 
 	constructor() {
 		super();
-		this.cooldown.setDuration(this.fireRate);
+		this.setDefaultQueue([new MulticastSpell(5, 0.8), new BulletSpell()]);
 	}
 }

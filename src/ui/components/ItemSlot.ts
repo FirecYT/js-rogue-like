@@ -2,6 +2,7 @@ import { Component } from '../Component';
 import MouseInput from '../../components/MouseInput';
 import { Item } from '../../items/Item';
 import { isWeapon } from '../../items/Weapon';
+import { isSpell } from '../../items/spells/Spell';
 
 /**
  * Улучшенный слот для предмета с индикацией перезарядки
@@ -194,7 +195,18 @@ export class ItemSlot extends Component {
 			}
 
 			if (isWeapon(this.item)) {
-				tooltipText += `\nКоличество модификаторов: ${this.item.modifiersSlots} шт.`;
+				tooltipText += `\nДлина очереди: ${this.item.queueLength}`;
+				const queueNames =
+					this.item.queue
+						.flatMap((spell) =>
+							spell !== null ? [spell.name] : []
+						)
+						.join(', ') || 'пусто';
+				tooltipText += `\nОчередь: ${queueNames}`;
+			}
+
+			if (isSpell(this.item)) {
+				tooltipText += `\n${this.item.description}`;
 			}
 
 			return {

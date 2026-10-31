@@ -1,20 +1,18 @@
 import { Weapon } from '../Weapon';
+import { BulletSpell } from '../spells/projectiles';
 
 /**
- * Базовый пистолет: один снаряд, быстрая перезарядка, малый урон.
+ * Базовый пистолет: один снаряд за pull, быстрая перезарядка, малый урон.
  * Стартовое оружие игрока.
  */
 export class PistolWeapon extends Weapon {
 	id = 'pistol';
 	name = 'Pistol';
 	fireRate = 15;
-	damage = 5;
-	projectileCount = 1;
-	modifiersSlots = 2;
-	effectType = 'bullet';
+	queueLength = 4;
 
 	constructor() {
 		super();
-		this.cooldown.setDuration(this.fireRate);
+		this.setDefaultQueue([new BulletSpell()]);
 	}
 }

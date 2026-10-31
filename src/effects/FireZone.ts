@@ -17,10 +17,10 @@ export class FireZone extends Effect {
 	 * @param angle - Направление смещения
 	 * @param source - Источник
 	 */
-	constructor(x: number, y: number, angle: number, source: Entity) {
+	constructor(x: number, y: number, angle: number, source: Entity, damage = 3) {
 		const offsetX = Math.cos(angle) * 40;
 		const offsetY = Math.sin(angle) * 40;
-		super(x + offsetX, y + offsetY, angle, source, 3);
+		super(x + offsetX, y + offsetY, angle, source, damage);
 	}
 
 	/**
