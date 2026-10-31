@@ -43,4 +43,9 @@ export interface ISystem extends IUpdatable, IDisposable {
 	readonly phase: UpdatePhase;
 	/** Включена ли система в игровом цикле. */
 	enabled: boolean;
+	/**
+	 * Продолжает ли система обновляться, когда игра на паузе (открыто окно).
+	 * Для систем, обрабатывающих ввод самих окон (например, катсцены).
+	 */
+	readonly runsWhilePaused?: boolean;
 }

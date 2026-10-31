@@ -1,4 +1,4 @@
-import type Entity from '../entities/Entity';
+import type { EntityWorld } from '../core/EntityWorld';
 import type Player from '../Player';
 import { WeaponPickup } from '../entities/WeaponPickup';
 import { ModifierPickup } from '../entities/ModifierPickup';
@@ -32,10 +32,10 @@ export function isPlaygroundEnabled(): boolean {
 /**
  * Наполняет мир тестовым контентом: всё оружие, модификаторы, чипы и манекены
  * раскладываются рядом со спавном игрока; выдаёт игроку тестовый стартовый набор.
- * @param entities - Массив сущностей мира (пикапы и манекены добавляются в него)
+ * @param entityWorld - Контейнер сущностей мира
  * @param player - Игрок (получает стартовые чипы и модификатор)
  */
-export function populatePlayground(entities: Entity[], player: Player): void {
+export function populatePlayground(entityWorld: EntityWorld, player: Player): void {
 	// Тестовый стартовый набор игрока
 	player.inventory.addModifier(new DamageBoostModifier(2.0));
 	player.inventory.addChip(new TeleportChip());
@@ -43,24 +43,24 @@ export function populatePlayground(entities: Entity[], player: Player): void {
 	player.inventory.addChip(new RebirthChip());
 
 	// Все виды оружия
-	entities.push(new WeaponPickup(800, 0, new ShotgunWeapon()));
-	entities.push(new WeaponPickup(800, 50, new LaserGunWeapon()));
-	entities.push(new WeaponPickup(800, 100, new RocketLauncherWeapon()));
-	entities.push(new WeaponPickup(800, 150, new FlamethrowerWeapon()));
+	entityWorld.spawn(new WeaponPickup(800, 0, new ShotgunWeapon()));
+	entityWorld.spawn(new WeaponPickup(800, 50, new LaserGunWeapon()));
+	entityWorld.spawn(new WeaponPickup(800, 100, new RocketLauncherWeapon()));
+	entityWorld.spawn(new WeaponPickup(800, 150, new FlamethrowerWeapon()));
 
 	// Все модификаторы
-	entities.push(new ModifierPickup(600, 0, new DamageBoostModifier(2.0)));
-	entities.push(new ModifierPickup(600, 50, new PierceModifier()));
-	entities.push(new ModifierPickup(600, 100, new SinusoidalModifier()));
+	entityWorld.spawn(new ModifierPickup(600, 0, new DamageBoostModifier(2.0)));
+	entityWorld.spawn(new ModifierPickup(600, 50, new PierceModifier()));
+	entityWorld.spawn(new ModifierPickup(600, 100, new SinusoidalModifier()));
 
 	// Чипы
-	entities.push(new ChipPickup(700, 0, new TeleportChip()));
-	entities.push(new ChipPickup(700, 50, new DashChip()));
+	entityWorld.spawn(new ChipPickup(700, 0, new TeleportChip()));
+	entityWorld.spawn(new ChipPickup(700, 50, new DashChip()));
 
 	// Манекены для проверки урона
-	entities.push(new TrainingDummy(400, 0, 100));
-	entities.push(new TrainingDummy(400, 50, 50));
-	entities.push(new TrainingDummy(400, 100, 200));
+	entityWorld.spawn(new TrainingDummy(400, 0, 100));
+	entityWorld.spawn(new TrainingDummy(400, 50, 50));
+	entityWorld.spawn(new TrainingDummy(400, 100, 200));
 
 	// Тестовая катсцена (запускается через 2 секунды)
 	setTimeout(() => {

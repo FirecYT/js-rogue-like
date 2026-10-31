@@ -1,5 +1,6 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
+import type { EntityWorld } from '../core/EntityWorld';
 import type Entity from '../entities/Entity';
 
 /**
@@ -16,7 +17,7 @@ export class CleanupSystem implements ISystem {
 	 * @param getControlled - Функция для получения текущей управляемой сущности
 	 */
 	constructor(
-		private readonly entities: Entity[],
+		private readonly entityWorld: EntityWorld,
 		private readonly getControlled: () => Entity
 	) {}
 
@@ -26,14 +27,9 @@ export class CleanupSystem implements ISystem {
 	 */
 	update(): void {
 		const controlled = this.getControlled();
-		for (let i = this.entities.length - 1; i >= 0; i--) {
-			const entity = this.entities[i];
-			if (entity === controlled || entity.persistent) continue;
-
-			if (entity.isDead()) {
-				this.entities.splice(i, 1);
-			}
-		}
+		this.entityWorld.cleanupDead(
+			(entity) => entity === controlled || entity.persistent
+		);
 	}
 
 	/**

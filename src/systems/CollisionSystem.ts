@@ -1,6 +1,6 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
-import type Entity from '../entities/Entity';
+import type { EntityWorld } from '../core/EntityWorld';
 
 /**
  * Система коллизий между сущностями: отталкивание при слишком малой дистанции.
@@ -16,9 +16,9 @@ export class CollisionSystem implements ISystem {
 	private static readonly MIN_DISTANCE_SQ = CollisionSystem.MIN_DISTANCE * CollisionSystem.MIN_DISTANCE;
 
 	/**
-	 * @param entities - Массив всех сущностей в игре
+	 * @param entityWorld - Контейнер всех сущностей игры
 	 */
-	constructor(private readonly entities: Entity[]) {}
+	constructor(private readonly entityWorld: EntityWorld) {}
 
 	/**
 	 * Проверяет все пары сущностей и отталкивает их друг от друга,
@@ -26,14 +26,15 @@ export class CollisionSystem implements ISystem {
 	 * Использует O(n²) алгоритм, что приемлемо для малого количества сущностей.
 	 */
 	update(): void {
-		for (let i = 0; i < this.entities.length; i++) {
-			if (this.entities[i].isDead()) continue;
+		const entities = this.entityWorld.all;
+		for (let i = 0; i < entities.length; i++) {
+			if (entities[i].isDead()) continue;
 
-			for (let j = i + 1; j < this.entities.length; j++) {
-				if (this.entities[j].isDead()) continue;
+			for (let j = i + 1; j < entities.length; j++) {
+				if (entities[j].isDead()) continue;
 
-				const dx = this.entities[i].x - this.entities[j].x;
-				const dy = this.entities[i].y - this.entities[j].y;
+				const dx = entities[i].x - entities[j].x;
+				const dy = entities[i].y - entities[j].y;
 				const distSq = dx * dx + dy * dy;
 
 				// Если расстояние меньше минимального и не ноль (чтобы избежать деления на ноль)
@@ -42,11 +43,11 @@ export class CollisionSystem implements ISystem {
 					const force = CollisionSystem.MIN_DISTANCE / dist;
 
 					// Отталкиваем сущности в противоположные стороны
-					this.entities[i].x += (dx / dist) * force;
-					this.entities[i].y += (dy / dist) * force;
+					entities[i].x += (dx / dist) * force;
+					entities[i].y += (dy / dist) * force;
 
-					this.entities[j].x -= (dx / dist) * force;
-					this.entities[j].y -= (dy / dist) * force;
+					entities[j].x -= (dx / dist) * force;
+					entities[j].y -= (dy / dist) * force;
 				}
 			}
 		}

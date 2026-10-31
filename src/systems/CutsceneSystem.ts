@@ -1,6 +1,7 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
 import { eventBus } from '../events/EventBus';
+import type { Unsubscribe } from '../events/EventBus';
 import type { ScreenManager } from '../ui/ScreenManager';
 import type Engine from '../components/Engine';
 import { CutsceneWindow } from '../ui/windows/CutsceneWindow';
@@ -14,8 +15,13 @@ import { InputAction } from '../input/InputAction';
 export class CutsceneSystem implements ISystem {
 	public readonly phase = UpdatePhase.UI;
 	public enabled = true;
+	/** Катсцена сама является окном-паузой: её обработка ввода должна жить во время паузы. */
+	public readonly runsWhilePaused = true;
 
 	private activeWindow: CutsceneWindow | null = null;
+
+	/** Функция отписки от шины событий (вызывается в dispose). */
+	private unsubscribe: Unsubscribe | null = null;
 
 	/**
 	 * @param screenManager - Менеджер экранов для открытия/закрытия окон
@@ -34,7 +40,7 @@ export class CutsceneSystem implements ISystem {
 	 * Подписывается на cutsceneStart и создаёт CutsceneWindow.
 	 */
 	private setupEventListeners(): void {
-		eventBus.on('cutsceneStart', ({ lines }) => {
+		this.unsubscribe = eventBus.on('cutsceneStart', ({ lines }) => {
 			this.startCutscene(lines);
 		});
 	}
@@ -75,9 +81,11 @@ export class CutsceneSystem implements ISystem {
 	}
 
 	/**
-	 * Освобождение ресурсов.
+	 * Освобождение ресурсов: отписка от событий и закрытие активного окна.
 	 */
 	dispose(): void {
+		this.unsubscribe?.();
+		this.unsubscribe = null;
 		if (this.activeWindow) {
 			this.screenManager.closeWindow(this.activeWindow);
 			this.activeWindow = null;

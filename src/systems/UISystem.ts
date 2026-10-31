@@ -4,6 +4,7 @@ import type { InputMapper } from '../input/InputMapper';
 import { InputAction } from '../input/InputAction';
 import type { ScreenManager } from '../ui/ScreenManager';
 import type Engine from '../components/Engine';
+import type { EntityWorld } from '../core/EntityWorld';
 import { InventoryWindow } from '../ui/windows/InventoryWindow';
 import type { PickupItem } from '../entities/PickupItem';
 import FloatingText from '../components/FloatingText';
@@ -20,7 +21,7 @@ export class UISystem implements ISystem {
 
 	/**
 	 * @param getControlled - Функция для получения текущей управляемой сущности
-	 * @param entities - Массив всех сущностей для добавления выброшенных предметов
+	 * @param entityWorld - Контейнер сущностей для добавления выброшенных предметов
 	 * @param input - Маппер действий для проверки нажатий клавиш
 	 * @param screenManager - Менеджер экранов для открытия/закрытия окон
 	 * @param engine - Движок для изменения размеров канваса и фуллскрина
@@ -28,7 +29,7 @@ export class UISystem implements ISystem {
 	 */
 	constructor(
 		private readonly getControlled: () => Entity,
-		private readonly entities: Entity[],
+		private readonly entityWorld: EntityWorld,
 		private readonly input: InputMapper,
 		private readonly screenManager: ScreenManager,
 		private readonly engine: Engine,
@@ -64,7 +65,7 @@ export class UISystem implements ISystem {
 			});
 
 			invWin.setOnItemDropped((pickupItem: PickupItem) => {
-				this.entities.push(pickupItem);
+				this.entityWorld.spawn(pickupItem);
 				const text = new FloatingText(
 					controlled.x,
 					controlled.y - 20,

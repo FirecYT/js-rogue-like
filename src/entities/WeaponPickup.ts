@@ -1,5 +1,4 @@
 import { PickupItem } from './PickupItem';
-import Entity from './Entity';
 
 /**
  * Подбираемое оружие: отображается красным кругом с «W».
@@ -21,12 +20,4 @@ export class WeaponPickup extends PickupItem {
 		ctx.fillText('W', this.x, this.y);
 	}
 
-	/**
-	 * @param entity - Сущность, подобравшая предмет
-	 * @returns true (подбор обрабатывается через UI выбора слота)
-	 */
-	onPickup(entity: Entity): boolean {
-		void entity;
-		return true;
-	}
 }

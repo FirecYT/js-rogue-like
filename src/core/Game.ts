@@ -1,51 +1,41 @@
-import type Engine from '../components/Engine';
-import type { Camera } from '../components/Camera';
-import type { WorldService } from '../services/WorldService';
-import type { ChunkViewManager } from '@firec/map-module';
-import type { SystemManager } from '../services/SystemManager';
-import type { ScreenManager } from '../ui/ScreenManager';
-import type { ControlSwitchSystem } from '../systems/ControlSwitchSystem';
+import type { GameContext } from './GameContext';
 import type Entity from '../entities/Entity';
-import type MouseInput from '../components/MouseInput';
 import { Crosshair } from '../ui/components/Crosshair';
 import Keyboard from '../components/Keyboard';
 
 /**
- * Главный класс игры: оркестрирует системы и управляет жизненным циклом.
- * Следует SRP: сам не содержит игровой логики, только связывает компоненты.
+ * Главный класс игры: игровой цикл с фиксированным шагом и оркестрация
+ * обновления/отрисовки. Сам не содержит игровой логики — только связывает
+ * компоненты из GameContext.
+ *
+ * Логика обновляется фиксированными тиками 60 Гц (все игровые таймеры — в тиках),
+ * отрисовка — каждый кадр requestAnimationFrame. Это гарантирует одинаковую
+ * скорость игры на мониторах с любой частотой обновления.
  */
 export class Game {
-	private running = false;
-	/** Текущий масштаб рендеринга (изменяется колесом мыши), worldScale = 2 ** scale. */
-	private scale = 0;
+	/** Длительность одного логического тика, мс (60 Гц). */
+	private static readonly TICK_MS = 1000 / 60;
+	/**
+	 * Максимальное время, «доигрываемое» за один кадр (защита от спирали смерти
+	 * после приостановки вкладки: не пытаемся симулировать больше ~15 тиков).
+	 */
+	private static readonly MAX_CATCHUP_MS = 250;
 
+	private running = false;
+	private lastTime = 0;
+	private accumulator = 0;
+
+	/** Текущий показатель масштаба рендеринга (worldScale = 2 ** scale). */
+	private scale = 0;
 	/** Минимальный показатель масштаба (2^-1 = 0.5x). */
 	private static readonly MIN_SCALE = -1;
 	/** Максимальный показатель масштаба (2^2 = 4x). */
 	private static readonly MAX_SCALE = 2;
 
 	/**
-	 * @param engine - Движок игры
-	 * @param camera - Камера для следования за игроком
-	 * @param worldService - Сервис мира для обновления чанков
-	 * @param viewManager - Менеджер рендеринга чанков
-	 * @param systemManager - Менеджер систем для обновления и отрисовки всех систем
-	 * @param screenManager - Менеджер экранов для UI
-	 * @param controlSwitch - Система переключения управления
-	 * @param entities - Массив всех сущностей для рендеринга
-	 * @param mouse - Состояние мыши для прицела и прокрутки
+	 * @param ctx - Контекст игры со всеми сервисами
 	 */
-	constructor(
-		private readonly engine: Engine,
-		private readonly camera: Camera,
-		private readonly worldService: WorldService,
-		private readonly viewManager: ChunkViewManager,
-		private readonly systemManager: SystemManager,
-		private readonly screenManager: ScreenManager,
-		private readonly controlSwitch: ControlSwitchSystem,
-		private readonly entities: Entity[],
-		private readonly mouse: MouseInput
-	) {}
+	constructor(private readonly ctx: GameContext) {}
 
 	/**
 	 * Запускает игровой цикл.
@@ -53,8 +43,9 @@ export class Game {
 	start(): void {
 		if (this.running) return;
 		// Камера стартует ровно на управляемой сущности, без «долёта» из (0, 0)
-		this.camera.snapTo(this.controlSwitch.getCurrentControlled());
+		this.ctx.camera.snapTo(this.ctx.controlSwitch.getCurrentControlled());
 		this.running = true;
+		this.lastTime = performance.now();
 		requestAnimationFrame(this.tick);
 	}
 
@@ -70,75 +61,91 @@ export class Game {
 	 */
 	dispose(): void {
 		this.stop();
-		this.systemManager.dispose();
+		this.ctx.systemManager.dispose();
+		this.ctx.engine.dispose();
 	}
 
 	/**
-	 * Один кадр игрового цикла: update и render.
+	 * Кадр игрового цикла: накопление времени, фиксированные тики update, render.
+	 * @param now - Timestamp из requestAnimationFrame
 	 */
-	private tick = (): void => {
+	private tick = (now: number): void => {
 		if (!this.running) return;
-		this.update();
+
+		this.accumulator += Math.min(now - this.lastTime, Game.MAX_CATCHUP_MS);
+		this.lastTime = now;
+
+		while (this.accumulator >= Game.TICK_MS) {
+			this.update();
+			this.accumulator -= Game.TICK_MS;
+		}
+
 		this.render();
 		requestAnimationFrame(this.tick);
 	};
 
 	/**
-	 * Обновление: камера, мир, зум, системы (если не на паузе), UI, ввод.
+	 * Один логический тик: камера, мир, зум, системы (если не на паузе), UI, ввод.
 	 */
 	private update(): void {
-		const controlled = this.controlSwitch.getCurrentControlled();
+		const { camera, mouse, worldService, screenManager, systemManager, controlSwitch } =
+			this.ctx;
+		const controlled = controlSwitch.getCurrentControlled();
 
-		this.camera.update();
-		this.camera.follow(controlled);
-		this.worldService.update(controlled.x, controlled.y);
+		camera.update();
+		camera.follow(controlled);
+		worldService.update(controlled.x, controlled.y);
 
 		// Обработка прокрутки колеса мыши для зума (с ограничением диапазона)
-		if (this.mouse.wheelDelta !== 0) {
+		if (mouse.wheelDelta !== 0) {
 			this.scale = Math.min(
 				Game.MAX_SCALE,
-				Math.max(Game.MIN_SCALE, this.scale - this.mouse.wheelDelta)
+				Math.max(Game.MIN_SCALE, this.scale - mouse.wheelDelta)
 			);
 		}
-		this.mouse.update();
+		mouse.update();
 
-		if (!this.screenManager.isGamePaused()) {
-			this.systemManager.update();
+		if (screenManager.isGamePaused()) {
+			systemManager.updateWhilePaused();
+		} else {
+			systemManager.update();
 		}
 
-		this.screenManager.update();
+		screenManager.update();
 		Keyboard.getInstance().update();
 	}
 
 	/**
-	 * Рендеринг: фон, мир, прицел, сущности, эффекты и всплывающие тексты, UI.
+	 * Отрисовка кадра: фон, мир, прицел, сущности, эффекты и тексты, UI.
 	 */
 	private render(): void {
-		const controlled = this.controlSwitch.getCurrentControlled();
-		const ctx = this.engine.context;
+		const { engine, camera, worldService, chunkView, systemManager, screenManager, controlSwitch, entityWorld } =
+			this.ctx;
+		const ctx = engine.context;
+		const controlled = controlSwitch.getCurrentControlled();
+		const worldScale = 2 ** this.scale;
 
-		this.engine.clear();
+		engine.clear();
 		ctx.fillStyle = '#222';
-		ctx.fillRect(0, 0, this.engine.canvas.width, this.engine.canvas.height);
+		ctx.fillRect(0, 0, engine.canvas.width, engine.canvas.height);
 
-		const chunks = this.worldService.getLoadedChunks();
-		this.viewManager.render(
-			chunks,
+		chunkView.render(
+			worldService.getLoadedChunks(),
 			ctx,
-			this.camera.x,
-			this.camera.y,
-			this.engine.canvas.width,
-			this.engine.canvas.height,
-			2 ** this.scale
+			camera.x,
+			camera.y,
+			engine.canvas.width,
+			engine.canvas.height,
+			worldScale
 		);
 
 		ctx.save();
 		ctx.translate(
-			Math.floor(this.engine.canvas.width / 2),
-			Math.floor(this.engine.canvas.height / 2)
+			Math.floor(engine.canvas.width / 2),
+			Math.floor(engine.canvas.height / 2)
 		);
-		ctx.scale(2 ** this.scale, 2 ** this.scale);
-		const { offsetX, offsetY } = this.camera.getOffset();
+		ctx.scale(worldScale, worldScale);
+		const { offsetX, offsetY } = camera.getOffset();
 		ctx.translate(offsetX, offsetY);
 
 		if (!controlled.isDead()) {
@@ -146,26 +153,28 @@ export class Game {
 			Crosshair.render(ctx, controlled.x, controlled.y, mouseWorld.x, mouseWorld.y);
 		}
 
-		this.entities.forEach((entity: Entity) => {
+		for (const entity of entityWorld.all) {
 			if (!entity.isDead()) {
 				entity.render(ctx);
 			}
-		});
+		}
 
 		// Эффекты и всплывающие тексты рисуются поверх сущностей
-		this.systemManager.render(ctx);
+		systemManager.render(ctx);
 
 		ctx.restore();
-		this.screenManager.render();
+		screenManager.render();
 	}
 
 	/**
 	 * Возвращает мировые координаты курсора мыши.
+	 * TODO(этап 2): учесть зум и lag камеры — сейчас предполагается scale=1
+	 * и что управляемая сущность находится точно в центре экрана.
 	 */
 	private getMousePosition(controlled: Entity): { x: number; y: number } {
 		return {
-			x: this.mouse.x + controlled.x - this.engine.canvas.width / 2,
-			y: this.mouse.y + controlled.y - this.engine.canvas.height / 2,
+			x: this.ctx.mouse.x + controlled.x - this.ctx.engine.canvas.width / 2,
+			y: this.ctx.mouse.y + controlled.y - this.ctx.engine.canvas.height / 2,
 		};
 	}
 }

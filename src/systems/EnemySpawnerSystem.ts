@@ -1,6 +1,7 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
 import type Entity from '../entities/Entity';
+import type { EntityWorld } from '../core/EntityWorld';
 import type { WorldService } from '../services/WorldService';
 import type { Pathfinder } from '../services/Pathfinder';
 import Enemy from '../entities/Enemy';
@@ -24,13 +25,13 @@ export class EnemySpawnerSystem implements ISystem {
 
 	/**
 	 * @param player - Игрок, вокруг которого спавнятся враги
-	 * @param entities - Массив всех сущностей для добавления новых врагов
+	 * @param entityWorld - Контейнер сущностей для добавления новых врагов
 	 * @param world - Сервис мира для проверки проходимости позиций спавна
 	 * @param pathfinder - Система поиска пути для AiController
 	 */
 	constructor(
 		private readonly player: Entity,
-		private readonly entities: Entity[],
+		private readonly entityWorld: EntityWorld,
 		private readonly world: WorldService,
 		private readonly pathfinder: Pathfinder
 	) {}
@@ -57,8 +58,7 @@ export class EnemySpawnerSystem implements ISystem {
 		if (!this.world.isPassable(x, y)) return;
 
 		// Создаём врага (контроллер назначается в конструкторе Enemy)
-		const enemy = new Enemy(x, y, this.player, this.pathfinder);
-		this.entities.push(enemy);
+		this.entityWorld.spawn(new Enemy(x, y, this.player, this.pathfinder));
 	}
 
 	/**

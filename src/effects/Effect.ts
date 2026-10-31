@@ -22,10 +22,10 @@ export abstract class Effect {
 
 	/**
 	 * Обновление эффекта за один кадр (движение, проверка попаданий и т.д.).
-	 * @param entities - Список сущностей для проверки столкновений
+	 * @param entities - Список сущностей (read-only) для проверки столкновений
 	 * @param world - Сервис мира для проверки коллизий с тайлами
 	 */
-	abstract update(entities: Entity[], world?: WorldService): void;
+	abstract update(entities: readonly Entity[], world?: WorldService): void;
 
 	/**
 	 * Отрисовка эффекта на канвасе.

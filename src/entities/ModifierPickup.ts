@@ -1,5 +1,4 @@
 import { PickupItem } from './PickupItem';
-import Entity from './Entity';
 
 /**
  * Подбираемый модификатор: отображается зелёным кругом с «M».
@@ -25,8 +24,4 @@ export class ModifierPickup extends PickupItem {
 	 * @param entity - Сущность, подобравшая предмет
 	 * @returns true
 	 */
-	onPickup(entity: Entity): boolean {
-		void entity;
-		return true;
-	}
 }

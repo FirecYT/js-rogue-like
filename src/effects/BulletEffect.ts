@@ -33,7 +33,7 @@ export class BulletEffect extends Effect {
 	 * @param entities - Список сущностей
 	 * @param world - Сервис мира для проверки коллизий с тайлами
 	 */
-	update(entities: Entity[], world?: WorldService): void {
+	update(entities: readonly Entity[], world?: WorldService): void {
 		this.x += Math.cos(this.angle) * this.speed;
 		this.y += Math.sin(this.angle) * this.speed;
 		this.lifetime--;

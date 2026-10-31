@@ -1,6 +1,6 @@
 import { Window } from '../Window';
 import { PickupItem } from '../../entities/PickupItem';
-import Entity from '../../entities/Entity';
+import type Entity from '../../entities/Entity';
 import { Button } from '../components/Button';
 import { Label } from '../components/Label';
 import { ItemSlot } from '../components/ItemSlot';
@@ -17,7 +17,6 @@ import { HorizontalLayout } from '../containers/HorizontalLayout';
 export class PickupWindow extends Window {
 	private pickupItem: PickupItem;
 	private entity: Entity;
-	private entities: Entity[];
 	private onConfirmCallback: ((slotIndex: number) => void) | null = null;
 	private onCancelCallback: (() => void) | null = null;
 	private slots: ItemSlot[] = [];
@@ -26,14 +25,12 @@ export class PickupWindow extends Window {
 	 * Создать окно подбора предмета
 	 * @param pickupItem Подбираемый предмет
 	 * @param entity Управляемая сущность
-	 * @param entities Массив всех сущностей
 	 * @param canvasWidth Ширина канваса
 	 * @param canvasHeight Высота канваса
 	 */
 	constructor(
 		pickupItem: PickupItem,
 		entity: Entity,
-		entities: Entity[],
 		canvasWidth: number,
 		canvasHeight: number
 	) {
@@ -41,7 +38,6 @@ export class PickupWindow extends Window {
 
 		this.pickupItem = pickupItem;
 		this.entity = entity;
-		this.entities = entities;
 
 		this.x = (canvasWidth - 400) / 2;
 		this.y = (canvasHeight - 300) / 2;

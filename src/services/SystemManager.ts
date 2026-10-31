@@ -31,6 +31,18 @@ export class SystemManager implements IUpdatable, IDisposable {
 	}
 
 	/**
+	 * Обновляет только системы, помеченные runsWhilePaused
+	 * (обработка ввода окон во время паузы).
+	 */
+	updateWhilePaused(): void {
+		for (const system of this.systems) {
+			if (system.enabled && system.runsWhilePaused) {
+				system.update();
+			}
+		}
+	}
+
+	/**
 	 * Отрисовывает все включённые системы, реализующие IRenderable (в порядке фаз).
 	 * @param ctx - Контекст канваса (уже в мировых координатах)
 	 */

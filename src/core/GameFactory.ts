@@ -2,6 +2,7 @@ import Engine from '../components/Engine';
 import MouseInput from '../components/MouseInput';
 import { Camera } from '../components/Camera';
 import { InputMapper } from '../input/InputMapper';
+import { EntityWorld } from './EntityWorld';
 import { WorldService } from '../services/WorldService';
 import { Pathfinder } from '../services/Pathfinder';
 import { SystemManager } from '../services/SystemManager';
@@ -15,13 +16,12 @@ import { EnemySpawnerSystem } from '../systems/EnemySpawnerSystem';
 import { UISystem } from '../systems/UISystem';
 import { ProgressionSystem } from '../systems/ProgressionSystem';
 import { CutsceneSystem } from '../systems/CutsceneSystem';
-import { ControlSwitchSystem } from '../systems/ControlSwitchSystem';
+import { ControlSwitchService } from '../services/ControlSwitchService';
 import { RebirthSystem } from '../systems/RebirthSystem';
 import { PlayerProgression } from '../systems/PlayerProgression';
 import { ScreenManager } from '../ui/ScreenManager';
 import { PlayerController } from '../controllers/PlayerController';
 import Player from '../Player';
-import Entity from '../entities/Entity';
 import { PistolWeapon } from '../items/weapons/PistolWeapon';
 import {
 	isPlaygroundEnabled,
@@ -37,12 +37,13 @@ import {
 import type { TileVisualProvider, TileVisualContext, TileVisual, WorldOptions } from '@firec/map-module';
 import { TILE_DEFS, TILES } from '../map/Types';
 import { RuinsGenerator } from '../map/generation/RuinsGenerator';
-import { Game } from './Game';
 import { VoidGenerator } from '../map/generation/VoidGenerator';
+import { Game } from './Game';
+import type { GameContext } from './GameContext';
 
 /**
  * Фабрика для создания экземпляра игры со всеми зависимостями.
- * Централизует создание и настройку всех компонентов (DI-контейнер).
+ * Централизует создание и настройку всех компонентов (composition root).
  */
 export class GameFactory {
 	/**
@@ -73,11 +74,11 @@ export class GameFactory {
 			'images/walls.png',
 		]);
 
-		// 3. Создание мира
+		// 3. Создание мира (тайловая карта)
 		const world = this.createWorld({
 			config: {
-				loadRadius: 8
-			}
+				loadRadius: 8,
+			},
 		});
 		const visuals = this.createVisuals(world, engine);
 		const renderer = new CanvasChunkRenderer({
@@ -86,7 +87,7 @@ export class GameFactory {
 			visuals: visuals,
 			useCache: true,
 		});
-		const viewManager = new ChunkViewManager({
+		const chunkView = new ChunkViewManager({
 			worldConfig: world.config,
 			renderer,
 			lodManager: new LODManager(),
@@ -95,111 +96,87 @@ export class GameFactory {
 		// 4. Сервисы
 		const worldService = new WorldService(world);
 		const pathfinder = new Pathfinder(worldService);
-
-		// 5. Системы и сущности
 		const systemManager = new SystemManager();
-		const floatingTextSystem = new FloatingTextSystem();
-		const playerProgression = new PlayerProgression();
-		const entities: Entity[] = [];
+		const entityWorld = new EntityWorld();
 
-		// 6. Игрок
+		// 5. Игрок (спавн в центре стартового чанка)
 		const player = new Player(
-			worldService.config.chunkSize * worldService.config.tileSize / 2,
-			worldService.config.chunkSize * worldService.config.tileSize / 2
+			(worldService.config.chunkSize * worldService.config.tileSize) / 2,
+			(worldService.config.chunkSize * worldService.config.tileSize) / 2
 		);
-		
 		const playerController = new PlayerController(mouse, input);
 		player.controller = playerController;
-		entities.push(player);
+		player.inventory.setWeapon(new PistolWeapon());
+		entityWorld.spawn(player);
 
-		// 7. Управление
-		const controlSwitchSystem = new ControlSwitchSystem(player, playerController);
-		new RebirthSystem(entities, controlSwitchSystem);
-
-		// 8. UI
+		// 6. Управление и UI
+		const controlSwitch = new ControlSwitchService(player, playerController);
 		const screenManager = new ScreenManager(
 			engine,
 			mouse,
-			() => controlSwitchSystem.getCurrentControlled()
+			() => controlSwitch.getCurrentControlled()
 		);
+		const floatingTextSystem = new FloatingTextSystem();
+		const playerProgression = new PlayerProgression();
 
-		// 9. Создание систем
-		const movementSystem = new MovementSystem(entities, worldService);
-		const collisionSystem = new CollisionSystem(entities);
-		const cleanupSystem = new CleanupSystem(
-			entities,
-			() => controlSwitchSystem.getCurrentControlled()
-		);
-		const effectSystem = new EffectSystem(entities, worldService);
+		const getControlled = () => controlSwitch.getCurrentControlled();
+
+		// 7. Системы
 		const pickupSystem = new PickupSystem(
-			entities,
-			() => controlSwitchSystem.getCurrentControlled(),
+			entityWorld,
+			getControlled,
 			input,
 			screenManager,
 			engine
 		);
-		const enemySpawnerSystem = new EnemySpawnerSystem(
-			player,
-			entities,
-			worldService,
-			pathfinder
-		);
-		const uiSystem = new UISystem(
-			() => controlSwitchSystem.getCurrentControlled(),
-			entities,
-			input,
-			screenManager,
-			engine,
-			floatingTextSystem
-		);
-		const progressionSystem = new ProgressionSystem(
-			() => controlSwitchSystem.getCurrentControlled(),
-			playerProgression,
-			screenManager,
-			engine,
-			floatingTextSystem
-		);
-		const cutsceneSystem = new CutsceneSystem(screenManager, engine, input);
 
-		// 10. Регистрация систем
-		systemManager.register(movementSystem);
-		systemManager.register(collisionSystem);
+		systemManager.register(new MovementSystem(entityWorld, worldService));
+		systemManager.register(new CollisionSystem(entityWorld));
+		systemManager.register(new RebirthSystem(entityWorld, controlSwitch));
 		systemManager.register(floatingTextSystem);
-		systemManager.register(cleanupSystem);
-		systemManager.register(effectSystem);
+		systemManager.register(new EffectSystem(entityWorld, worldService));
+		systemManager.register(new CleanupSystem(entityWorld, getControlled));
 		systemManager.register(pickupSystem);
-		systemManager.register(enemySpawnerSystem);
-		systemManager.register(uiSystem);
-		systemManager.register(progressionSystem);
-		systemManager.register(cutsceneSystem);
+		systemManager.register(
+			new EnemySpawnerSystem(player, entityWorld, worldService, pathfinder)
+		);
+		systemManager.register(
+			new UISystem(getControlled, entityWorld, input, screenManager, engine, floatingTextSystem)
+		);
+		systemManager.register(
+			new ProgressionSystem(getControlled, playerProgression, screenManager, engine, floatingTextSystem)
+		);
+		systemManager.register(new CutsceneSystem(screenManager, engine, input));
 
-		// 11. Настройка HUD
+		// 8. Настройка HUD
 		screenManager.getHud().setPlayerProgression(playerProgression);
 		screenManager.getHud().setPickupInRangeGetter(() => pickupSystem.getPickupInRange());
 
-		// 12. Начальное оружие игрока
-		player.inventory.setWeapon(new PistolWeapon());
-
-		// 13. Отладочный полигон (только при ?playground в URL)
+		// 9. Отладочный полигон (только при ?playground в URL)
 		if (isPlaygroundEnabled()) {
-			populatePlayground(entities, player);
+			populatePlayground(entityWorld, player);
 		}
 
-		return new Game(
+		// 10. Контекст игры
+		const ctx: GameContext = {
 			engine,
 			camera,
+			mouse,
+			input,
+			entityWorld,
 			worldService,
-			viewManager,
+			pathfinder,
 			systemManager,
 			screenManager,
-			controlSwitchSystem,
-			entities,
-			mouse
-		);
+			controlSwitch,
+			chunkView,
+		};
+
+		return new Game(ctx);
 	}
 
 	/**
-	 * Создаёт мир с зарегистрированными тайлами и генератором.
+	 * Создаёт мир с зарегистрированными тайлами и генераторами.
 	 */
 	private static createWorld(options?: WorldOptions): World {
 		const world = new World(options);

@@ -3,7 +3,9 @@ import { UpdatePhase } from '../core/interfaces';
 import type { Effect } from '../effects/Effect';
 import type Entity from '../entities/Entity';
 import type { WorldService } from '../services/WorldService';
+import type { EntityWorld } from '../core/EntityWorld';
 import { eventBus } from '../events/EventBus';
+import type { Unsubscribe } from '../events/EventBus';
 import { BulletEffect } from '../effects/BulletEffect';
 import { LaserBeam } from '../effects/LaserBeam';
 import { FireZone } from '../effects/FireZone';
@@ -31,6 +33,9 @@ export class EffectSystem implements ISystem, IRenderable {
 
 	private effects: Effect[] = [];
 
+	/** Функция отписки от шины событий (вызывается в dispose). */
+	private unsubscribe: Unsubscribe | null = null;
+
 	/**
 	 * Реестр фабрик эффектов по ID оружия.
 	 * Позволяет оружию регистрировать свои типы эффектов (OCP).
@@ -38,11 +43,11 @@ export class EffectSystem implements ISystem, IRenderable {
 	private effectFactories = new Map<string, EffectFactoryFn>();
 
 	/**
-	 * @param entities - Массив всех сущностей для проверки попаданий
+	 * @param entityWorld - Контейнер сущностей для проверки попаданий
 	 * @param world - Сервис мира для проверки коллизий эффектов с тайлами
 	 */
 	constructor(
-		private readonly entities: Entity[],
+		private readonly entityWorld: EntityWorld,
 		private readonly world: WorldService
 	) {
 		this.setupEventListeners();
@@ -81,7 +86,7 @@ export class EffectSystem implements ISystem, IRenderable {
 	 * Подписывается на событие weaponFired и создаёт эффекты на основе типа оружия.
 	 */
 	private setupEventListeners(): void {
-		eventBus.on('weaponFired', ({ source, angle, weapon }) => {
+		this.unsubscribe = eventBus.on('weaponFired', ({ source, angle, weapon }) => {
 			this.createEffects(source, angle, weapon);
 		});
 	}
@@ -154,8 +159,9 @@ export class EffectSystem implements ISystem, IRenderable {
 	 * Обновляет все эффекты и удаляет завершившиеся.
 	 */
 	update(): void {
+		const entities = this.entityWorld.all;
 		for (let i = this.effects.length - 1; i >= 0; i--) {
-			this.effects[i].update(this.entities, this.world);
+			this.effects[i].update(entities, this.world);
 			if (this.effects[i].isDead()) {
 				this.effects[i].onDeath?.();
 				this.effects.splice(i, 1);
@@ -188,9 +194,11 @@ export class EffectSystem implements ISystem, IRenderable {
 	}
 
 	/**
-	 * Освобождение ресурсов.
+	 * Освобождение ресурсов: отписка от событий и удаление всех эффектов.
 	 */
 	dispose(): void {
+		this.unsubscribe?.();
+		this.unsubscribe = null;
 		this.clear();
 	}
 }

@@ -1,5 +1,6 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
+import type { EntityWorld } from '../core/EntityWorld';
 import type Entity from '../entities/Entity';
 import type { InputMapper } from '../input/InputMapper';
 import { InputAction } from '../input/InputAction';
@@ -27,14 +28,14 @@ export class PickupSystem implements ISystem {
 	private pickupInRange: PickupItem | null = null;
 
 	/**
-	 * @param entities - Массив всех сущностей в игре
+	 * @param entityWorld - Контейнер всех сущностей игры
 	 * @param getControlled - Функция для получения текущей управляемой сущности
 	 * @param input - Маппер действий для проверки нажатия клавиши взаимодействия
 	 * @param screenManager - Менеджер экранов для открытия окон
 	 * @param engine - Движок для получения размеров канваса
 	 */
 	constructor(
-		private readonly entities: Entity[],
+		private readonly entityWorld: EntityWorld,
 		private readonly getControlled: () => Entity,
 		private readonly input: InputMapper,
 		private readonly screenManager: ScreenManager,
@@ -55,8 +56,7 @@ export class PickupSystem implements ISystem {
 		this.pickupInRange = null;
 		const controlled = this.getControlled();
 
-		for (let i = 0; i < this.entities.length; i++) {
-			const entity = this.entities[i];
+		for (const entity of this.entityWorld.all) {
 			if (!(entity instanceof PickupItem) || entity.isDead()) continue;
 
 			const dx = controlled.x - entity.x;
@@ -65,7 +65,7 @@ export class PickupSystem implements ISystem {
 
 			if (distance < PickupSystem.PICKUP_RANGE) {
 				if (this.input.isPressed(InputAction.Interact)) {
-					this.handlePickup(entity, controlled, i);
+					this.handlePickup(entity, controlled);
 				} else {
 					this.pickupInRange = entity;
 				}
@@ -79,17 +79,11 @@ export class PickupSystem implements ISystem {
 	 * Пикап удаляется только после подтверждения выбора.
 	 * @param pickup - Подбираемый предмет
 	 * @param controlled - Управляемая сущность (обычно игрок)
-	 * @param index - Индекс пикапа в массиве entities
 	 */
-	private handlePickup(
-		pickup: PickupItem,
-		controlled: Entity,
-		_index: number
-	): void {
+	private handlePickup(pickup: PickupItem, controlled: Entity): void {
 		const pickupWin = new PickupWindow(
 			pickup,
 			controlled,
-			this.entities,
 			this.engine.canvas.width,
 			this.engine.canvas.height
 		);
@@ -122,13 +116,13 @@ export class PickupSystem implements ISystem {
 				controlled.inventory.modifiers = newModifiers;
 
 				if (oldWeapon) {
-					this.entities.push(
+					this.entityWorld.spawn(
 						createPickupFromItem(oldWeapon, controlled.x, controlled.y)
 					);
 				}
 				for (const mod of droppedModifiers) {
 					mod.onUnequip?.(controlled);
-					this.entities.push(
+					this.entityWorld.spawn(
 						createPickupFromItem(
 							mod,
 							controlled.x + (Math.random() - 0.5) * 40,
@@ -140,7 +134,7 @@ export class PickupSystem implements ISystem {
 				const oldMod = controlled.inventory.modifiers[slotIndex];
 				if (oldMod) {
 					oldMod.onUnequip?.(controlled);
-					this.entities.push(
+					this.entityWorld.spawn(
 						createPickupFromItem(oldMod, controlled.x, controlled.y)
 					);
 				}
@@ -149,7 +143,7 @@ export class PickupSystem implements ISystem {
 			} else if (isChip(item)) {
 				const oldChip = controlled.inventory.chips[slotIndex];
 				if (oldChip) {
-					this.entities.push(
+					this.entityWorld.spawn(
 						createPickupFromItem(oldChip, controlled.x, controlled.y)
 					);
 				}
@@ -158,11 +152,7 @@ export class PickupSystem implements ISystem {
 			}
 
 			// Удаляем пикап из мира ТОЛЬКО после подтверждения
-			pickup.onPickup(controlled);
-			const currentIndex = this.entities.indexOf(pickup);
-			if (currentIndex !== -1) {
-				this.entities.splice(currentIndex, 1);
-			}
+			this.entityWorld.remove(pickup);
 
 			this.screenManager.closeWindow(pickupWin);
 		});

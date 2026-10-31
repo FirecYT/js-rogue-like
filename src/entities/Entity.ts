@@ -29,15 +29,16 @@ export default abstract class Entity extends GameObject {
 	}
 
 	/**
-	 * Наносит урон сущности; при смерти испускает enemyKilled (если есть атакующий) и entityDied.
+	 * Наносит урон сущности; при смерти испускает entityKilled (если есть атакующий) и entityDied.
 	 * @param damage - Количество урона
 	 * @param attacker - Сущность, нанёсшая урон (опционально)
 	 */
 	takeDamage(damage: number, attacker?: Entity): void {
+		if (this.isDead()) return;
 		this.hp -= damage;
 		if (this.hp <= 0) {
 			if (attacker) {
-				eventBus.emit('enemyKilled', {
+				eventBus.emit('entityKilled', {
 					killer: attacker,
 					victim: this,
 				});

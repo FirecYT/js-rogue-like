@@ -1,6 +1,7 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
 import { eventBus } from '../events/EventBus';
+import type { Unsubscribe } from '../events/EventBus';
 import type { PlayerProgression } from './PlayerProgression';
 import type { ScreenManager } from '../ui/ScreenManager';
 import type Engine from '../components/Engine';
@@ -17,6 +18,9 @@ import Enemy from '../entities/Enemy';
 export class ProgressionSystem implements ISystem {
 	public readonly phase = UpdatePhase.UI;
 	public enabled = true;
+
+	/** Функция отписки от шины событий (вызывается в dispose). */
+	private unsubscribe: Unsubscribe | null = null;
 
 	/**
 	 * @param getControlled - Функция для получения текущей управляемой сущности
@@ -36,10 +40,10 @@ export class ProgressionSystem implements ISystem {
 	}
 
 	/**
-	 * Подписывается на событие enemyKilled и добавляет опыт игроку.
+	 * Подписывается на событие entityKilled и добавляет опыт игроку.
 	 */
 	private setupEventListeners(): void {
-		eventBus.on('enemyKilled', ({ killer, victim }) => {
+		this.unsubscribe = eventBus.on('entityKilled', ({ killer, victim }) => {
 			const controlled = this.getControlled();
 			if (killer !== controlled) return;
 
@@ -96,9 +100,10 @@ export class ProgressionSystem implements ISystem {
 	}
 
 	/**
-	 * Освобождение ресурсов (не требуется для этой системы).
+	 * Освобождение ресурсов: отписка от шины событий.
 	 */
 	dispose(): void {
-		// Nothing to dispose
+		this.unsubscribe?.();
+		this.unsubscribe = null;
 	}
 }

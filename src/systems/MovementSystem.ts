@@ -1,6 +1,6 @@
 import type { ISystem } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
-import type Entity from '../entities/Entity';
+import type { EntityWorld } from '../core/EntityWorld';
 import type { WorldService } from '../services/WorldService';
 import { isControllable } from '../types/EntityTraits';
 
@@ -13,11 +13,11 @@ export class MovementSystem implements ISystem {
 	public enabled = true;
 
 	/**
-	 * @param entities - Массив всех сущностей в игре
+	 * @param entityWorld - Контейнер всех сущностей игры
 	 * @param world - Сервис мира для передачи в контроллеры
 	 */
 	constructor(
-		private readonly entities: Entity[],
+		private readonly entityWorld: EntityWorld,
 		private readonly world: WorldService
 	) {}
 
@@ -26,7 +26,7 @@ export class MovementSystem implements ISystem {
 	 * Пропускает мёртвые сущности.
 	 */
 	update(): void {
-		for (const entity of this.entities) {
+		for (const entity of this.entityWorld.all) {
 			if (entity.isDead()) continue;
 
 			// Обновляем контроллер, если сущность управляема

@@ -34,13 +34,6 @@ export abstract class PickupItem extends Entity {
 	}
 
 	/**
-	 * Вызывается при подборе предмета сущностью (открытие UI выбора слота и т.д.).
-	 * @param entity - Сущность, подобравшая предмет
-	 * @returns true, если подбор обработан
-	 */
-	abstract onPickup(entity: Entity): boolean;
-
-	/**
 	 * Подбираемые предметы не получают урон.
 	 */
 	takeDamage(_damage: number, _attacker?: Entity): void {

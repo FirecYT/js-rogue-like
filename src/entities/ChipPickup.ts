@@ -1,5 +1,4 @@
 import { PickupItem } from './PickupItem';
-import Entity from './Entity';
 
 /**
  * Подбираемый чип: отображается синим кругом с «C».
@@ -25,8 +24,4 @@ export class ChipPickup extends PickupItem {
 	 * @param entity - Сущность, подобравшая предмет
 	 * @returns true
 	 */
-	onPickup(entity: Entity): boolean {
-		void entity;
-		return true;
-	}
 }

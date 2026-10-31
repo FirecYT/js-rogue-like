@@ -1,53 +1,89 @@
 import Entity from '../entities/Entity';
 import type { Weapon } from '../items/Weapon';
-import type { PickupItem } from '../entities/PickupItem';
 
 /** Карта событий: имя события -> тип данных */
-interface EventMap {
-	enemyKilled: { killer: Entity; victim: Entity };
+export interface EventMap {
+	/** Сущность убита другой сущностью (есть атакующий). */
+	entityKilled: { killer: Entity; victim: Entity };
+	/** Сущность умерла (независимо от причины). */
 	entityDied: { entity: Entity };
-	chunkUnloaded: { chunkX: number; chunkY: number };
+	/** Оружие произвело выстрел. */
 	weaponFired: { source: Entity; angle: number; weapon: Weapon };
-	pickupRequested: { entity: Entity; pickup: PickupItem };
-	entityDamaged: { entity: Entity; amount: number; attacker?: Entity };
 	/** Запуск катсцены: массив строк для отображения. */
 	cutsceneStart: { lines: string[] };
 }
 
+/** Функция отписки, возвращаемая EventBus.on(). */
+export type Unsubscribe = () => void;
+
+/** Внутреннее представление слушателя (стирает тип данных события). */
+type AnyListener = (data: never) => void;
+
 /**
  * Шина событий для подписки и публикации событий игры.
+ * on() возвращает функцию отписки — системы обязаны вызывать её в dispose(),
+ * чтобы подписки не переживали игровой сеанс.
  */
-class EventBus {
-	private listeners: {
-		[K in keyof EventMap]?: ((data: EventMap[K]) => void)[];
-	} = {};
+export class EventBus {
+	private readonly listeners = new Map<keyof EventMap, AnyListener[]>();
 
 	/**
 	 * Подписаться на событие.
 	 * @param event - Имя события
-	 * @param callback - Функция, вызываемая при наступлении события (получает данные события)
+	 * @param callback - Функция, вызываемая при наступлении события
+	 * @returns Функция отписки
 	 */
 	on<K extends keyof EventMap>(
 		event: K,
 		callback: (data: EventMap[K]) => void
+	): Unsubscribe {
+		let list = this.listeners.get(event);
+		if (!list) {
+			list = [];
+			this.listeners.set(event, list);
+		}
+		list.push(callback as AnyListener);
+		return () => this.off(event, callback);
+	}
+
+	/**
+	 * Отписать конкретного слушателя от события.
+	 * @param event - Имя события
+	 * @param callback - Та же функция, что передавалась в on()
+	 */
+	off<K extends keyof EventMap>(
+		event: K,
+		callback: (data: EventMap[K]) => void
 	): void {
-		if (!this.listeners[event]) this.listeners[event] = [];
-		(this.listeners[event] as ((data: EventMap[K]) => void)[]).push(
-			callback
-		);
+		const list = this.listeners.get(event);
+		if (!list) return;
+		const idx = list.indexOf(callback as AnyListener);
+		if (idx !== -1) {
+			list.splice(idx, 1);
+		}
 	}
 
 	/**
 	 * Опубликовать событие (вызвать всех подписчиков).
+	 * Итерация по копии списка: слушатель может отписаться во время обработки.
 	 * @param event - Имя события
 	 * @param data - Данные события
 	 */
 	emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
-		const listeners = this.listeners[event];
-		if (listeners) {
-			listeners.forEach((callback) => callback(data));
+		const list = this.listeners.get(event);
+		if (!list || list.length === 0) return;
+		for (const callback of list.slice()) {
+			(callback as (payload: EventMap[K]) => void)(data);
 		}
+	}
+
+	/**
+	 * Удалить все подписки (используется при полном сбросе игрового сеанса).
+	 */
+	clear(): void {
+		this.listeners.clear();
 	}
 }
 
+/** Глобальная шина событий игры. */
 export const eventBus = new EventBus();
