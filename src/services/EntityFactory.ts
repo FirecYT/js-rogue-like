@@ -5,6 +5,7 @@ import { DeclarativeEntity } from '../entities/DeclarativeEntity';
 import { AiController } from '../controllers/AiController';
 import { WormController } from '../controllers/WormController';
 import { TurretController } from '../controllers/TurretController';
+import { SettlerController } from '../controllers/SettlerController';
 import { FollowerController } from '../controllers/FollowerController';
 import {
 	getEntityDefinition,
@@ -40,7 +41,7 @@ export class EntityFactory {
 		const entity = new DeclarativeEntity(definition, x, y);
 
 		this.applyLoadout(entity, definition);
-		entity.controller = this.createController(definition);
+		entity.controller = this.createController(definition, entity);
 
 		this.entityWorld.spawn(entity);
 		return entity;
@@ -113,9 +114,10 @@ export class EntityFactory {
 	/**
 	 * Создаёт контроллер по профилю поведения определения.
 	 * @param definition - Определение сущности
+	 * @param entity - Создаваемая сущность (для контекста контроллера)
 	 * @returns Контроллер или null (статичные и следующие сущности)
 	 */
-	private createController(definition: EntityDefinition) {
+	private createController(definition: EntityDefinition, entity: DeclarativeEntity) {
 		const ai = definition.ai;
 		if (!ai) return null;
 
@@ -126,6 +128,8 @@ export class EntityFactory {
 				return new WormController(this.getTarget, ai);
 			case 'turret':
 				return new TurretController(this.getTarget, ai);
+			case 'settler':
+				return new SettlerController((entity.x | 0) ^ (entity.y | 0));
 			case 'follower':
 			case 'stationary':
 				// Сегменты связываются фабрикой, статичные сущности без поведения

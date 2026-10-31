@@ -1,4 +1,4 @@
-import type { BiomeDefinition } from './definitions';
+import type { RegionDefinition } from './definitions';
 
 /** Размер тайла в пикселях для процедурных спрайтов. */
 const TILE = 32;
@@ -6,16 +6,16 @@ const TILE = 32;
 const cache = new Map<string, HTMLCanvasElement>();
 
 /**
- * Процедурный спрайт пола биома: базовый цвет с шумовыми разводами.
- * @param biome - Определение биома
+ * Процедурный спрайт пола региона: базовый цвет с шумовыми разводами.
+ * @param region - Определение региона
  * @param variant - Вариант тайла (0..2)
  * @returns Канвас спрайта (кэшируется)
  */
-export function biomeFloorCanvas(
-	biome: BiomeDefinition,
+export function regionFloorCanvas(
+	region: RegionDefinition,
 	variant: number
 ): HTMLCanvasElement {
-	const key = `${biome.id}:floor:${variant}`;
+	const key = `${region.id}:floor:${variant}`;
 	const cached = cache.get(key);
 	if (cached) return cached;
 
@@ -23,12 +23,12 @@ export function biomeFloorCanvas(
 	canvas.width = TILE;
 	canvas.height = TILE;
 	const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-	const base = biome.palette.floor[variant % biome.palette.floor.length];
+	const base = region.palette.floor[variant % region.palette.floor.length];
 	ctx.fillStyle = base;
 	ctx.fillRect(0, 0, TILE, TILE);
 
 	// Шумовые разводы и редкие трещины
-	let seed = variant * 7919 + biome.id.length * 131;
+	let seed = variant * 7919 + region.id.length * 131;
 	const rnd = () => {
 		seed = (seed * 1103515245 + 12345) & 0x7fffffff;
 		return seed / 0x7fffffff;
@@ -49,12 +49,12 @@ export function biomeFloorCanvas(
 }
 
 /**
- * Процедурный спрайт стены биома: блок с верхней подсветкой и кромкой.
- * @param biome - Определение биома
+ * Процедурный спрайт стены региона: блок с верхней подсветкой и кромкой.
+ * @param region - Определение региона
  * @returns Канвас спрайта (кэшируется)
  */
-export function biomeWallCanvas(biome: BiomeDefinition): HTMLCanvasElement {
-	const key = `${biome.id}:wall`;
+export function regionWallCanvas(region: RegionDefinition): HTMLCanvasElement {
+	const key = `${region.id}:wall`;
 	const cached = cache.get(key);
 	if (cached) return cached;
 
@@ -62,9 +62,9 @@ export function biomeWallCanvas(biome: BiomeDefinition): HTMLCanvasElement {
 	canvas.width = TILE;
 	canvas.height = TILE;
 	const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-	ctx.fillStyle = biome.palette.wall;
+	ctx.fillStyle = region.palette.wall;
 	ctx.fillRect(0, 0, TILE, TILE);
-	ctx.fillStyle = biome.palette.wallDark;
+	ctx.fillStyle = region.palette.wallDark;
 	ctx.fillRect(0, TILE - 8, TILE, 8);
 	ctx.fillStyle = 'rgba(255,255,255,0.18)';
 	ctx.fillRect(0, 0, TILE, 4);

@@ -25,12 +25,13 @@ import {
 } from '../items/modifiers/catalog';
 import { DeclarativeEntity } from '../entities/DeclarativeEntity';
 import { WormPlayerController } from '../controllers/WormPlayerController';
-import { BiomeMap } from '../services/BiomeMap';
-import { ZoneFeatureSystem } from '../systems/ZoneFeatureSystem';
+import { RegionMap } from '../services/RegionMap';
+import { RegionFeatureSystem } from '../systems/RegionFeatureSystem';
+import { housesForChunk } from '../map/structures/houses';
 import {
-	biomeFloorCanvas,
-	biomeWallCanvas,
-} from '../content/biomes/palette';
+	regionFloorCanvas,
+	regionWallCanvas,
+} from '../content/regions/palette';
 import { InteractSystem } from '../systems/InteractSystem';
 
 /** Отладочные хуки debug-сцены (?playground): доступ к миру и управляемой сущности. */
@@ -38,9 +39,13 @@ export interface GameDebugHooks {
 	getControlled: () => import('../entities/Entity').default;
 	entityWorld: import('../core/EntityWorld').EntityWorld;
 	entityFactory: EntityFactory;
-	biomeMap: BiomeMap;
+	regionMap: RegionMap;
 	/** Менеджер экранов (для смоук-тестов UI). */
 	screenManager: import('../ui/ScreenManager').ScreenManager;
+	/** Фасад тайлового мира (для смоук-тестов карты). */
+	worldService: import('../services/WorldService').WorldService;
+	/** Дома руин, пересекающие чанк (для смоук-тестов структур). */
+	housesAt: (chunkX: number, chunkY: number) => import('../map/structures/houses').HouseRect[];
 	/** Статистика системы фич зон (для смоук-тестов). */
 	zoneStats: () => {
 		chunks: number;
@@ -77,6 +82,11 @@ import type { TileVisualProvider, TileVisualContext, TileVisual, WorldOptions } 
 import { TILE_DEFS, TILES } from '../map/Types';
 import { RuinsGenerator } from '../map/generation/RuinsGenerator';
 import { VoidGenerator } from '../map/generation/VoidGenerator';
+import { CityGenerator } from '../map/generation/CityGenerator';
+import { BunkerGenerator } from '../map/generation/BunkerGenerator';
+import { IcedFieldsGenerator } from '../map/generation/IcedFieldsGenerator';
+import { GlassPlainGenerator } from '../map/generation/GlassPlainGenerator';
+import { AltarRegionGenerator } from '../map/generation/AltarRegionGenerator';
 import { Game } from './Game';
 import type { GameContext } from './GameContext';
 
@@ -115,17 +125,16 @@ export class GameFactory {
 
 		// 3. Создание мира (тайловая карта): seed забега и карта зон
 		const runSeed = (Math.random() * 0x7fffffff) | 0;
-		const biomeMap = new BiomeMap(
-			runSeed,
+		const regionMap = new RegionMap(
 			DEFAULT_WORLD_CONFIG.chunkSize,
 			DEFAULT_WORLD_CONFIG.tileSize
 		);
-		const world = this.createWorld(runSeed, biomeMap, {
+		const world = this.createWorld(runSeed, regionMap, {
 			config: {
 				loadRadius: 8,
 			},
 		});
-		const visuals = this.createVisuals(world, engine, biomeMap);
+		const visuals = this.createVisuals(world, engine, regionMap);
 		const renderer = new CanvasChunkRenderer({
 			tiles: world.tiles,
 			worldConfig: world.config,
@@ -209,10 +218,10 @@ export class GameFactory {
 		);
 		const interactSystem = new InteractSystem(entityWorld, getControlled, input);
 		systemManager.register(interactSystem);
-		const zoneFeatureSystem = new ZoneFeatureSystem(
+		const regionFeatureSystem = new RegionFeatureSystem(
 			entityWorld,
 			worldService,
-			biomeMap,
+			regionMap,
 			entityFactory,
 			runSeed,
 			screenManager,
@@ -220,15 +229,15 @@ export class GameFactory {
 			floatingTextSystem,
 			getControlled
 		);
-		systemManager.register(zoneFeatureSystem);
+		systemManager.register(regionFeatureSystem);
 		systemManager.register(
 			new EnemySpawnerSystem(
 				player,
 				entityWorld,
 				worldService,
-				biomeMap,
+				regionMap,
 				entityFactory,
-				() => zoneFeatureSystem.getSafeZones()
+				() => regionFeatureSystem.getSafeZones()
 			)
 		);
 		systemManager.register(
@@ -245,7 +254,7 @@ export class GameFactory {
 		screenManager.getHud().setInteractInRangeGetter(() =>
 			interactSystem.getInteractInRange()
 		);
-		zoneFeatureSystem.setOnZoneChange((name, color) => {
+		regionFeatureSystem.setOnZoneChange((name, color) => {
 			screenManager.getHud().setZoneName(name, color);
 		});
 
@@ -257,9 +266,12 @@ export class GameFactory {
 				getControlled,
 				entityWorld,
 				entityFactory,
-				biomeMap,
+				regionMap,
 				screenManager,
-				zoneStats: () => zoneFeatureSystem.debugStats,
+				worldService,
+				housesAt: (chunkX: number, chunkY: number) =>
+					housesForChunk(chunkX, chunkY, runSeed),
+				zoneStats: () => regionFeatureSystem.debugStats,
 				giveChip: (id: 'dash') => {
 					if (id === 'dash') {
 						getControlled().inventory.addChip(new DashChip());
@@ -292,7 +304,7 @@ export class GameFactory {
 			controlSwitch,
 			chunkView,
 			entityFactory,
-			biomeMap,
+			regionMap,
 			runSeed,
 		};
 
@@ -304,7 +316,7 @@ export class GameFactory {
 	 */
 	private static createWorld(
 		runSeed: number,
-		biomeMap: BiomeMap,
+		regionMap: RegionMap,
 		options?: WorldOptions
 	): World {
 		const world = new World(options);
@@ -319,8 +331,13 @@ export class GameFactory {
 			});
 		}
 
-		world.registerGenerator(new VoidGenerator());
-		world.registerGenerator(new RuinsGenerator(runSeed, biomeMap));
+		world.registerGenerator(new VoidGenerator(regionMap));
+		world.registerGenerator(new RuinsGenerator(runSeed, regionMap));
+		world.registerGenerator(new CityGenerator(regionMap));
+		world.registerGenerator(new BunkerGenerator(regionMap));
+		world.registerGenerator(new IcedFieldsGenerator(regionMap));
+		world.registerGenerator(new GlassPlainGenerator(regionMap));
+		world.registerGenerator(new AltarRegionGenerator(regionMap));
 		return world;
 	}
 
@@ -330,7 +347,7 @@ export class GameFactory {
 	private static createVisuals(
 		world: World,
 		engine: Engine,
-		biomeMap: BiomeMap
+		regionMap: RegionMap
 	): Map<number, TileVisualProvider> {
 		const visuals = new Map<number, TileVisualProvider>();
 
@@ -338,10 +355,10 @@ export class GameFactory {
 			const chunkHash = new SeededRandom(ctx.chunk.seed);
 			const blockHash = chunkHash.fork(ctx.localX + ctx.localY * 16);
 			const imageVariant = blockHash.nextInt(3, 7);
-			const biome = biomeMap.biomeAtChunk(ctx.chunk.x, ctx.chunk.y);
+			const region = regionMap.regionAtChunk(ctx.chunk.x, ctx.chunk.y);
 
-			if (biome.id !== 'rust_wastes') {
-				return { sprite: biomeFloorCanvas(biome, imageVariant % 3) };
+			if (!region.imageTiles) {
+				return { sprite: regionFloorCanvas(region, imageVariant % 3) };
 			}
 			return {
 				sprite: engine.getImage(`images/floor_${imageVariant}.png`),
@@ -351,9 +368,9 @@ export class GameFactory {
 		visuals.set(TILES.FLOOR, floor);
 
 		visuals.set(TILES.WALL, (ctx: TileVisualContext): TileVisual => {
-			const wallBiome = biomeMap.biomeAtChunk(ctx.chunk.x, ctx.chunk.y);
-			if (wallBiome.id !== 'rust_wastes') {
-				return { sprite: biomeWallCanvas(wallBiome) };
+			const wallRegion = regionMap.regionAtChunk(ctx.chunk.x, ctx.chunk.y);
+			if (!wallRegion.imageTiles) {
+				return { sprite: regionWallCanvas(wallRegion) };
 			}
 			const { globalTileX: worldX, globalTileY: worldY } = ctx;
 			const tileSize = world.config.tileSize;

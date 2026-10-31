@@ -4,8 +4,8 @@ import type { EntityWorld } from '../core/EntityWorld';
 import type Entity from '../entities/Entity';
 import type { WorldService } from '../services/WorldService';
 import type { EntityFactory } from '../services/EntityFactory';
-import type { BiomeMap } from '../services/BiomeMap';
-import type { BiomeSpawnEntry } from '../content/biomes/definitions';
+import type { RegionMap } from '../services/RegionMap';
+import type { RegionSpawnEntry } from '../content/regions/definitions';
 
 /** Точка безопасной зоны (торговца): спавн врагов рядом запрещён. */
 export interface SafeZone {
@@ -36,7 +36,7 @@ export class EnemySpawnerSystem implements ISystem {
 	 * @param player - Игрок, вокруг которого спавнятся враги
 	 * @param entityWorld - Контейнер сущностей для добавления новых врагов
 	 * @param world - Сервис мира для проверки проходимости позиций спавна
-	 * @param biomeMap - Карта зон: таблица спавна текущего биома
+	 * @param regionMap - Карта регионов: таблица спавна текущего региона
 	 * @param entityFactory - Конвейер сущностей для создания мобов
 	 * @param getSafeZones - Безопасные зоны торговцев
 	 */
@@ -44,7 +44,7 @@ export class EnemySpawnerSystem implements ISystem {
 		private readonly player: Entity,
 		private readonly entityWorld: EntityWorld,
 		private readonly world: WorldService,
-		private readonly biomeMap: BiomeMap,
+		private readonly regionMap: RegionMap,
 		private readonly entityFactory: EntityFactory,
 		private readonly getSafeZones: () => readonly SafeZone[]
 	) {}
@@ -57,8 +57,9 @@ export class EnemySpawnerSystem implements ISystem {
 		if (this.spawnCooldown > 0) return;
 		this.spawnCooldown = EnemySpawnerSystem.SPAWN_INTERVAL;
 
-		const biome = this.biomeMap.biomeAtWorld(this.player.x, this.player.y);
-		const defId = this.pickSpawn(biome.spawns);
+		const region = this.regionMap.regionAtWorld(this.player.x, this.player.y);
+		if (region.safe) return;
+		const defId = this.pickSpawn(region.spawns);
 		if (!defId) return;
 
 		for (let attempt = 0; attempt < 6; attempt++) {
@@ -84,7 +85,7 @@ export class EnemySpawnerSystem implements ISystem {
 	 * @param spawns - Таблица спавна биома
 	 * @returns id определения или null (пустая таблица)
 	 */
-	private pickSpawn(spawns: BiomeSpawnEntry[]): string | null {
+	private pickSpawn(spawns: RegionSpawnEntry[]): string | null {
 		const total = spawns.reduce((sum, entry) => sum + entry.weight, 0);
 		if (total <= 0) return null;
 		let roll = Math.random() * total;

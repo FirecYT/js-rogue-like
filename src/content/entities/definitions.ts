@@ -28,7 +28,9 @@ export type AiKind =
 	/** Сегмент тела: держится позади лидера на заданной дистанции. */
 	| 'follower'
 	/** Неподвижная сущность без поведения. */
-	| 'stationary';
+	| 'stationary'
+	/** Дружественный NPC: прогуливается вокруг дома, не воюет. */
+	| 'settler';
 
 /**
  * Профиль поведения: параметры контроллера conвейера.
@@ -199,6 +201,33 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 		appearance: { shape: 'circle', size: 6, color: '#e0f2fe', showHpBar: true },
 		ai: { kind: 'chaser', aggroRange: 600, fireRange: 220, repathInterval: 40 },
 		loadout: { weapon: () => new PistolWeapon() },
+	},
+
+	/** Поселенец: дружелюбный NPC восстановленных домов и города. */
+	settler: {
+		id: 'settler',
+		name: 'Поселенец',
+		hp: 30,
+		speed: 0.6,
+		size: 9,
+		team: 'player',
+		appearance: { shape: 'circle', size: 9, color: '#93c5fd', showHpBar: false },
+		ai: { kind: 'settler' },
+		loadout: { weapon: () => new PistolWeapon() },
+	},
+
+	/** Моб ледяных полей: медленный стрелок, держит дистанцию. */
+	ice_shard: {
+		id: 'ice_shard',
+		name: 'Ледяной осколок',
+		hp: 12,
+		speed: 1.4,
+		size: 8,
+		team: 'enemy',
+		experience: 6,
+		appearance: { shape: 'rect', size: 8, color: '#bfdbfe', showHpBar: true },
+		ai: { kind: 'chaser', aggroRange: 500, fireRange: 360, repathInterval: 55 },
+		loadout: { weapon: () => new LaserGunWeapon() },
 	},
 
 	/**

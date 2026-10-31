@@ -10,7 +10,7 @@ import type { SystemManager } from '../services/SystemManager';
 import type { ScreenManager } from '../ui/ScreenManager';
 import type { ControlSwitchService } from '../services/ControlSwitchService';
 import type { EntityFactory } from '../services/EntityFactory';
-import type { BiomeMap } from '../services/BiomeMap';
+import type { RegionMap } from '../services/RegionMap';
 
 /**
  * Набор ключевых сервисов игры.
@@ -44,8 +44,8 @@ export interface GameContext {
 	readonly chunkView: ChunkViewManager;
 	/** Конвейер сущностей: сборка врагов и боссов из декларативных определений. */
 	readonly entityFactory: EntityFactory;
-	/** Карта зон забега: биом зоны по координатам. */
-	readonly biomeMap: BiomeMap;
+	/** Карта регионов мира: регион по координатам. */
+	readonly regionMap: RegionMap;
 	/** Seed забега (руины и раскладка зон уникальны на партию). */
 	readonly runSeed: number;
 }

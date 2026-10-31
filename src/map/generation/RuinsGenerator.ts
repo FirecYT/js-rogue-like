@@ -5,7 +5,11 @@ import {
 } from '@firec/map-module';
 import type { Chunk, BuildContext } from '@firec/map-module';
 import { TILES } from '../Types';
-import type { BiomeMap } from '../../services/BiomeMap';
+import type { RegionMap } from '../../services/RegionMap';
+import {
+	housesForChunk,
+	houseWallAt,
+} from '../../map/structures/houses';
 
 /**
  * Конфигурация генерации руин.
@@ -47,13 +51,17 @@ export class RuinsGenerator extends BaseGenerator {
 
 	/**
 	 * @param runSeed - Seed забега: руины уникальны на каждую партию
-	 * @param biomeMap - Карта зон: плотность руин берётся из биома зоны
+	 * @param regionMap - Карта регионов: плотность руин берётся из региона
 	 */
 	constructor(
 		private readonly runSeed: number,
-		private readonly biomeMap: BiomeMap
+		private readonly regionMap: RegionMap
 	) {
 		super();
+	}
+
+	canGenerate(chunkX: number, chunkY: number): boolean {
+		return this.regionMap.regionAtChunk(chunkX, chunkY).generator === this.id;
 	}
 
 	protected buildChunk(chunk: Chunk, ctx: BuildContext): void {
@@ -64,8 +72,8 @@ export class RuinsGenerator extends BaseGenerator {
 
 		chunk.fill(TILES.FLOOR);
 
-		// Биом центра суперчанка задаёт плотность руин зоны
-		const biome = this.biomeMap.biomeAtChunk(
+		// Регион центра суперчанка задаёт плотность руин зоны
+		const region = this.regionMap.regionAtChunk(
 			superX * this.superChunckSize + 1,
 			superY * this.superChunckSize + 1
 		);
@@ -74,7 +82,7 @@ export class RuinsGenerator extends BaseGenerator {
 		const rooms = this.generateSuperChunkRooms(
 			chunk.size,
 			rng,
-			biome.ruinsDensity
+			region.ruinsDensity ?? 1
 		);
 
 		// Шаг 2: Применение комнат к текущему чанку
@@ -85,6 +93,41 @@ export class RuinsGenerator extends BaseGenerator {
 
 		// Шаг 4: Добавление декоративных элементов (стены, обломки)
 		this.addDecorations(chunk, rng);
+
+		// Шаг 5: Восстановленные дома поверх руин (безопасные структуры)
+		this.stampHouses(chunk, ctx);
+	}
+
+	/**
+	 * Штампует дома, пересекающие чанк: контур стен с дверью с юга и
+	 * чистый пол внутри — поверх комнат и обломков руин.
+	 */
+	private stampHouses(chunk: Chunk, ctx: BuildContext): void {
+		const houses = housesForChunk(ctx.chunkX, ctx.chunkY, this.runSeed);
+		if (!houses.length) return;
+		const originX = ctx.chunkX * chunk.size;
+		const originY = ctx.chunkY * chunk.size;
+		for (const house of houses) {
+			for (let ly = 0; ly < chunk.size; ly++) {
+				for (let lx = 0; lx < chunk.size; lx++) {
+					const gx = originX + lx;
+					const gy = originY + ly;
+					if (
+						gx < house.x ||
+						gx >= house.x + house.w ||
+						gy < house.y ||
+						gy >= house.y + house.h
+					) {
+						continue;
+					}
+					chunk.setTile(
+						lx,
+						ly,
+						houseWallAt(house, gx, gy) ? TILES.WALL : TILES.FLOOR
+					);
+				}
+			}
+		}
 	}
 
 	/**
