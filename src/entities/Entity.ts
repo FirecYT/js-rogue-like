@@ -55,6 +55,14 @@ export default abstract class Entity extends GameObject {
 	}
 
 	/**
+	 * Восстанавливает здоровье, не превышая максимум.
+	 * @param amount - Количество восстановления
+	 */
+	heal(amount: number): void {
+		this.hp = Math.min(this.maxHP, this.hp + amount);
+	}
+
+	/**
 	 * Собирает данные о текущих перезарядках (чипы и оружие) для отображения.
 	 * @returns Массив { name, val } (val — прогресс перезарядки 0..1)
 	 */

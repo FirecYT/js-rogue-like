@@ -4,8 +4,15 @@ import Entity from '../entities/Entity';
 import { Modifier } from '../items/Modifier';
 import type { Item } from '../items/Item';
 
+/** Ссылка на слот инвентаря (для UI-операций: drag-and-drop, тултипы). */
+export interface SlotRef {
+	type: 'weapon' | 'modifier' | 'chip';
+	index: number;
+}
+
 /**
  * Инвентарь сущности: оружие, слоты модификаторов и чипов, стрельба и использование чипов.
+ * Единственный источник истины для UI: окна читают и изменяют слоты только через него.
  */
 export class Inventory {
 	public weapon: Weapon | null = null;
@@ -91,6 +98,72 @@ export class Inventory {
 		this.modifiers[slotIndex] = mod;
 		mod.onEquip?.(this.entity);
 		return old;
+	}
+
+	/**
+	 * Возвращает предмет в слоте по ссылке.
+	 * @param ref - Ссылка на слот
+	 */
+	getAt(ref: SlotRef): Item | null {
+		switch (ref.type) {
+			case 'weapon':
+				return this.weapon;
+			case 'modifier':
+				return this.modifiers[ref.index] ?? null;
+			case 'chip':
+				return this.chips[ref.index] ?? null;
+		}
+	}
+
+	/**
+	 * Меняет местами содержимое двух слотов одного типа
+	 * (набор экипированных предметов не меняется — хуки не вызываются).
+	 * @param a - Первый слот
+	 * @param b - Второй слот
+	 * @returns true, если обмен выполнен
+	 */
+	swapSlots(a: SlotRef, b: SlotRef): boolean {
+		if (a.type !== b.type) return false;
+		if (a.type === 'weapon') return false;
+		const tmp = this.getAt(a);
+		this.setRaw(a, this.getAt(b));
+		this.setRaw(b, tmp);
+		return true;
+	}
+
+	/**
+	 * Полностью убирает предмет из слота (выброс в мир):
+	 * для модификатора вызывается onUnequip.
+	 * @param ref - Ссылка на слот
+	 * @returns Убранный предмет или null
+	 */
+	removeAt(ref: SlotRef): Item | null {
+		const item = this.getAt(ref);
+		if (!item) return null;
+		if (ref.type === 'weapon') {
+			this.setWeapon(null);
+		} else {
+			if (ref.type === 'modifier') {
+				(item as Modifier).onUnequip?.(this.entity);
+			}
+			this.setRaw(ref, null);
+		}
+		return item;
+	}
+
+	/** Прямая запись в слот без хуков (внутреннее использование). */
+	private setRaw(ref: SlotRef, item: Item | null): void {
+		switch (ref.type) {
+			case 'weapon':
+				this.weapon = item as Weapon | null;
+				break;
+			case 'modifier':
+				this.modifiers[ref.index] = item as Modifier | null;
+				break;
+			case 'chip':
+				this.chips[ref.index] = item as Chip | null;
+				break;
+		}
 	}
 
 	/**

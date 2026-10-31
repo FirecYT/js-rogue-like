@@ -1,49 +1,52 @@
 import { Window } from '../Window';
-import Entity from '../../entities/Entity';
+import type Entity from '../../entities/Entity';
+import type { SlotRef } from '../../components/Inventory';
 import { Button } from '../components/Button';
 import { Label } from '../components/Label';
 import { ItemSlot } from '../components/ItemSlot';
 import { VerticalLayout } from '../containers/VerticalLayout';
 import { HorizontalLayout } from '../containers/HorizontalLayout';
-import { Item } from '../../items/Item';
-import { Weapon } from '../../items/Weapon';
-import { Modifier } from '../../items/Modifier';
-import { Chip } from '../../items/Chip';
-import { PickupItem } from '../../entities/PickupItem';
+import type { Item } from '../../items/Item';
+import type { PickupItem } from '../../entities/PickupItem';
 import { createPickupFromItem } from '../../utils';
-import MouseInput from '../../components/MouseInput';
+import type MouseInput from '../../components/MouseInput';
+
+/** Слот окна вместе со ссылкой на слот инвентаря. */
+interface BoundSlot {
+	slot: ItemSlot;
+	ref: SlotRef;
+}
 
 /**
- * Окно инвентаря с поддержкой перетаскивания предметов
+ * Окно инвентаря с перетаскиванием предметов.
+ * Слоты окна — чистое представление инвентаря сущности (single source of truth):
+ * содержимое читается каждый кадр через inventory.getAt, а все изменения
+ * выполняются доменными методами (swapSlots/removeAt). Локальной копии предметов нет.
  */
 export class InventoryWindow extends Window {
-	private entity: Entity;
 	private onCloseCallback: (() => void) | null = null;
 	private onItemDropped: ((pickup: PickupItem) => void) | null = null;
 
-	// Слоты для прямого доступа
-	private weaponSlot: ItemSlot | null = null;
-	private modifierSlots: ItemSlot[] = [];
-	private chipSlots: ItemSlot[] = [];
+	private boundSlots: BoundSlot[] = [];
 
-	// Состояние перетаскивания (всё хранится в окне!)
-	private draggedItem: Item | null = null;
-	private dragSource: {
-		type: 'weapon' | 'modifier' | 'chip';
-		index: number;
-	} | null = null;
-	private dragVisual: { x: number; y: number; item: Item } | null = null;
-	private dropTargetSlot: ItemSlot | null = null;
+	/** Ссылка на слот, из которого начато перетаскивание, и сам предмет. */
+	private dragRef: SlotRef | null = null;
+	private dragItem: Item | null = null;
+	/** Слот-цель под курсором (для подсветки). */
+	private dropTarget: BoundSlot | null = null;
 
-	constructor(entity: Entity, canvasWidth: number, canvasHeight: number) {
+	/**
+	 * @param entity - Сущность, чей инвентарь отображается
+	 * @param canvasWidth - Ширина канваса
+	 * @param canvasHeight - Высота канваса
+	 */
+	constructor(
+		private readonly entity: Entity,
+		canvasWidth: number,
+		canvasHeight: number
+	) {
 		super();
 
-		this.entity = entity;
-
-		this.x = (canvasWidth - 500) / 2;
-		this.y = (canvasHeight - 400) / 2;
-		this.width = 500;
-		this.height = 400;
 		this.title = 'Инвентарь';
 		this.causesPause = true;
 
@@ -54,56 +57,57 @@ export class InventoryWindow extends Window {
 
 	private createUI(): void {
 		this.root.children = [];
-		this.modifierSlots = [];
-		this.chipSlots = [];
+		this.boundSlots = [];
 
 		const layout = new VerticalLayout();
 		layout.spacing = 10;
 		layout.padding = { top: 40, right: 20, bottom: 20, left: 20 };
 
+		const inventory = this.entity.inventory;
+
 		// === ОРУЖИЕ ===
 		const weaponLayout = new VerticalLayout();
 		weaponLayout.addChild(new Label('Оружие:'));
-		this.weaponSlot = new ItemSlot(80, 80, this.entity.inventory.weapon);
-		weaponLayout.addChild(this.weaponSlot);
+		const weaponSlot = new ItemSlot(80, 80);
+		weaponLayout.addChild(weaponSlot);
+		this.boundSlots.push({ slot: weaponSlot, ref: { type: 'weapon', index: -1 } });
 
 		// === МОДИФИКАТОРЫ ===
 		const modifiersLayout = new VerticalLayout();
 		modifiersLayout.addChild(new Label('Модификаторы:'));
-		for (const modifier of this.entity.inventory.modifiers) {
-			const slot = new ItemSlot(60, 60, modifier);
-			modifiersLayout.addChild(slot);
-			this.modifierSlots.push(slot);
+		const modifiersRow = new HorizontalLayout();
+		for (let i = 0; i < inventory.modifiers.length; i++) {
+			const slot = new ItemSlot(60, 60);
+			modifiersRow.addChild(slot);
+			this.boundSlots.push({ slot, ref: { type: 'modifier', index: i } });
 		}
+		modifiersLayout.addChild(modifiersRow);
 
 		// === ЧИПЫ ===
 		const chipsLayout = new VerticalLayout();
 		chipsLayout.addChild(new Label('Чипы:'));
-		for (const chip of this.entity.inventory.chips) {
-			const slot = new ItemSlot(60, 60, chip);
-			chipsLayout.addChild(slot);
-			this.chipSlots.push(slot);
+		const chipsRow = new HorizontalLayout();
+		for (let i = 0; i < inventory.chips.length; i++) {
+			const slot = new ItemSlot(60, 60);
+			chipsRow.addChild(slot);
+			this.boundSlots.push({ slot, ref: { type: 'chip', index: i } });
 		}
+		chipsLayout.addChild(chipsRow);
 
-		// Объединяем в горизонтальный лейаут
 		const itemsLayout = new HorizontalLayout();
-
 		itemsLayout.addChild(weaponLayout);
 		itemsLayout.addChild(modifiersLayout);
 		itemsLayout.addChild(chipsLayout);
-
 		layout.addChild(itemsLayout);
 
-		// Кнопка закрытия
 		const closeButton = new Button(
 			'Закрыть',
 			layout.width - layout.padding.left - layout.padding.right,
 			40
 		);
 		closeButton.setOnClick(() => {
-			if (this.onCloseCallback) this.onCloseCallback();
+			this.onCloseCallback?.();
 		});
-
 		layout.addChild(closeButton);
 
 		this.root.addChild(layout);
@@ -111,270 +115,144 @@ export class InventoryWindow extends Window {
 
 	update(mouse: MouseInput): void {
 		super.update(mouse);
+		this.lastMousePos = { x: mouse.x, y: mouse.y };
 
-		// Начало перетаскивания
-		if (mouse.pressed && !this.draggedItem) {
+		// Синхронизация слотов с инвентарём (источник перетаскивания показываем пустым)
+		for (const { slot, ref } of this.boundSlots) {
+			const isDragSource =
+				this.dragRef !== null &&
+				this.dragRef.type === ref.type &&
+				this.dragRef.index === ref.index;
+			slot.setItem(isDragSource ? null : this.entity.inventory.getAt(ref));
+		}
+
+		if (mouse.pressed && !this.dragItem) {
 			this.startDrag(mouse);
 		}
-
-		// Обновление позиции перетаскиваемого предмета
-		if (this.draggedItem && this.dragVisual) {
-			this.dragVisual.x = mouse.x;
-			this.dragVisual.y = mouse.y;
-			this.updateDropTarget(mouse);
+		if (this.dragItem) {
+			this.dropTarget = this.findDropTarget(mouse);
 		}
-
-		// Завершение перетаскивания
-		if (!mouse.pressed && this.draggedItem) {
+		if (!mouse.pressed && this.dragItem) {
 			this.handleDrop(mouse);
 		}
 	}
 
+	/** Начинает перетаскивание, если курсор над непустым слотом. */
 	private startDrag(mouse: MouseInput): void {
-		// Проверяем все слоты на клик
-		const allSlots = [
-			{ slot: this.weaponSlot, type: 'weapon', index: -1 },
-			...this.modifierSlots.map((slot, i) => ({
-				slot,
-				type: 'modifier' as const,
-				index: i,
-			})),
-			...this.chipSlots.map((slot, i) => ({
-				slot,
-				type: 'chip' as const,
-				index: i,
-			})),
-		].filter((entry) => entry.slot !== null) as {
-			slot: ItemSlot;
-			type: 'weapon' | 'modifier' | 'chip';
-			index: number;
-		}[];
-
-		for (const { slot, type, index } of allSlots) {
-			if (!slot.item) continue;
-
-			const globalPos = slot.getGlobalPosition();
-
-			if (
-				mouse.x >= globalPos.x &&
-				mouse.x <= globalPos.x + slot.width &&
-				mouse.y >= globalPos.y &&
-				mouse.y <= globalPos.y + slot.height
-			) {
-				// Сохраняем предмет и очищаем слот
-				this.draggedItem = slot.item;
-				this.dragSource = { type, index };
-				slot.setItem(null);
-
-				// Создаём визуальное представление
-				this.dragVisual = {
-					x: mouse.x,
-					y: mouse.y,
-					item: this.draggedItem,
-				};
-				break;
-			}
+		for (const bound of this.boundSlots) {
+			if (!this.isOverSlot(bound.slot, mouse)) continue;
+			const item = this.entity.inventory.getAt(bound.ref);
+			if (!item) continue;
+			this.dragRef = bound.ref;
+			this.dragItem = item;
+			break;
 		}
 	}
 
-	private updateDropTarget(mouse: MouseInput): void {
-		// Сбрасываем предыдущую цель
-		if (this.dropTargetSlot) {
-			this.dropTargetSlot = null;
-		}
-
-		// Ищем новый слот под курсором
-		const allSlots = [
-			{ slot: this.weaponSlot, type: 'weapon' },
-			...this.modifierSlots.map((slot) => ({
-				slot,
-				type: 'modifier' as const,
-			})),
-			...this.chipSlots.map((slot) => ({ slot, type: 'chip' as const })),
-		].filter((entry) => entry.slot !== null) as {
-			slot: ItemSlot;
-			type: 'weapon' | 'modifier' | 'chip';
-		}[];
-
-		for (const { slot, type } of allSlots) {
-			const globalPos = slot.getGlobalPosition();
-
-			// Проверяем попадание курсора в слот
+	/** Ищет слот-цель под курсором, совместимый с перетаскиваемым предметом. */
+	private findDropTarget(mouse: MouseInput): BoundSlot | null {
+		if (!this.dragItem) return null;
+		for (const bound of this.boundSlots) {
+			if (!this.isOverSlot(bound.slot, mouse)) continue;
+			if (bound.ref.type !== this.dragItem.type) return null;
 			if (
-				mouse.x >= globalPos.x &&
-				mouse.x <= globalPos.x + slot.width &&
-				mouse.y >= globalPos.y &&
-				mouse.y <= globalPos.y + slot.height
+				this.dragRef &&
+				this.dragRef.type === bound.ref.type &&
+				this.dragRef.index === bound.ref.index
 			) {
-				// Проверяем совместимость типов предмета и слота
-				if (
-					this.draggedItem &&
-					this.isValidDropTarget(type, this.draggedItem)
-				) {
-					this.dropTargetSlot = slot;
-				}
-				break;
+				return null; // тот же слот
 			}
+			return bound;
 		}
+		return null;
 	}
 
+	/** Завершает перетаскивание: обмен слотов, выброс наружу или отмена. */
 	private handleDrop(mouse: MouseInput): void {
-		if (!this.draggedItem || !this.dragSource) {
-			this.resetDragState();
+		const ref = this.dragRef;
+		const item = this.dragItem;
+		this.dragRef = null;
+		this.dragItem = null;
+		this.dropTarget = null;
+		if (!ref || !item) return;
+
+		// Цель — совместимый слот: обмен содержимым
+		const target = this.findDropTarget(mouse);
+		if (target) {
+			this.entity.inventory.swapSlots(ref, target.ref);
 			return;
 		}
 
-		if (this.dropTargetSlot) {
-			const targetItem = this.dropTargetSlot.item;
-			this.dropTargetSlot.setItem(this.draggedItem);
-
-			if (targetItem) {
-				this.setItemAt(this.dragSource, targetItem);
-			}
-
-			this.updateEntityInventory();
-		} else if (!this.isPointInsideWindow(mouse.x, mouse.y)) {
-			this.throwItem(this.draggedItem);
-
-			this.updateEntityInventory();
-		} else {
-			this.setItemAt(this.dragSource, this.draggedItem);
-		}
-
-		this.resetDragState();
-	}
-
-	private throwItem(item: Item): void {
-		if (this.onItemDropped) {
-			const pickup = createPickupFromItem(
-				item,
-				this.entity.x,
-				this.entity.y
-			);
-			this.onItemDropped(pickup);
-		}
-	}
-
-	private setItemAt(
-		location: { type: 'weapon' | 'modifier' | 'chip'; index: number },
-		item: Item | null
-	): void {
-		switch (location.type) {
-			case 'weapon':
-				this.entity.inventory.setWeapon(item as Weapon | null);
-				this.weaponSlot?.setItem(item);
-				break;
-			case 'modifier': {
-				const slot = this.modifierSlots[location.index];
-				this.entity.inventory.modifiers[location.index] =
-					item as Modifier | null;
-				slot?.setItem(item);
-				break;
-			}
-			case 'chip': {
-				const slot = this.chipSlots[location.index];
-				this.entity.inventory.chips[location.index] =
-					item as Chip | null;
-				slot?.setItem(item);
-				break;
+		// Бросок за пределы окна — выброс предмета в мир
+		if (!this.isPointInsideWindow(mouse.x, mouse.y)) {
+			const dropped = this.entity.inventory.removeAt(ref);
+			if (dropped) {
+				this.onItemDropped?.(
+					createPickupFromItem(dropped, this.entity.x, this.entity.y)
+				);
 			}
 		}
+		// Иначе (внутри окна, не над слотом) — отмена, предмет остаётся в слоте
 	}
 
-	private updateEntityInventory(): void {
-		// Синхронизируем слоты с инвентарём сущности
-		if (this.weaponSlot) {
-			this.entity.inventory.setWeapon(
-				this.weaponSlot.item as Weapon | null
-			);
-		}
-
-		for (let i = 0; i < this.modifierSlots.length; i++) {
-			this.entity.inventory.modifiers[i] = this.modifierSlots[i]
-				.item as Modifier | null;
-		}
-
-		for (let i = 0; i < this.chipSlots.length; i++) {
-			this.entity.inventory.chips[i] = this.chipSlots[i]
-				.item as Chip | null;
-		}
-	}
-
-	private isValidDropTarget(
-		slotType: 'weapon' | 'modifier' | 'chip',
-		item: Item
-	): boolean {
-		switch (slotType) {
-			case 'weapon':
-				return item.type === 'weapon';
-			case 'modifier':
-				return item.type === 'modifier';
-			case 'chip':
-				return item.type === 'chip';
-			default:
-				return false;
-		}
+	private isOverSlot(slot: ItemSlot, mouse: MouseInput): boolean {
+		const pos = slot.getGlobalPosition();
+		return (
+			mouse.x >= pos.x &&
+			mouse.x <= pos.x + slot.width &&
+			mouse.y >= pos.y &&
+			mouse.y <= pos.y + slot.height
+		);
 	}
 
 	private isPointInsideWindow(x: number, y: number): boolean {
 		return (
-			x >= this.x &&
-			x <= this.x + this.width &&
-			y >= this.y &&
-			y <= this.y + this.height
+			x >= this.x && x <= this.x + this.width &&
+			y >= this.y && y <= this.y + this.height
 		);
-	}
-
-	private resetDragState(): void {
-		this.draggedItem = null;
-		this.dragSource = null;
-		this.dragVisual = null;
-
-		// Сбрасываем подсветку всех слотов
-		if (this.dropTargetSlot) {
-			this.dropTargetSlot = null;
-		}
 	}
 
 	render(ctx: CanvasRenderingContext2D): void {
 		super.render(ctx);
 
-		// Отрисовка перетаскиваемого предмета ПОВЕРХ окна
-		if (this.dragVisual) {
-			this.renderDraggedItem(
-				ctx,
-				this.dragVisual.x,
-				this.dragVisual.y,
-				this.dragVisual.item
-			);
+		// Перетаскиваемый предмет рисуется поверх окна
+		if (this.dragItem) {
+			this.renderDraggedItem(ctx, this.dropTarget);
 		}
 	}
 
 	private renderDraggedItem(
 		ctx: CanvasRenderingContext2D,
-		x: number,
-		y: number,
-		item: Item
+		target: BoundSlot | null
 	): void {
-		// Полупрозрачный прямоугольник
+		const item = this.dragItem as Item;
+
+		// Подсветка слота-цели
+		if (target) {
+			const pos = target.slot.getGlobalPosition();
+			ctx.strokeStyle = '#6ff';
+			ctx.lineWidth = 2;
+			ctx.strokeRect(pos.x - 2, pos.y - 2, target.slot.width + 4, target.slot.height + 4);
+		}
+
+		// Предмет «в руке» следует за курсором
+		const { x, y } = this.lastMousePos;
 		ctx.globalAlpha = 0.9;
 		ctx.fillStyle = '#2a4a2a';
 		ctx.fillRect(x - 30, y - 30, 60, 60);
-
-		// Рамка
 		ctx.strokeStyle = '#6ff';
 		ctx.lineWidth = 2;
 		ctx.strokeRect(x - 30, y - 30, 60, 60);
-
-		// Название предмета
 		ctx.fillStyle = '#fff';
 		ctx.font = '12px Arial';
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		ctx.fillText(item.name, x, y);
-
 		ctx.globalAlpha = 1.0;
 	}
+
+	/** Позиция курсора на последний update (для отрисовки «в руке»). */
+	private lastMousePos = { x: 0, y: 0 };
 
 	setOnClose(callback: () => void): void {
 		this.onCloseCallback = callback;

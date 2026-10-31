@@ -10,6 +10,7 @@ import FloatingText from '../components/FloatingText';
 import type { FloatingTextSystem } from './FloatingTextSystem';
 import type Entity from '../entities/Entity';
 import Enemy from '../entities/Enemy';
+import { LEVEL_UP_UPGRADES } from '../content/upgrades';
 
 /**
  * Система прогресса: получение опыта, повышение уровня, открытие LevelUpWindow.
@@ -67,12 +68,16 @@ export class ProgressionSystem implements ISystem {
 	private addExperience(amount: number, controlled: Entity): void {
 		if (this.playerProgression.add(amount)) {
 			const lvlUpWin = new LevelUpWindow(
-				['Увеличить урон', 'Уменьшить перезарядку', 'Увеличить здоровье'],
+				LEVEL_UP_UPGRADES.map((upgrade) => upgrade.label),
 				this.engine.canvas.width,
 				this.engine.canvas.height
 			);
 
 			lvlUpWin.setOnChoose((choice) => {
+				// Выбранное улучшение реально применяется к сущности
+				LEVEL_UP_UPGRADES.find((upgrade) => upgrade.label === choice)?.apply(
+					controlled
+				);
 				this.screenManager.closeWindow(lvlUpWin);
 				this.floatingTextSystem.add(
 					new FloatingText(controlled.x, controlled.y, choice, 60)
