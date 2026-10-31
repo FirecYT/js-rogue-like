@@ -337,7 +337,7 @@ export class GameFactory {
 		const floor: TileVisualProvider = (ctx: TileVisualContext): TileVisual => {
 			const chunkHash = new SeededRandom(ctx.chunk.seed);
 			const blockHash = chunkHash.fork(ctx.localX + ctx.localY * 16);
-			const imageVariant = blockHash.nextInt(3, 8);
+			const imageVariant = blockHash.nextInt(3, 7);
 			const biome = biomeMap.biomeAtChunk(ctx.chunk.x, ctx.chunk.y);
 
 			if (biome.id !== 'rust_wastes') {
