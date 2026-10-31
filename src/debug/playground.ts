@@ -1,5 +1,7 @@
 import type { EntityWorld } from '../core/EntityWorld';
 import type Player from '../Player';
+import type { EntityFactory } from '../services/EntityFactory';
+import { Altar } from '../entities/Altar';
 import { WeaponPickup } from '../entities/WeaponPickup';
 import { SpellPickup } from '../entities/SpellPickup';
 import { ChipPickup } from '../entities/ChipPickup';
@@ -38,8 +40,13 @@ export function isPlaygroundEnabled(): boolean {
  * раскладываются рядом со спавном игрока; выдаёт игроку тестовый стартовый набор.
  * @param entityWorld - Контейнер сущностей мира
  * @param player - Игрок (получает стартовые чипы)
+ * @param entityFactory - Конвейер сущностей для мобов и алтаря
  */
-export function populatePlayground(entityWorld: EntityWorld, player: Player): void {
+export function populatePlayground(
+	entityWorld: EntityWorld,
+	player: Player,
+	entityFactory: EntityFactory
+): void {
 	// Тестовый стартовый набор игрока
 	player.inventory.addChip(new TeleportChip());
 	player.inventory.addChip(new DashChip());
@@ -61,6 +68,11 @@ export function populatePlayground(entityWorld: EntityWorld, player: Player): vo
 	// Чипы
 	entityWorld.spawn(new ChipPickup(700, 0, new TeleportChip()));
 	entityWorld.spawn(new ChipPickup(700, 50, new DashChip()));
+
+	// Конвейер сущностей: мобы и алтарь с боссом-эталоном
+	entityFactory.spawn('rust_grunt', 900, 250);
+	entityFactory.spawn('rust_grunt', 950, 300);
+	entityWorld.spawn(new Altar(500, 250, 'rust_worm', entityFactory));
 
 	// Манекены для проверки урона
 	entityWorld.spawn(new TrainingDummy(400, 0, 100));

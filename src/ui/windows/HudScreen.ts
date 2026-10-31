@@ -8,6 +8,7 @@ import { ItemSlot } from '../components/ItemSlot';
 import { VerticalLayout } from '../containers/VerticalLayout';
 import { Label } from '../components/Label';
 import { PickupItem } from '../../entities/PickupItem';
+import type { Interactable } from '../../types/Interactable';
 
 /**
  * HUD: полоса опыта сверху, полоса здоровья и чипы справа внизу, оружие и модификаторы слева внизу.
@@ -36,6 +37,9 @@ export class HudScreen extends Component {
 
 	private getPickupInRange: (() => PickupItem | null) | null = null;
 	private readonly pickupHintLabel = new Label('[E] Подобрать');
+	private getInteractInRange: (() => (Entity & Interactable) | null) | null =
+		null;
+	private readonly interactHintLabel = new Label('');
 
 	constructor(engine: Engine, getControlledEntity: () => Entity) {
 		super();
@@ -77,6 +81,15 @@ export class HudScreen extends Component {
 	 */
 	setPickupInRangeGetter(getter: () => PickupItem | null): void {
 		this.getPickupInRange = getter;
+	}
+
+	/**
+	 * Устанавливает геттер объекта взаимодействия в радиусе (подсказка алтарей и т.п.).
+	 */
+	setInteractInRangeGetter(
+		getter: () => (Entity & Interactable) | null
+	): void {
+		this.getInteractInRange = getter;
 	}
 
 	/**
@@ -181,6 +194,16 @@ export class HudScreen extends Component {
 			);
 			this.pickupHintLabel.y = this.engine.canvas.height - 90;
 			this.pickupHintLabel.render(ctx, 0, 0);
+		}
+
+		const target = this.getInteractInRange?.();
+		if (target && !target.isDead()) {
+			this.interactHintLabel.setText(`[E] ${target.interactLabel}`);
+			this.interactHintLabel.x = Math.floor(
+				this.engine.canvas.width / 2 - this.interactHintLabel.width / 2
+			);
+			this.interactHintLabel.y = this.engine.canvas.height - 110;
+			this.interactHintLabel.render(ctx, 0, 0);
 		}
 	}
 

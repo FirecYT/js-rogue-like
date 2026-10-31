@@ -9,6 +9,7 @@ import type { Pathfinder } from '../services/Pathfinder';
 import type { SystemManager } from '../services/SystemManager';
 import type { ScreenManager } from '../ui/ScreenManager';
 import type { ControlSwitchService } from '../services/ControlSwitchService';
+import type { EntityFactory } from '../services/EntityFactory';
 
 /**
  * Набор ключевых сервисов игры.
@@ -40,4 +41,6 @@ export interface GameContext {
 	readonly controlSwitch: ControlSwitchService;
 	/** Рендерер чанков карты. */
 	readonly chunkView: ChunkViewManager;
+	/** Конвейер сущностей: сборка врагов и боссов из декларативных определений. */
+	readonly entityFactory: EntityFactory;
 }

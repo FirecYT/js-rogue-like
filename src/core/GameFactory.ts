@@ -17,6 +17,8 @@ import { UISystem } from '../systems/UISystem';
 import { ProgressionSystem } from '../systems/ProgressionSystem';
 import { CutsceneSystem } from '../systems/CutsceneSystem';
 import { ControlSwitchService } from '../services/ControlSwitchService';
+import { EntityFactory } from '../services/EntityFactory';
+import { InteractSystem } from '../systems/InteractSystem';
 import { RebirthSystem } from '../systems/RebirthSystem';
 import { PlayerProgression } from '../systems/PlayerProgression';
 import { ScreenManager } from '../ui/ScreenManager';
@@ -137,6 +139,13 @@ export class GameFactory {
 		systemManager.register(new EffectSystem(entityWorld, worldService));
 		systemManager.register(new CleanupSystem(entityWorld, getControlled));
 		systemManager.register(pickupSystem);
+		const entityFactory = new EntityFactory(
+			entityWorld,
+			pathfinder,
+			getControlled
+		);
+		const interactSystem = new InteractSystem(entityWorld, getControlled, input);
+		systemManager.register(interactSystem);
 		systemManager.register(
 			new EnemySpawnerSystem(player, entityWorld, worldService, pathfinder)
 		);
@@ -151,10 +160,13 @@ export class GameFactory {
 		// 8. Настройка HUD
 		screenManager.getHud().setPlayerProgression(playerProgression);
 		screenManager.getHud().setPickupInRangeGetter(() => pickupSystem.getPickupInRange());
+		screenManager.getHud().setInteractInRangeGetter(() =>
+			interactSystem.getInteractInRange()
+		);
 
 		// 9. Отладочный полигон (только при ?playground в URL)
 		if (isPlaygroundEnabled()) {
-			populatePlayground(entityWorld, player);
+			populatePlayground(entityWorld, player, entityFactory);
 		}
 
 		// 10. Контекст игры
@@ -170,6 +182,7 @@ export class GameFactory {
 			screenManager,
 			controlSwitch,
 			chunkView,
+			entityFactory,
 		};
 
 		return new Game(ctx);
