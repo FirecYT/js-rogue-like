@@ -1,4 +1,5 @@
 import type { World } from '@firec/map-module';
+import { TILES } from '../map/Types';
 
 /**
  * Результат преобразования мировых координат в тайловые.
@@ -39,13 +40,14 @@ export class WorldService {
 	}
 
 	/**
-	 * Разрушает тайл в мировых координатах (делает его пустым).
+	 * Разрушает тайл в мировых координатах до пола: на месте стены
+	 * остаётся проходимый пол, а не дыра в текстурах.
 	 * @param worldX - Мировая координата X
 	 * @param worldY - Мировая координата Y
 	 * @returns true, если чанк загружен и тайл изменён
 	 */
 	destroyTile(worldX: number, worldY: number): boolean {
-		return this.world.setTileAt(worldX, worldY, 0);
+		return this.world.setTileAt(worldX, worldY, TILES.FLOOR);
 	}
 
 	/**

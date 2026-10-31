@@ -98,6 +98,11 @@ export interface EntityDefinition {
 	persistent?: boolean;
 	/** Опыт за убийство (для прогрессии игрока). */
 	experience?: number;
+	/**
+	 * Схема управления при переходе на это тело (перерождение):
+	 * 'topdown' по умолчанию, 'tank' — W вперёд, A/D поворот.
+	 */
+	controlScheme?: 'topdown' | 'tank';
 	appearance: AppearanceSpec;
 	ai?: AiProfile;
 	loadout?: LoadoutSpec;
@@ -137,6 +142,7 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 		size: 24,
 		team: 'enemy',
 		experience: 120,
+		controlScheme: 'tank',
 		appearance: {
 			shape: 'circle',
 			size: 24,

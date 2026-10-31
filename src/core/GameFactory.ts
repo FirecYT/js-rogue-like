@@ -19,6 +19,8 @@ import { CutsceneSystem } from '../systems/CutsceneSystem';
 import { ControlSwitchService } from '../services/ControlSwitchService';
 import { EntityFactory } from '../services/EntityFactory';
 import { DashChip } from '../items/chips/DashChip';
+import { DeclarativeEntity } from '../entities/DeclarativeEntity';
+import { WormPlayerController } from '../controllers/WormPlayerController';
 import { InteractSystem } from '../systems/InteractSystem';
 
 /** Отладочные хуки debug-сцены (?playground): доступ к миру и управляемой сущности. */
@@ -122,7 +124,27 @@ export class GameFactory {
 		entityWorld.spawn(player);
 
 		// 6. Управление и UI
-		const controlSwitch = new ControlSwitchService(player, playerController);
+		const controlSwitch = new ControlSwitchService(
+			player,
+			playerController,
+			(entity) => {
+				// Танковая схема для червя: курс наследуется от ИИ-головы
+				if (
+					entity instanceof DeclarativeEntity &&
+					entity.definition.controlScheme === 'tank'
+				) {
+					const previous = entity.controller as {
+						getHeading?: () => number;
+					} | null;
+					return new WormPlayerController(
+						input,
+						mouse,
+						previous?.getHeading?.() ?? 0
+					);
+				}
+				return playerController;
+			}
+		);
 		const screenManager = new ScreenManager(
 			engine,
 			mouse,

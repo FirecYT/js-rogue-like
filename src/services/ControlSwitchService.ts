@@ -1,5 +1,6 @@
 import type Entity from '../entities/Entity';
 import type { PlayerController } from '../controllers/PlayerController';
+import type { IController } from '../controllers/Controller';
 import type { Controllable } from '../types/EntityTraits';
 
 /**
@@ -15,7 +16,10 @@ export class ControlSwitchService {
 	 */
 	constructor(
 		player: Entity & Controllable,
-		private readonly playerController: PlayerController
+		private readonly playerController: PlayerController,
+		private readonly controllerFor?: (
+			entity: Entity & Controllable
+		) => IController
 	) {
 		this.currentControlled = player;
 	}
@@ -36,6 +40,8 @@ export class ControlSwitchService {
 		if (entity === this.currentControlled || entity.isDead()) return;
 		this.currentControlled.controller = null;
 		this.currentControlled = entity;
-		this.currentControlled.controller = this.playerController;
+		this.currentControlled.controller = this.controllerFor
+			? this.controllerFor(entity)
+			: this.playerController;
 	}
 }

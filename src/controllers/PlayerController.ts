@@ -5,6 +5,7 @@ import Entity from '../entities/Entity';
 import { InputAction } from '../input/InputAction';
 import { InputMapper } from '../input/InputMapper';
 import { WorldService } from '../services/WorldService';
+import { handleChipInputs } from './ChipUsage';
 
 /**
  * Контроллер игрока по клавиатуре через InputMapper
@@ -23,8 +24,7 @@ export class PlayerController implements IController {
 
 	update(entity: Entity, world: WorldService): void {
 		this.handleMovement(entity, world);
-		this.handleDash(entity);
-		this.handleChips(entity);
+		handleChipInputs(entity, this.input);
 		this.handleShooting(entity);
 	}
 

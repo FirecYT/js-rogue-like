@@ -28,6 +28,14 @@ export class WormController implements IController {
 	) {}
 
 	/**
+	 * Возвращает текущий курс головы (для наследования игроком при переходе управления).
+	 * @returns Курс в радианах
+	 */
+	getHeading(): number {
+		return this.heading;
+	}
+
+	/**
 	 * Обновляет курс, движение и стрельбу головы.
 	 * @param entity - Голова червя
 	 * @param world - Сервис мира для коллизий
