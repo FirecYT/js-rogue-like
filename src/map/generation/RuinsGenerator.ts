@@ -5,6 +5,7 @@ import {
 } from '@firec/map-module';
 import type { Chunk, BuildContext } from '@firec/map-module';
 import { TILES } from '../Types';
+import type { BiomeMap } from '../../services/BiomeMap';
 
 /**
  * Конфигурация генерации руин.
@@ -44,16 +45,37 @@ export class RuinsGenerator extends BaseGenerator {
 
 	private readonly superChunckSize = 3;
 
+	/**
+	 * @param runSeed - Seed забега: руины уникальны на каждую партию
+	 * @param biomeMap - Карта зон: плотность руин берётся из биома зоны
+	 */
+	constructor(
+		private readonly runSeed: number,
+		private readonly biomeMap: BiomeMap
+	) {
+		super();
+	}
+
 	protected buildChunk(chunk: Chunk, ctx: BuildContext): void {
 		const superX = Math.floor(ctx.chunkX / this.superChunckSize);
 		const superY = Math.floor(ctx.chunkY / this.superChunckSize);
-		const superSeed = createSeedFromCoords(superX, superY, 0xdeadbeef);
+		const superSeed = createSeedFromCoords(superX, superY, this.runSeed);
 		const rng = new SeededRandom(superSeed);
 
 		chunk.fill(TILES.FLOOR);
 
+		// Биом центра суперчанка задаёт плотность руин зоны
+		const biome = this.biomeMap.biomeAtChunk(
+			superX * this.superChunckSize + 1,
+			superY * this.superChunckSize + 1
+		);
+
 		// Шаг 1: Генерация комнат для всего суперчанка
-		const rooms = this.generateSuperChunkRooms(chunk.size, rng);
+		const rooms = this.generateSuperChunkRooms(
+			chunk.size,
+			rng,
+			biome.ruinsDensity
+		);
 
 		// Шаг 2: Применение комнат к текущему чанку
 		this.applyRoomsToChunk(chunk, rooms);
@@ -73,15 +95,17 @@ export class RuinsGenerator extends BaseGenerator {
 	 */
 	private generateSuperChunkRooms(
 		chunkSize: number,
-		rng: SeededRandom
+		rng: SeededRandom,
+		density: number
 	): Room[] {
 		const superChunkTileSize = chunkSize * this.superChunckSize;
 
 		const rooms: Room[] = [];
-		const roomCount = rng.nextInt(
+		const rawCount = rng.nextInt(
 			RUINS_CONFIG.MIN_ROOMS,
 			RUINS_CONFIG.MAX_ROOMS + 1
 		);
+		const roomCount = Math.max(1, Math.round(rawCount * density));
 
 		while (rooms.length < roomCount) {
 			// Случайный размер комнаты

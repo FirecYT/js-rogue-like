@@ -19,8 +19,18 @@ import { CutsceneSystem } from '../systems/CutsceneSystem';
 import { ControlSwitchService } from '../services/ControlSwitchService';
 import { EntityFactory } from '../services/EntityFactory';
 import { DashChip } from '../items/chips/DashChip';
+import {
+	DamagePlusModifier,
+	PierceModifier,
+} from '../items/modifiers/catalog';
 import { DeclarativeEntity } from '../entities/DeclarativeEntity';
 import { WormPlayerController } from '../controllers/WormPlayerController';
+import { BiomeMap } from '../services/BiomeMap';
+import { ZoneFeatureSystem } from '../systems/ZoneFeatureSystem';
+import {
+	biomeFloorCanvas,
+	biomeWallCanvas,
+} from '../content/biomes/palette';
 import { InteractSystem } from '../systems/InteractSystem';
 
 /** Отладочные хуки debug-сцены (?playground): доступ к миру и управляемой сущности. */
@@ -28,8 +38,22 @@ export interface GameDebugHooks {
 	getControlled: () => import('../entities/Entity').default;
 	entityWorld: import('../core/EntityWorld').EntityWorld;
 	entityFactory: EntityFactory;
+	biomeMap: BiomeMap;
+	/** Менеджер экранов (для смоук-тестов UI). */
+	screenManager: import('../ui/ScreenManager').ScreenManager;
+	/** Статистика системы фич зон (для смоук-тестов). */
+	zoneStats: () => {
+		chunks: number;
+		altars: number;
+		traders: number;
+		loot: number;
+	};
 	/** Выдать тестовый чип управляемой сущности (только debug-сцена). */
 	giveChip: (id: 'dash') => void;
+	/** Выдать тестовый модификатор в слот 0 (только debug-сцена). */
+	giveItem: (id: 'damage_plus' | 'pierce') => void;
+	/** Неуязвимость управляемой сущности (только debug-сцена). */
+	setInvulnerable: (value: boolean) => void;
 }
 import { RebirthSystem } from '../systems/RebirthSystem';
 import { PlayerProgression } from '../systems/PlayerProgression';
@@ -47,6 +71,7 @@ import {
 	ChunkViewManager,
 	LODManager,
 	SeededRandom,
+	DEFAULT_WORLD_CONFIG,
 } from '@firec/map-module';
 import type { TileVisualProvider, TileVisualContext, TileVisual, WorldOptions } from '@firec/map-module';
 import { TILE_DEFS, TILES } from '../map/Types';
@@ -88,13 +113,19 @@ export class GameFactory {
 			'images/walls.png',
 		]);
 
-		// 3. Создание мира (тайловая карта)
-		const world = this.createWorld({
+		// 3. Создание мира (тайловая карта): seed забега и карта зон
+		const runSeed = (Math.random() * 0x7fffffff) | 0;
+		const biomeMap = new BiomeMap(
+			runSeed,
+			DEFAULT_WORLD_CONFIG.chunkSize,
+			DEFAULT_WORLD_CONFIG.tileSize
+		);
+		const world = this.createWorld(runSeed, biomeMap, {
 			config: {
 				loadRadius: 8,
 			},
 		});
-		const visuals = this.createVisuals(world, engine);
+		const visuals = this.createVisuals(world, engine, biomeMap);
 		const renderer = new CanvasChunkRenderer({
 			tiles: world.tiles,
 			worldConfig: world.config,
@@ -178,8 +209,27 @@ export class GameFactory {
 		);
 		const interactSystem = new InteractSystem(entityWorld, getControlled, input);
 		systemManager.register(interactSystem);
+		const zoneFeatureSystem = new ZoneFeatureSystem(
+			entityWorld,
+			worldService,
+			biomeMap,
+			entityFactory,
+			runSeed,
+			screenManager,
+			engine,
+			floatingTextSystem,
+			getControlled
+		);
+		systemManager.register(zoneFeatureSystem);
 		systemManager.register(
-			new EnemySpawnerSystem(player, entityWorld, worldService, pathfinder)
+			new EnemySpawnerSystem(
+				player,
+				entityWorld,
+				worldService,
+				biomeMap,
+				entityFactory,
+				() => zoneFeatureSystem.getSafeZones()
+			)
 		);
 		systemManager.register(
 			new UISystem(getControlled, entityWorld, input, screenManager, engine, floatingTextSystem)
@@ -195,6 +245,9 @@ export class GameFactory {
 		screenManager.getHud().setInteractInRangeGetter(() =>
 			interactSystem.getInteractInRange()
 		);
+		zoneFeatureSystem.setOnZoneChange((name, color) => {
+			screenManager.getHud().setZoneName(name, color);
+		});
 
 		// 9. Отладочный полигон (только при ?playground в URL)
 		if (isPlaygroundEnabled()) {
@@ -204,10 +257,23 @@ export class GameFactory {
 				getControlled,
 				entityWorld,
 				entityFactory,
+				biomeMap,
+				screenManager,
+				zoneStats: () => zoneFeatureSystem.debugStats,
 				giveChip: (id: 'dash') => {
 					if (id === 'dash') {
 						getControlled().inventory.addChip(new DashChip());
 					}
+				},
+				setInvulnerable: (value: boolean) => {
+					getControlled().invulnerable = value;
+				},
+				giveItem: (id: 'damage_plus' | 'pierce') => {
+					const modifiers = {
+						damage_plus: new DamagePlusModifier(),
+						pierce: new PierceModifier(),
+					} as const;
+					getControlled().inventory.installModifier(modifiers[id], 0);
 				},
 			};
 		}
@@ -226,6 +292,8 @@ export class GameFactory {
 			controlSwitch,
 			chunkView,
 			entityFactory,
+			biomeMap,
+			runSeed,
 		};
 
 		return new Game(ctx);
@@ -234,7 +302,11 @@ export class GameFactory {
 	/**
 	 * Создаёт мир с зарегистрированными тайлами и генераторами.
 	 */
-	private static createWorld(options?: WorldOptions): World {
+	private static createWorld(
+		runSeed: number,
+		biomeMap: BiomeMap,
+		options?: WorldOptions
+	): World {
 		const world = new World(options);
 
 		for (const def of TILE_DEFS) {
@@ -248,7 +320,7 @@ export class GameFactory {
 		}
 
 		world.registerGenerator(new VoidGenerator());
-		world.registerGenerator(new RuinsGenerator());
+		world.registerGenerator(new RuinsGenerator(runSeed, biomeMap));
 		return world;
 	}
 
@@ -257,24 +329,32 @@ export class GameFactory {
 	 */
 	private static createVisuals(
 		world: World,
-		engine: Engine
+		engine: Engine,
+		biomeMap: BiomeMap
 	): Map<number, TileVisualProvider> {
 		const visuals = new Map<number, TileVisualProvider>();
 
 		const floor: TileVisualProvider = (ctx: TileVisualContext): TileVisual => {
 			const chunkHash = new SeededRandom(ctx.chunk.seed);
 			const blockHash = chunkHash.fork(ctx.localX + ctx.localY * 16);
+			const imageVariant = blockHash.nextInt(3, 8);
+			const biome = biomeMap.biomeAtChunk(ctx.chunk.x, ctx.chunk.y);
 
+			if (biome.id !== 'rust_wastes') {
+				return { sprite: biomeFloorCanvas(biome, imageVariant % 3) };
+			}
 			return {
-				sprite: engine.getImage(
-					`images/floor_${blockHash.nextInt(3, 7)}.png`
-				),
+				sprite: engine.getImage(`images/floor_${imageVariant}.png`),
 			};
 		};
 
 		visuals.set(TILES.FLOOR, floor);
 
 		visuals.set(TILES.WALL, (ctx: TileVisualContext): TileVisual => {
+			const wallBiome = biomeMap.biomeAtChunk(ctx.chunk.x, ctx.chunk.y);
+			if (wallBiome.id !== 'rust_wastes') {
+				return { sprite: biomeWallCanvas(wallBiome) };
+			}
 			const { globalTileX: worldX, globalTileY: worldY } = ctx;
 			const tileSize = world.config.tileSize;
 			const gap = 1;

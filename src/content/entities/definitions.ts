@@ -3,6 +3,9 @@ import type { Weapon } from '../../items/Weapon';
 import type { Chip } from '../../items/Chip';
 import type { Modifier } from '../../items/modifiers/Modifier';
 import { ShotgunWeapon } from '../../items/weapons/ShotgunWeapon';
+import { LaserGunWeapon } from '../../items/weapons/LaserGunWeapon';
+import { PistolWeapon } from '../../items/weapons/PistolWeapon';
+import { DamageMultModifier, MulticastModifier } from '../../items/modifiers/catalog';
 import { BossCannonWeapon } from '../../items/weapons/BossCannonWeapon';
 import { RebirthChip } from '../../items/chips/RebirthChip';
 
@@ -20,6 +23,8 @@ export type AiKind =
 	| 'chaser'
 	/** Голова червя: направленное движение с волной и залпами по цели. */
 	| 'worm'
+	/** Турель: не движется, поворачивает ствол и бьёт по линии видимости. */
+	| 'turret'
 	/** Сегмент тела: держится позади лидера на заданной дистанции. */
 	| 'follower'
 	/** Неподвижная сущность без поведения. */
@@ -166,6 +171,63 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 			segments: 6,
 			segmentGap: 26,
 		},
+	},
+
+	/** Осколочный моб равнины: быстрый боец с лазером. */
+	glass_shard: {
+		id: 'glass_shard',
+		name: 'Стеклянный осколок',
+		hp: 10,
+		speed: 1.6,
+		size: 8,
+		team: 'enemy',
+		experience: 6,
+		appearance: { shape: 'rect', size: 8, color: '#a5f3fc', showHpBar: true },
+		ai: { kind: 'chaser', aggroRange: 520, fireRange: 380, repathInterval: 50 },
+		loadout: { weapon: () => new LaserGunWeapon() },
+	},
+
+	/** Ближний моб равнины: очень быстрый, слабый, с пистолетом. */
+	glass_wisp: {
+		id: 'glass_wisp',
+		name: 'Стеклянный блик',
+		hp: 6,
+		speed: 2.4,
+		size: 6,
+		team: 'enemy',
+		experience: 4,
+		appearance: { shape: 'circle', size: 6, color: '#e0f2fe', showHpBar: true },
+		ai: { kind: 'chaser', aggroRange: 600, fireRange: 220, repathInterval: 40 },
+		loadout: { weapon: () => new PistolWeapon() },
+	},
+
+	/**
+	 * БОСС-ЭТАЛОН «турель»: Стеклянный страж не движется, держит ствол на
+	 * цели и бьёт лучевыми залпами. Второй эталон поведения конвейера.
+	 */
+	glass_warden: {
+		id: 'glass_warden',
+		name: 'Стеклянный страж',
+		hp: 300,
+		speed: 0,
+		size: 22,
+		team: 'enemy',
+		experience: 100,
+		controlScheme: 'tank',
+		appearance: {
+			shape: 'circle',
+			size: 22,
+			color: '#0ea5e9',
+			outline: '#e0f2fe',
+			showHpBar: true,
+		},
+		ai: { kind: 'turret', fireRange: 480 },
+		loadout: {
+			weapon: () => new LaserGunWeapon(),
+			modifiers: () => [new DamageMultModifier(), new MulticastModifier(2, 0.4)],
+			chips: [() => new RebirthChip()],
+		},
+		boss: { title: 'СТЕКЛЯННЫЙ СТРАЖ', segments: 0 },
 	},
 
 	/** Сегмент тела червя: следует за лидером, урон не наносит. */

@@ -126,6 +126,16 @@ export class Inventory {
 		return item;
 	}
 
+	/**
+	 * Кладёт предмет в слот с хуками экипировки (для торговли и подобных операций).
+	 * @param ref - Ссылка на слот
+	 * @param item - Предмет (null — очистить слот)
+	 */
+	setAt(ref: SlotRef, item: Item | null): void {
+		this.setRaw(ref, item);
+		item?.onEquip?.(this.entity);
+	}
+
 	/** Прямая запись в слот без хуков (внутреннее использование). */
 	private setRaw(ref: SlotRef, item: Item | null): void {
 		switch (ref.type) {

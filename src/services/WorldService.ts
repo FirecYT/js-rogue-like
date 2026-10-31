@@ -40,6 +40,19 @@ export class WorldService {
 	}
 
 	/**
+	 * Подписывается на событие загрузки чанка (для расстановки фич зон).
+	 * @param callback - Обработчик с координатами чанка
+	 * @returns Функция отписки
+	 */
+	onChunkLoaded(
+		callback: (chunkX: number, chunkY: number) => void
+	): () => void {
+		return this.world.events.on('chunkLoaded', (event) => {
+			callback(event.chunkX, event.chunkY);
+		});
+	}
+
+	/**
 	 * Разрушает тайл в мировых координатах до пола: на месте стены
 	 * остаётся проходимый пол, а не дыра в текстурах.
 	 * @param worldX - Мировая координата X

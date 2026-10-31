@@ -38,6 +38,8 @@ export default abstract class Entity extends GameObject {
 	public team: Team = 'neutral';
 	/** Может ли сущность быть поражена снарядами/зонами урона. */
 	public targetable = true;
+	/** Debug-флаг: сущность не получает урон (используется debug-сценой). */
+	public invulnerable = false;
 	/** Участвует ли сущность в расталкивании с другими сущностями. */
 	public solid = true;
 
@@ -57,7 +59,7 @@ export default abstract class Entity extends GameObject {
 	 * @param attacker - Сущность, нанёсшая урон (опционально)
 	 */
 	takeDamage(damage: number, attacker?: Entity): void {
-		if (this.isDead()) return;
+		if (this.isDead() || this.invulnerable) return;
 		this.hp -= damage;
 		if (this.hp <= 0) {
 			if (attacker) {

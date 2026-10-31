@@ -9,7 +9,6 @@ import { LevelUpWindow } from '../ui/windows/LevelUpWindow';
 import FloatingText from '../components/FloatingText';
 import type { FloatingTextSystem } from './FloatingTextSystem';
 import type Entity from '../entities/Entity';
-import Enemy from '../entities/Enemy';
 import { LEVEL_UP_UPGRADES } from '../content/upgrades';
 
 /**
@@ -49,8 +48,8 @@ export class ProgressionSystem implements ISystem {
 			if (killer !== controlled) return;
 
 			let experience = 0;
-			if (victim instanceof Enemy) {
-				experience = victim.experience;
+			if ('experience' in victim) {
+				experience = (victim as { experience: number }).experience;
 			}
 
 			this.addExperience(experience, controlled);

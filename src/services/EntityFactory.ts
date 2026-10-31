@@ -4,6 +4,7 @@ import type Entity from '../entities/Entity';
 import { DeclarativeEntity } from '../entities/DeclarativeEntity';
 import { AiController } from '../controllers/AiController';
 import { WormController } from '../controllers/WormController';
+import { TurretController } from '../controllers/TurretController';
 import { FollowerController } from '../controllers/FollowerController';
 import {
 	getEntityDefinition,
@@ -123,6 +124,8 @@ export class EntityFactory {
 				return new AiController(this.getTarget(), this.pathfinder);
 			case 'worm':
 				return new WormController(this.getTarget, ai);
+			case 'turret':
+				return new TurretController(this.getTarget, ai);
 			case 'follower':
 			case 'stationary':
 				// Сегменты связываются фабрикой, статичные сущности без поведения

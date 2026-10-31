@@ -14,6 +14,8 @@ export class DeclarativeEntity
 	implements HasPosition, HasSpeed, Controllable
 {
 	public controller: IController | null = null;
+	/** Опыт за убийство (из определения, для прогрессии игрока). */
+	public readonly experience: number;
 
 	/**
 	 * @param definition - Декларативное описание сущности
@@ -30,6 +32,7 @@ export class DeclarativeEntity
 		this.width = definition.size;
 		this.height = definition.size;
 		this.team = definition.team;
+		this.experience = definition.experience ?? 0;
 		if (definition.solid !== undefined) this.solid = definition.solid;
 		if (definition.targetable !== undefined) {
 			this.targetable = definition.targetable;

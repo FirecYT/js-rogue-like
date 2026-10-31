@@ -87,6 +87,14 @@ export class ScreenManager {
 	}
 
 	/**
+	 * Список открытых окон (для отладки и смоук-тестов).
+	 * @returns Массив открытых окон
+	 */
+	getWindows(): Window[] {
+		return this.windows;
+	}
+
+	/**
 	 * Обновляет HUD и все открытые окна (снизу вверх).
 	 */
 	update(): void {

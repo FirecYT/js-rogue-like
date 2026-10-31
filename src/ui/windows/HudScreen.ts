@@ -37,6 +37,8 @@ export class HudScreen extends Component {
 
 	private getPickupInRange: (() => PickupItem | null) | null = null;
 	private readonly pickupHintLabel = new Label('[E] Подобрать');
+	private zoneName = '';
+	private zoneColor = '#ffffff';
 	private getInteractInRange: (() => (Entity & Interactable) | null) | null =
 		null;
 	private readonly interactHintLabel = new Label('');
@@ -81,6 +83,16 @@ export class HudScreen extends Component {
 	 */
 	setPickupInRangeGetter(getter: () => PickupItem | null): void {
 		this.getPickupInRange = getter;
+	}
+
+	/**
+	 * Устанавливает метку текущей зоны биома (имя и цвет).
+	 * @param name - Имя биома
+	 * @param color - Цвет метки
+	 */
+	setZoneName(name: string, color: string): void {
+		this.zoneName = name;
+		this.zoneColor = color;
 	}
 
 	/**
@@ -182,6 +194,14 @@ export class HudScreen extends Component {
 	render(ctx: CanvasRenderingContext2D): void {
 		const entity = this.getControlledEntity();
 		if (!entity) return;
+
+		if (this.zoneName) {
+			ctx.fillStyle = this.zoneColor;
+			ctx.font = '14px Arial';
+			ctx.textAlign = 'left';
+			ctx.textBaseline = 'top';
+			ctx.fillText(this.zoneName, 12, 26);
+		}
 
 		this.renderExperienceBar(ctx);
 		this.renderHealthBar(ctx, entity);
