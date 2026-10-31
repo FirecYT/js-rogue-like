@@ -65,8 +65,8 @@ export class Inventory {
 
 	/**
 	 * Производит выстрел из оружия под заданным углом (если оружие готово).
+	 * Оружие само эмитит событие weaponFired через EventBus.
 	 * @param angle - Угол в радианах
-	 * @param effectSystem - Система эффектов для добавления эффекта выстрела
 	 */
 	fire(angle: number): void {
 		if (!this.weapon || !this.isWeaponReady()) return;

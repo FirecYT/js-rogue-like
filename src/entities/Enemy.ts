@@ -2,7 +2,10 @@ import Entity from './Entity';
 import { Controllable, HasPosition, HasSpeed } from '../types/EntityTraits';
 import { AiController } from '../controllers/AiController';
 import { RebirthChip } from '../items/chips/RebirthChip';
-import { Controller } from '../controllers/Controller';
+import { IController } from '../controllers/Controller';
+import { Pathfinder } from '../services/Pathfinder';
+import { ShotgunWeapon } from '../items/weapons/ShotgunWeapon';
+import { PistolWeapon } from '../items/weapons/PistolWeapon';
 
 /**
  * Враждебная сущность: ИИ-контроллер, случайное оружие/чип перерождения, опыт при убийстве.
@@ -11,7 +14,7 @@ export default class Enemy
 	extends Entity
 	implements HasPosition, HasSpeed, Controllable
 {
-	public controller: Controller | null;
+	public controller: IController | null;
 	public speed = 1;
 	public experience = 5;
 
@@ -19,17 +22,29 @@ export default class Enemy
 	 * @param x - Мировая координата X
 	 * @param y - Мировая координата Y
 	 * @param player - Цель (игрок) для ИИ
+	 * @param pathfinder - Система поиска пути для AiController
 	 */
 	constructor(
 		x: number,
 		y: number,
-		private player: Entity
+		private player: Entity,
+		private pathfinder: Pathfinder
 	) {
 		super(x, y, 5);
+
+		// Случайное оружие: 70% дробовик, 30% пистолет
+		if (Math.random() > 0.3) {
+			this.inventory.setWeapon(new ShotgunWeapon());
+		} else {
+			this.inventory.setWeapon(new PistolWeapon());
+		}
+
+		// Случайный чип перерождения
 		if (Math.random() > 0.25) {
 			this.inventory.addChip(new RebirthChip());
 		}
-		this.controller = new AiController(this.player);
+
+		this.controller = new AiController(this.player, this.pathfinder);
 	}
 
 	/**

@@ -1,107 +1,108 @@
-import { Controller } from './Controller';
+import { IController } from './Controller';
 import MouseInput from '../components/MouseInput';
 import Entity from '../entities/Entity';
 import { InputAction } from '../input/InputAction';
 import { InputMapper } from '../input/InputMapper';
+import { WorldService } from '../services/WorldService';
 
 /**
- * Контроллер игрока: WASD, прицеливание мышью, стрельба по ЛКМ, чипы по Q/1-5, даш по Shift.
+ * Контроллер игрока по клавиатуре через InputMapper
  */
-export class PlayerController extends Controller {
+export class PlayerController implements IController {
 	/**
-	 * @param mouse - Состояние мыши (для прицела и нажатия)
+	 * @param mouse - Состояние мыши для прицеливания и стрельбы.
+	 * @param input - Маппер действий для абстрагирования от конкретных клавиш.
 	 */
-	constructor(private mouse: MouseInput, private input: InputMapper) {
-		super();
+	constructor(
+		private mouse: MouseInput,
+		private input: InputMapper
+	) { }
+
+	update(entity: Entity, world: WorldService): void {
+		this.handleMovement(entity, world);
+		this.handleDash(entity);
+		this.handleChips(entity);
+		this.handleShooting(entity);
 	}
 
 	/**
-	 * Движение с проверкой проходимости, стрельба по нажатию мыши, использование чипов по клавишам.
-	 * @param entity - Игрок
-	 * @param world - Мир
-	 * @param effectSystem - Система эффектов
+	 * Движение WASD/стрелки с нормализацией диагонали и коллизиями через WorldService.
 	 */
-	update(
-		entity: Entity
-		// world: WorldManager,
-		// effectSystem: EffectSystem
-	): void {
-		const speed = entity.speed;
-		// const originalX = entity.x;
-		// const originalY = entity.y;
+	private handleMovement(entity: Entity, world: WorldService): void {
+		let dx = 0;
+		let dy = 0;
 
-		if (this.input.isDown(InputAction.MoveLeft)) {
-			entity.x -= speed;
-			// if (!world.isWorldPositionPassable(entity.x, entity.y))
-			// 	entity.x = originalX;
-		}
-		if (this.input.isDown(InputAction.MoveRight)) {
-			entity.x += speed;
-			// if (!world.isWorldPositionPassable(entity.x, entity.y))
-			// 	entity.x = originalX;
-		}
-		if (this.input.isDown(InputAction.MoveUp)) {
-			entity.y -= speed;
-			// if (!world.isWorldPositionPassable(entity.x, entity.y))
-			// 	entity.y = originalY;
-		}
-		if (this.input.isDown(InputAction.MoveDown)) {
-			entity.y += speed;
-			// if (!world.isWorldPositionPassable(entity.x, entity.y))
-			// 	entity.y = originalY;
+		if (this.input.isDown(InputAction.MoveLeft)) dx -= entity.speed;
+		if (this.input.isDown(InputAction.MoveRight)) dx += entity.speed;
+		if (this.input.isDown(InputAction.MoveUp)) dy -= entity.speed;
+		if (this.input.isDown(InputAction.MoveDown)) dy += entity.speed;
+
+		// Нормализация диагонали, чтобы скорость была одинаковой во всех направлениях
+		if (dx !== 0 && dy !== 0) {
+			const inv = 1 / Math.SQRT2;
+			dx *= inv;
+			dy *= inv;
 		}
 
-		if (this.input.isDown(InputAction.Dash)) {
-			const dashChipIndex = entity.inventory.chips.findIndex(
-				(chip) => chip?.id === 'dash'
-			);
-			if (
-				dashChipIndex !== -1 &&
-				entity.inventory.isChipReady(dashChipIndex)
-			) {
-				entity.inventory.useChip(dashChipIndex);
+		// Коллизия: tryMove проверяет каждую ось отдельно (скольжение вдоль стен)
+		const newPos = world.tryMove(
+			entity.x,
+			entity.y,
+			dx,
+			dy,
+			entity.width,
+			entity.height
+		);
+		entity.x = newPos.x;
+		entity.y = newPos.y;
+	}
+
+	/**
+	 * Рывок (Dash): использование чипа 'dash' по Shift.
+	 */
+	private handleDash(entity: Entity): void {
+		if (!this.input.isDown(InputAction.Dash)) return;
+		const dashIdx = entity.inventory.chips.findIndex(
+			(c) => c?.id === 'dash'
+		);
+		if (dashIdx !== -1 && entity.inventory.isChipReady(dashIdx)) {
+			entity.inventory.useChip(dashIdx);
+		}
+	}
+
+	/**
+	 * Использование чипов по клавишам 1-5/Q.
+	 */
+	private handleChips(entity: Entity): void {
+		const chipActions = [
+			InputAction.Chip1,
+			InputAction.Chip2,
+			InputAction.Chip3,
+			InputAction.Chip4,
+			InputAction.Chip5,
+		];
+		for (let i = 0; i < chipActions.length; i++) {
+			if (this.input.isPressed(chipActions[i]) && entity.inventory.chips[i]) {
+				entity.inventory.useChip(i);
 			}
 		}
+	}
 
-		// if (entity.inventory.weapon) {
-		// 	const mouseWorldX = entity.x + this.mouse.cx;
-		// 	const mouseWorldY = entity.y + this.mouse.cy;
-		// 	const angle = getAngleBetweenPoints(
-		// 		entity.x,
-		// 		entity.y,
-		// 		mouseWorldX,
-		// 		mouseWorldY
-		// 	);
-		// 	if (this.mouse.pressed && entity.inventory.isWeaponReady()) {
-		// 		entity.inventory.fire(angle, effectSystem);
-		// 	}
-		// }
+	/**
+	 * Стрельба по ЛКМ: вычисляет угол к курсору и вызывает fire на инвентаре.
+	 * Оружие само эмитит событие weaponFired через EventBus.
+	 */
+	private handleShooting(entity: Entity): void {
+		if (!this.mouse.pressed || !entity.inventory.weapon) return;
+		if (!entity.inventory.isWeaponReady()) return;
 
-		if (
-			this.input.isPressed(InputAction.Chip1) &&
-			entity.inventory.chips[0]
-		) {
-			entity.inventory.useChip(0);
-		} else if (
-			this.input.isPressed(InputAction.Chip2) &&
-			entity.inventory.chips[1]
-		) {
-			entity.inventory.useChip(1);
-		} else if (
-			this.input.isPressed(InputAction.Chip3) &&
-			entity.inventory.chips[2]
-		) {
-			entity.inventory.useChip(2);
-		} else if (
-			this.input.isPressed(InputAction.Chip4) &&
-			entity.inventory.chips[3]
-		) {
-			entity.inventory.useChip(3);
-		} else if (
-			this.input.isPressed(InputAction.Chip5) &&
-			entity.inventory.chips[4]
-		) {
-			entity.inventory.useChip(4);
-		}
+		// mouse.cx/cy — смещение от центра канваса, entity — в мировых координатах
+		const targetX = entity.x + this.mouse.cx;
+		const targetY = entity.y + this.mouse.cy;
+		const angle = Math.atan2(
+			targetY - entity.y,
+			targetX - entity.x
+		);
+		entity.inventory.fire(angle);
 	}
 }

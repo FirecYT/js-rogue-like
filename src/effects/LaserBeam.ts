@@ -1,5 +1,6 @@
 import { Effect } from './Effect';
 import Entity from '../entities/Entity';
+import type { WorldService } from '../services/WorldService';
 
 /**
  * Луч: неподвижный отрезок на duration кадров, наносит урон сущностям в полосе.
@@ -20,11 +21,12 @@ export class LaserBeam extends Effect {
 
 	/**
 	 * Уменьшает duration; проверяет сущности в полосе (расстояние до линии < 10 и вдоль луча 0..length).
-	 * @param enities - Список сущностей
+	 * @param entities - Список сущностей
+	 * @param _world - Сервис мира (не используется, но требуется интерфейсом)
 	 */
-	update(enities: Entity[]): void {
+	update(entities: Entity[], _world?: WorldService): void {
 		this.duration--;
-		for (const entity of enities) {
+		for (const entity of entities) {
 			if (entity === this.source || entity.isDead()) continue;
 			const dx = entity.x - this.x;
 			const dy = entity.y - this.y;

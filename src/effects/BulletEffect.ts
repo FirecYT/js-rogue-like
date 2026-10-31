@@ -1,5 +1,6 @@
 import { Effect } from './Effect';
 import Entity from '../entities/Entity';
+import type { WorldService } from '../services/WorldService';
 
 /**
  * Снаряд: движется по прямой, наносит урон при пересечении с сущностями, уничтожается о стены или по времени.
@@ -30,20 +31,18 @@ export class BulletEffect extends Effect {
 	/**
 	 * Движение, проверка стен, попадания по сущностям; при попадании — onHit и при необходимости завершение.
 	 * @param entities - Список сущностей
-	 * @param worldManager - Менеджер мира (проверка проходимости)
+	 * @param world - Сервис мира для проверки коллизий с тайлами
 	 */
-	update(entities: Entity[]): void {
+	update(entities: Entity[], world?: WorldService): void {
 		this.x += Math.cos(this.angle) * this.speed;
 		this.y += Math.sin(this.angle) * this.speed;
 		this.lifetime--;
 
-		// if (
-		// 	worldManager &&
-		// 	!worldManager.isWorldPositionPassable(this.x, this.y)
-		// ) {
-		// 	this.lifetime = 0;
-		// 	return;
-		// }
+		// Проверка коллизии со стенами
+		if (world && !world.isPassable(this.x, this.y)) {
+			this.lifetime = 0;
+			return;
+		}
 
 		for (const entity of entities) {
 			if (entity === this.source || entity.isDead()) continue;

@@ -1,135 +1,140 @@
-import { Controller } from './Controller';
-import Entity from '../entities/Entity';
-import { HasSpeed } from '../types/EntityTraits';
+import type { IController } from './Controller';
+import type Entity from '../entities/Entity';
+import type { WorldService } from '../services/WorldService';
+import type { Pathfinder, Path } from '../services/Pathfinder';
 
 /**
- * ИИ-контроллер: движение к цели по пути или напрямую, стрельба при видимости цели.
+ * ИИ-контроллер: преследование цели с поиском пути A*, стрельба при линии видимости.
+ * Кэширует путь и обновляет его раз в N кадров для снижения нагрузки.
  */
-export class AiController extends Controller {
-	protected path: { x: number; y: number }[] = [];
-	protected pathUpdateCooldown = 0;
-	protected target: Entity;
+export class AiController implements IController {
+	private path: Path = [];
+	private pathUpdateCooldown = 0;
+
+	/** Интервал пересчёта пути в кадрах. */
+	private static readonly REPATH_INTERVAL = 60;
+	/** Максимальная дистанция для начала преследования. */
+	private static readonly AGGRO_RANGE = 500;
+	/** Дистанция стрельбы. */
+	private static readonly FIRE_RANGE = 400;
 
 	/**
-	 * @param target - Цель (обычно игрок)
+	 * @param target - Цель для преследования (обычно игрок).
+	 * @param pathfinder - Система поиска пути.
+	 * @param effectSystem - Система эффектов для выстрелов.
 	 */
-	constructor(target: Entity) {
-		super();
-		this.target = target;
-	}
+	constructor(
+		private readonly target: Entity,
+		private readonly pathfinder: Pathfinder
+	) { }
 
-	/**
-	 * Обновляет путь раз в 60 кадров в радиусе 4 чанков; стреляет, если цель в радиусе 400 и есть линия видимости; двигается по пути или напрямую.
-	 * @param entity - Управляемая сущность
-	 * @param world - Мир
-	 * @param effectSystem - Система эффектов
-	 */
-	update(_entity: Entity): void {
+	update(entity: Entity, world: WorldService): void {
+		const distance = Math.hypot(
+			this.target.x - entity.x,
+			this.target.y - entity.y
+		);
+
+		// Обновляем путь периодически
 		this.pathUpdateCooldown--;
-		if (this.pathUpdateCooldown <= 0) {
-			// const distance = Math.hypot(
-			// 	this.target.x - entity.x,
-			// 	this.target.y - entity.y
-			// );
-			// if (distance < CHUNK_CONFIG.FULL_SIZE * 4) {
-			// 	const rawPath = Pathfinder.findPath(
-			// 		entity.x,
-			// 		entity.y,
-			// 		this.target.x,
-			// 		this.target.y,
-			// 		world
-			// 	);
-			// 	this.path =
-			// 		rawPath.length > 0 ? simplifyPath(rawPath, world) : [];
-			// }
-			this.pathUpdateCooldown = 60;
+		if (
+			this.pathUpdateCooldown <= 0 &&
+			distance < AiController.AGGRO_RANGE
+		) {
+			this.path = this.pathfinder.findPath({
+				start: { x: entity.x, y: entity.y },
+				end: { x: this.target.x, y: this.target.y },
+				maxNodes: 500,
+			});
+			this.pathUpdateCooldown = AiController.REPATH_INTERVAL;
 		}
 
-		// if (entity.inventory.weapon && entity.inventory.isWeaponReady()) {
-		// 	const distance = Math.hypot(
-		// 		this.target.x - entity.x,
-		// 		this.target.y - entity.y
-		// 	);
-		// 	const canSeeTarget = world.hasLineOfSight(
-		// 		entity.x,
-		// 		entity.y,
-		// 		this.target.x,
-		// 		this.target.y,
-		// 		400
-		// 	);
-		// 	if (distance < 400 && canSeeTarget) {
-		// 		const angle = getAngleBetweenPoints(
-		// 			entity.x,
-		// 			entity.y,
-		// 			this.target.x,
-		// 			this.target.y
-		// 		);
-		// 		entity.inventory.fire(angle, effectSystem);
-		// 	}
-		// }
+		// Движение
+		if (this.path.length > 1) {
+			this.followPath(entity, world);
+		} else if (distance > 10) {
+			this.moveDirectly(entity, world);
+		}
 
-		// if (this.path.length === 0) {
-		// 	this.moveDirectly(entity, world);
-		// } else {
-		// 	this.followPath(entity, world);
-		// }
+		// Стрельба
+		this.tryShoot(entity, world, distance);
 	}
 
 	/**
-	 * Движение напрямую к цели с проверкой проходимости.
-	 * @param entity - Сущность
-	 * @param world - Мир
+	 * Движение по первому waypoint пути; при достижении — сдвиг пути.
 	 */
-	private moveDirectly(entity: Entity): void {
-		const dx = this.target.x - entity.x;
-		const dy = this.target.y - entity.y;
-		const dist = Math.sqrt(dx * dx + dy * dy);
-		if (dist > 0) {
-			const speed = this.getEntitySpeed(entity);
-			const newX = entity.x + (dx / dist) * speed;
-			const newY = entity.y + (dy / dist) * speed;
-			entity.x = newX;
-			entity.y = newY;
-		}
-	}
-
-	/**
-	 * Движение по первому пункту пути; при достижении — сдвиг пути.
-	 * @param entity - Сущность
-	 * @param world - Мир
-	 */
-	private followPath(entity: Entity): void {
-		if (this.path.length === 0) return;
-		const next = this.path[0];
+	private followPath(entity: Entity, world: WorldService): void {
+		const next = this.path[1]; // [0] — стартовая позиция
 		const dx = next.x - entity.x;
 		const dy = next.y - entity.y;
-		const dist = Math.sqrt(dx * dx + dy * dy);
-		if (dist < 10) {
+		const d = Math.hypot(dx, dy);
+
+		if (d < entity.speed) {
 			this.path.shift();
-		} else {
-			const angle = Math.atan2(dy, dx);
-			const speed = this.getEntitySpeed(entity);
-			const newX = entity.x + Math.cos(angle) * speed;
-			const newY = entity.y + Math.sin(angle) * speed;
-			entity.x = newX;
-			entity.y = newY;
+			return;
 		}
+
+		const nx = (dx / d) * entity.speed;
+		const ny = (dy / d) * entity.speed;
+		const newPos = world.tryMove(
+			entity.x,
+			entity.y,
+			nx,
+			ny,
+			entity.width,
+			entity.height
+		);
+		entity.x = newPos.x;
+		entity.y = newPos.y;
 	}
 
 	/**
-	 * Возвращает скорость сущности, если есть HasSpeed, иначе 1.
-	 * @param entity - Сущность
-	 * @returns Число
+	 * Движение напрямую к цели (fallback, если путь не найден).
 	 */
-	private getEntitySpeed(entity: Entity): number {
-		return this.hasSpeed(entity) ? entity.speed : 1;
+	private moveDirectly(entity: Entity, world: WorldService): void {
+		const dx = this.target.x - entity.x;
+		const dy = this.target.y - entity.y;
+		const d = Math.hypot(dx, dy);
+		if (d === 0) return;
+
+		const nx = (dx / d) * entity.speed;
+		const ny = (dy / d) * entity.speed;
+		const newPos = world.tryMove(
+			entity.x,
+			entity.y,
+			nx,
+			ny,
+			entity.width,
+			entity.height
+		);
+		entity.x = newPos.x;
+		entity.y = newPos.y;
 	}
 
 	/**
-	 * Type guard для HasSpeed.
-	 * @param entity - Сущность
+	 * Стрельба при наличии оружия, линии видимости и дистанции.
+	 * Оружие само эмитит событие weaponFired через EventBus.
 	 */
-	private hasSpeed(entity: Entity): entity is Entity & HasSpeed {
-		return 'speed' in entity;
+	private tryShoot(
+		entity: Entity,
+		world: WorldService,
+		distance: number
+	): void {
+		if (!entity.inventory.weapon || !entity.inventory.isWeaponReady()) return;
+		if (distance > AiController.FIRE_RANGE) return;
+
+		const canSee = world.hasLineOfSight(
+			entity.x,
+			entity.y,
+			this.target.x,
+			this.target.y,
+			AiController.FIRE_RANGE
+		);
+		if (!canSee) return;
+
+		const angle = Math.atan2(
+			this.target.y - entity.y,
+			this.target.x - entity.x
+		);
+		entity.inventory.fire(angle);
 	}
 }

@@ -1,6 +1,7 @@
 import { Window } from '../Window';
 import { Button } from '../components/Button';
 import { Label } from '../components/Label';
+import { VerticalLayout } from '../containers/VerticalLayout';
 
 /**
  * Окно повышения уровня
@@ -28,6 +29,8 @@ export class LevelUpWindow extends Window {
 		this.causesPause = true;
 
 		this.createUI();
+		this.autoSize();
+		this.centerWindow(canvasWidth, canvasHeight);
 	}
 
 	/**
@@ -35,17 +38,16 @@ export class LevelUpWindow extends Window {
 	 */
 	private createUI(): void {
 		this.root.children = [];
+		
+		const layout = new VerticalLayout();
+		layout.spacing = 10;
+		layout.padding = { top: 40, right: 20, bottom: 20, left: 20 };
 
 		const instructionLabel = new Label('Выберите улучшение:');
-		instructionLabel.x = 20;
-		instructionLabel.y = 40;
-		this.root.addChild(instructionLabel);
+		layout.addChild(instructionLabel);
 
-		for (let i = 0; i < this.options.length; i++) {
-			const option = this.options[i];
+		for (const option of this.options) {
 			const button = new Button(option, 200, 30);
-			button.x = (this.width - 200) / 2;
-			button.y = 80 + i * 40;
 
 			const currentOption = option;
 			button.setOnClick(() => {
@@ -54,8 +56,10 @@ export class LevelUpWindow extends Window {
 				}
 			});
 
-			this.root.addChild(button);
+			layout.addChild(button);
 		}
+
+		this.root.addChild(layout);
 	}
 
 	/**

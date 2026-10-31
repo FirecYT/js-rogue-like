@@ -8,6 +8,10 @@ import { eventBus } from '../events/EventBus';
 export default abstract class Entity extends GameObject {
 	public inventory: Inventory;
 	public speed = 2;
+	/** Ширина хитбокса в пикселях (для коллизий с тайлами). */
+	public width = 8;
+	/** Высота хитбокса в пикселях (для коллизий с тайлами). */
+	public height = 8;
 
 	/**
 	 * @param x - Мировая координата X
@@ -61,5 +65,13 @@ export default abstract class Entity extends GameObject {
 			});
 		}
 		return cooldowns;
+	}
+
+	/**
+	 * Опциональный метод обновления логики сущности (переопределяется в подклассах).
+	 * По умолчанию ничего не делает.
+	 */
+	update(): void {
+		// Override in subclasses
 	}
 }

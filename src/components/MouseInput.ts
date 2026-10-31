@@ -1,5 +1,6 @@
 /**
- * Состояние мыши относительно канваса: координаты и нажатие.
+ * Состояние мыши относительно канваса: координаты, нажатие и прокрутка колеса.
+ * Единая точка сбора всех событий мыши (SRP).
  */
 export default class MouseInput {
 	/** Координата X относительно канваса */
@@ -10,11 +11,17 @@ export default class MouseInput {
 	public cx = 0;
 	/** Смещение Y от центра канваса */
 	public cy = 0;
-	/** Нажата ли кнопка мыши */
+	/** Нажата ли левая кнопка мыши */
 	public pressed = false;
+	/**
+	 * Дельта прокрутки колеса за последний кадр.
+	 * Положительное значение — прокрутка вниз (от себя), отрицательное — вверх (к себе).
+	 * Сбрасывается в 0 при вызове update().
+	 */
+	public wheelDelta = 0;
 
 	/**
-	 * Подписывается на события мыши канваса и обновляет x, y, cx, cy, pressed.
+	 * Подписывается на события мыши канваса: движение, клики, прокрутка.
 	 * @param canvas - Элемент canvas
 	 */
 	constructor(canvas: HTMLCanvasElement) {
@@ -26,5 +33,20 @@ export default class MouseInput {
 		});
 		canvas.addEventListener('mousedown', () => (this.pressed = true));
 		canvas.addEventListener('mouseup', () => (this.pressed = false));
+		canvas.addEventListener(
+			'wheel',
+			(e) => {
+				this.wheelDelta += Math.sign(e.deltaY);
+				e.preventDefault();
+			},
+			{ passive: false }
+		);
+	}
+
+	/**
+	 * Сбрасывает wheelDelta в 0 (вызывать раз в кадр после обработки).
+	 */
+	update(): void {
+		this.wheelDelta = 0;
 	}
 }

@@ -32,12 +32,17 @@ export abstract class Window extends Component {
 	 * @param globalX Глобальная координата X компонента на экране
 	 * @param globalY Глобальная координата Y компонента на экране
 	 */
+	/** Флаг для отслеживания нажатия (чтобы handleClick вызывался только один раз) */
+	private wasPressed = false;
+
 	update(mouse: MouseInput): void {
 		this.root.update(mouse, this.x, this.y);
 
-		if (mouse.pressed) {
+		// Обработка клика: только при переходе из не-нажатого в нажатое состояние
+		if (mouse.pressed && !this.wasPressed) {
 			this.handleClick?.(mouse.x, mouse.y);
 		}
+		this.wasPressed = mouse.pressed;
 	}
 
 	/**

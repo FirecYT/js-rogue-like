@@ -1,5 +1,6 @@
 import { Effect } from './Effect';
 import Entity from '../entities/Entity';
+import type { WorldService } from '../services/WorldService';
 
 /**
  * Взрыв: в середине длительности наносит урон всем сущностям в радиусе, визуально сжимается.
@@ -20,8 +21,9 @@ export class ExplosionEffect extends Effect {
 	/**
 	 * На 6-м кадре до конца наносит урон сущностям в радиусе.
 	 * @param entities - Список сущностей
+	 * @param _world - Сервис мира (не используется, но требуется интерфейсом)
 	 */
-	update(entities: Entity[]): void {
+	update(entities: Entity[], _world?: WorldService): void {
 		this.duration--;
 		if (this.duration === 6) {
 			for (const entity of entities) {

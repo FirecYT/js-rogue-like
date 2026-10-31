@@ -1,10 +1,17 @@
 import Entity from '../entities/Entity';
+import type { Weapon } from '../items/Weapon';
+import type { PickupItem } from '../entities/PickupItem';
 
 /** Карта событий: имя события -> тип данных */
 interface EventMap {
 	enemyKilled: { killer: Entity; victim: Entity };
 	entityDied: { entity: Entity };
 	chunkUnloaded: { chunkX: number; chunkY: number };
+	weaponFired: { source: Entity; angle: number; weapon: Weapon };
+	pickupRequested: { entity: Entity; pickup: PickupItem };
+	entityDamaged: { entity: Entity; amount: number; attacker?: Entity };
+	/** Запуск катсцены: массив строк для отображения. */
+	cutsceneStart: { lines: string[] };
 }
 
 /**

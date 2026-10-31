@@ -3,11 +3,11 @@
  */
 export class PlayerProgression {
 	level = 1;
-	experience = 0;
+	experience = 95;
 
 	/** Опыт, необходимый для перехода на следующий уровень (level * 100). */
 	get experienceToNext(): number {
-		return Math.floor(this.level * 100);
+		return Math.floor(this.level * 1);
 	}
 
 	/**
@@ -18,8 +18,8 @@ export class PlayerProgression {
 	add(amount: number): boolean {
 		this.experience += amount;
 		if (this.experience >= this.experienceToNext) {
-			this.level++;
 			this.experience -= this.experienceToNext;
+			this.level++;
 			return true;
 		}
 		return false;

@@ -1,14 +1,16 @@
 import Entity from '../entities/Entity';
+import type { WorldService } from '../services/WorldService';
 
 /**
- * Базовый класс контроллера: обновление сущности (движение, стрельба и т.д.) каждый кадр.
+ * Интерфейс контроллера: обновление поведения сущности с доступом к сервисам мира.
+ * Использование интерфейса (а не абстрактного класса) позволяет реализовывать
+ * множественные стратегии без наследования.
  */
-export abstract class Controller {
+export interface IController {
 	/**
 	 * Вызывается каждый кадр для управляемой сущности.
-	 * @param entity - Управляемая сущность
-	 * @param world - Менеджер мира (коллизии, путь)
-	 * @param effectSystem - Система эффектов (для выстрелов)
+	 * @param entity - Сущность, которой управляет контроллер
+	 * @param world - Сервис мира для проверки коллизий, видимости и т.д.
 	 */
-	abstract update(entity: Entity) : void;
+	update(entity: Entity, world: WorldService): void;
 }

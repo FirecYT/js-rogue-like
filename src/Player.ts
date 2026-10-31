@@ -1,7 +1,7 @@
 import Entity from './entities/Entity';
 import { interpolateColor } from './utils';
 import { HasStats, HasPosition, Controllable } from './types/EntityTraits';
-import { Controller } from './controllers/Controller';
+import { IController } from './controllers/Controller';
 
 /**
  * Игрок: управляемая сущность с большим HP, уроном и отрисовкой с интерполяцией цвета по HP.
@@ -10,11 +10,11 @@ export default class Player
 	extends Entity
 	implements HasPosition, HasStats, Controllable
 {
-	public controller: Controller | null = null;
+	public controller: IController | null = null;
 	public damage = 10;
 	public width = 10;
 	public height = 10;
-	public speed = 10;
+	public speed = 2;
 
 	/**
 	 * @param x - Мировая координата X

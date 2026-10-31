@@ -1,5 +1,6 @@
 import { Effect } from './Effect';
 import Entity from '../entities/Entity';
+import type { WorldService } from '../services/WorldService';
 
 /**
  * Зона огня: круг с периодическим уроном по сущностям внутри радиуса.
@@ -24,13 +25,14 @@ export class FireZone extends Effect {
 
 	/**
 	 * Каждые 20 кадров наносит 3 урона сущностям в радиусе.
-	 * @param enities - Список сущностей
+	 * @param entities - Список сущностей
+	 * @param _world - Сервис мира (не используется, но требуется интерфейсом)
 	 */
-	update(enities: Entity[]): void {
+	update(entities: Entity[], _world?: WorldService): void {
 		this.duration--;
 		this.damageTick++;
 		if (this.damageTick % 20 === 0) {
-			for (const entity of enities) {
+			for (const entity of entities) {
 				if (entity === this.source || entity.isDead()) continue;
 				const dx = entity.x - this.x;
 				const dy = entity.y - this.y;
