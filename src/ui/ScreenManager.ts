@@ -49,22 +49,6 @@ export class ScreenManager {
 	}
 
 	/**
-	 * Закрыть верхнее окно
-	 */
-	closeTopWindow(): void {
-		if (this.windows.length > 0) {
-			this.windows.pop();
-		}
-	}
-
-	/**
-	 * Закрыть все окна
-	 */
-	closeAllWindows(): void {
-		this.windows = [];
-	}
-
-	/**
 	 * Проверяет, открыто ли окно указанного типа
 	 * @param windowClass Класс окна для проверки
 	 * @returns true, если такое окно открыто
@@ -90,14 +74,6 @@ export class ScreenManager {
 	}
 
 	/**
-	 * Есть ли активные окна
-	 * @returns true, если есть хотя бы одно открытое окно
-	 */
-	hasActiveWindows(): boolean {
-		return this.windows.length > 0;
-	}
-
-	/**
 	 * Нужно ли ставить игру на паузу
 	 * @returns true, если открыто хотя бы одно окно с паузой
 	 */
@@ -108,14 +84,6 @@ export class ScreenManager {
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Блокирует ли управление игроком
-	 * @returns true, если открыто хотя бы одно окно
-	 */
-	blocksPlayerInput(): boolean {
-		return this.windows.length > 0;
 	}
 
 	/**
@@ -133,7 +101,9 @@ export class ScreenManager {
 	 */
 	render(): void {
 		this.hud.render(this.engine.context);
-		for (const window of this.windows) {
+
+		if (this.windows.length > 0) {
+			// Затемнение фона под модальными окнами (один слой на весь стек)
 			this.engine.context.fillStyle = '#0008';
 			this.engine.context.fillRect(
 				0,
@@ -141,6 +111,8 @@ export class ScreenManager {
 				this.engine.canvas.width,
 				this.engine.canvas.height
 			);
+		}
+		for (const window of this.windows) {
 			window.render(this.engine.context);
 		}
 

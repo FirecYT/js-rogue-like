@@ -78,15 +78,6 @@ export class EffectSystem implements ISystem, IRenderable {
 	}
 
 	/**
-	 * Регистрирует пользовательскую фабрику эффектов для конкретного типа оружия.
-	 * @param weaponId - ID оружия
-	 * @param factory - Функция, создающая эффекты
-	 */
-	registerEffectFactory(weaponId: string, factory: EffectFactoryFn): void {
-		this.effectFactories.set(weaponId, factory);
-	}
-
-	/**
 	 * Подписывается на событие weaponFired и создаёт эффекты на основе типа оружия.
 	 */
 	private setupEventListeners(): void {
@@ -102,15 +93,15 @@ export class EffectSystem implements ISystem, IRenderable {
 	 * @param weapon - Оружие, из которого произведён выстрел
 	 */
 	private createEffects(source: Entity, angle: number, weapon: Weapon): void {
-		// Получаем фабрику: сначала пробуем по weapon.id, затем по weapon.effectType, затем bullet
-		const factoryKey = weapon.effectType ?? 'bullet';
+		// Получаем фабрику по типу эффекта; fallback — обычная пуля
 		const factory =
-			this.effectFactories.get(weapon.id) ??
-			this.effectFactories.get(factoryKey) ??
+			this.effectFactories.get(weapon.effectType ?? 'bullet') ??
 			this.effectFactories.get('bullet');
 
 		if (!factory) {
-			console.warn(`No effect factory found for weapon "${weapon.id}" (effectType: "${factoryKey}")`);
+			console.warn(
+				`No effect factory found for weapon "${weapon.id}" (effectType: "${weapon.effectType}")`
+			);
 			return;
 		}
 

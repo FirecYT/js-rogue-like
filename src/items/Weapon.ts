@@ -2,7 +2,6 @@ import Entity from '../entities/Entity';
 import { Item } from './Item';
 import Cooldown from '../components/Cooldown';
 import { eventBus } from '../events/EventBus';
-import { Modifier } from './Modifier';
 
 /**
  * Базовый класс оружия: выстрел под углом, перезарядка, слоты модификаторов.
@@ -29,8 +28,6 @@ export abstract class Weapon implements Item {
 	/** Угол разброса снарядов в радианах (для дробовиков и т.п.). */
 	spreadAngle?: number;
 	cooldown = new Cooldown(0);
-	/** Модификаторы, установленные в это оружие. */
-	modifiers: (Modifier | null)[] = [];
 
 	/**
 	 * Производит выстрел и эмитит событие weaponFired.
@@ -41,14 +38,6 @@ export abstract class Weapon implements Item {
 	fire(source: Entity, angle: number): void {
 		eventBus.emit('weaponFired', { source, angle, weapon: this });
 	}
-
-	onEquip?(entity: Entity): void {
-		if (entity.inventory.weapon?.cooldown) {
-			entity.inventory.weapon.cooldown.setDuration(this.fireRate);
-		}
-	}
-
-	onUnequip?(_entity: Entity): void;
 }
 
 /**

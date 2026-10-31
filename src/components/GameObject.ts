@@ -38,12 +38,4 @@ export default abstract class GameObject {
 	getHP(): number {
 		return this.hp;
 	}
-
-	/**
-	 * Наносит урон объекту.
-	 * @param damage - Количество урона
-	 */
-	takeDamage(damage: number): void {
-		this.hp -= damage;
-	}
 }

@@ -9,9 +9,6 @@ export abstract class Window extends Component {
 	/** Корневой контейнер окна */
 	public root: AbsoluteContainer;
 
-	/** Флаг модальности окна */
-	public modal = false;
-
 	/** Флаг, вызывает ли окно паузу игры */
 	public causesPause = false;
 

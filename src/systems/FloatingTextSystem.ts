@@ -21,14 +21,6 @@ export class FloatingTextSystem implements ISystem, IRenderable {
 	}
 
 	/**
-	 * Добавляет несколько всплывающих текстов.
-	 * @param texts - Массив всплывающих текстов
-	 */
-	addMultiple(texts: FloatingText[]): void {
-		this.texts.push(...texts);
-	}
-
-	/**
 	 * Обновляет все тексты и удаляет завершившиеся.
 	 */
 	update(): void {

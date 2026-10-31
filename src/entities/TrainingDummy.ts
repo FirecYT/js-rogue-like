@@ -9,6 +9,9 @@ export class TrainingDummy extends Entity implements HasPosition {
 	/** Время до респавна в кадрах (3 секунды при 60 FPS). */
 	private static readonly RESPAWN_TIME = 180;
 
+	/** Манекен респавнится сам, поэтому не удаляется CleanupSystem. */
+	public readonly persistent: boolean = true;
+
 	private respawnTimer = 0;
 	private lastDamage = 0;
 	private lastDamageTimer = 0;

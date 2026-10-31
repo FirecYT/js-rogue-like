@@ -17,18 +17,16 @@ export class Inventory {
 	constructor(public entity: Entity) {}
 
 	/**
-	 * Устанавливает текущее оружие; при смене вызывает onUnequip/onEquip, подстраивает длину modifiers.
+	 * Устанавливает текущее оружие и подстраивает количество слотов модификаторов.
 	 * @param weapon - Оружие или null
 	 */
 	setWeapon(weapon: Weapon | null): void {
-		this.weapon?.onUnequip?.(this.entity);
 		this.weapon = weapon;
 		if (weapon) {
 			while (this.modifiers.length < weapon.modifiersSlots) {
 				this.modifiers.push(null);
 			}
 			this.modifiers.length = weapon.modifiersSlots;
-			weapon.onEquip?.(this.entity);
 		}
 	}
 

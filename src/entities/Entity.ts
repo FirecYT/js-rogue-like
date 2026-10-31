@@ -12,6 +12,11 @@ export default abstract class Entity extends GameObject {
 	public width = 8;
 	/** Высота хитбокса в пикселях (для коллизий с тайлами). */
 	public height = 8;
+	/**
+	 * Переживает ли сущность очистку мёртвых (CleanupSystem).
+	 * true для сущностей, которые респавнятся сами (например, тренировочный манекен).
+	 */
+	public readonly persistent: boolean = false;
 
 	/**
 	 * @param x - Мировая координата X

@@ -20,18 +20,6 @@ export abstract class Container extends Component {
 	}
 
 	/**
-	 * Удалить дочерний компонент
-	 * @param child Компонент для удаления
-	 */
-	removeChild(child: Component): void {
-		const index = this.children.indexOf(child);
-		if (index !== -1) {
-			this.children.splice(index, 1);
-			this.recalculateLayout?.();
-		}
-	}
-
-	/**
 	 * Обновление всех дочерних компонентов
 	 * @param mouse Входные данные мыши
 	 * @param globalX Глобальная координата X компонента на экране

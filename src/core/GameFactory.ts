@@ -22,21 +22,11 @@ import { ScreenManager } from '../ui/ScreenManager';
 import { PlayerController } from '../controllers/PlayerController';
 import Player from '../Player';
 import Entity from '../entities/Entity';
-import { TeleportChip } from '../items/chips/TeleportChip';
-import { DashChip } from '../items/chips/DashChip';
-import { RebirthChip } from '../items/chips/RebirthChip';
-import { SinusoidalModifier } from '../items/modifiers/SinusoidalModifier';
-import { PierceModifier } from '../items/modifiers/PierceModifier';
-import { DamageBoostModifier } from '../items/modifiers/DamageBoostModifier';
 import { PistolWeapon } from '../items/weapons/PistolWeapon';
-import { ShotgunWeapon } from '../items/weapons/ShotgunWeapon';
-import { LaserGunWeapon } from '../items/weapons/LaserGunWeapon';
-import { RocketLauncherWeapon } from '../items/weapons/RocketLauncherWeapon';
-import { FlamethrowerWeapon } from '../items/weapons/FlamethrowerWeapon';
-import { ChipPickup } from '../entities/ChipPickup';
-import { ModifierPickup } from '../entities/ModifierPickup';
-import { WeaponPickup } from '../entities/WeaponPickup';
-import { TrainingDummy } from '../entities/TrainingDummy';
+import {
+	isPlaygroundEnabled,
+	populatePlayground,
+} from '../debug/playground';
 import {
 	World,
 	CanvasChunkRenderer,
@@ -49,7 +39,6 @@ import { TILE_DEFS, TILES } from '../map/Types';
 import { RuinsGenerator } from '../map/generation/RuinsGenerator';
 import { Game } from './Game';
 import { VoidGenerator } from '../map/generation/VoidGenerator';
-import { eventBus } from '../events/EventBus';
 
 /**
  * Фабрика для создания экземпляра игры со всеми зависимостями.
@@ -70,21 +59,18 @@ export class GameFactory {
 		const engine = new Engine(canvas);
 		const mouse = new MouseInput(canvas);
 		const input = new InputMapper();
-		const camera = new Camera(canvas);
+		const camera = new Camera();
 
-		// 2. Загрузка изображений
+		// 2. Загрузка изображений (пути относительные — работают и локально, и на GitHub Pages)
 		await engine.loadImages([
-			'/js-rogue-like/images/trash_0.png',
-			'/js-rogue-like/images/trash_1.png',
-			'/js-rogue-like/images/trash_2.png',
-			'/js-rogue-like/images/floor_0.png',
-			'/js-rogue-like/images/floor_1.png',
-			'/js-rogue-like/images/floor_2.png',
-			'/js-rogue-like/images/floor_3.png',
-			'/js-rogue-like/images/floor_4.png',
-			'/js-rogue-like/images/floor_5.png',
-			'/js-rogue-like/images/floor_6.png',
-			'/js-rogue-like/images/walls.png',
+			'images/floor_0.png',
+			'images/floor_1.png',
+			'images/floor_2.png',
+			'images/floor_3.png',
+			'images/floor_4.png',
+			'images/floor_5.png',
+			'images/floor_6.png',
+			'images/walls.png',
 		]);
 
 		// 3. Создание мира
@@ -191,40 +177,13 @@ export class GameFactory {
 		screenManager.getHud().setPlayerProgression(playerProgression);
 		screenManager.getHud().setPickupInRangeGetter(() => pickupSystem.getPickupInRange());
 
-		// 12. Начальные предметы игрока
+		// 12. Начальное оружие игрока
 		player.inventory.setWeapon(new PistolWeapon());
-		player.inventory.addModifier(new DamageBoostModifier(2.0));
-		player.inventory.addChip(new TeleportChip());
-		player.inventory.addChip(new DashChip());
-		player.inventory.addChip(new RebirthChip());
 
-		// 13. Тестовые пикапы (все виды оружия + модификаторы + чипы)
-		entities.push(new WeaponPickup(800, 0, new ShotgunWeapon()));
-		entities.push(new WeaponPickup(800, 50, new LaserGunWeapon()));
-		entities.push(new WeaponPickup(800, 100, new RocketLauncherWeapon()));
-		entities.push(new WeaponPickup(800, 150, new FlamethrowerWeapon()));
-		entities.push(new ModifierPickup(600, 0, new DamageBoostModifier(2.0)));
-		entities.push(new ModifierPickup(600, 50, new PierceModifier()));
-		entities.push(new ModifierPickup(600, 100, new SinusoidalModifier()));
-		entities.push(new ChipPickup(700, 0, new TeleportChip()));
-		entities.push(new ChipPickup(700, 50, new DashChip()));
-
-		// 14. Тестовые манекены для проверки урона
-		entities.push(new TrainingDummy(400, 0, 100));
-		entities.push(new TrainingDummy(400, 50, 50));
-		entities.push(new TrainingDummy(400, 100, 200));
-
-		// 15. Тестовая катсцена (запускается через 2 секунды)
-		setTimeout(() => {
-			eventBus.emit('cutsceneStart', {
-				lines: [
-					'Добро пожаловать в тестовую зону!',
-					'Здесь вы можете испытать всё оружие и модификаторы.',
-					'Стреляйте по манекенам, подбирайте предметы, используйте чипы.',
-					'Удачи!',
-				],
-			});
-		}, 2000);
+		// 13. Отладочный полигон (только при ?playground в URL)
+		if (isPlaygroundEnabled()) {
+			populatePlayground(entities, player);
+		}
 
 		return new Game(
 			engine,
@@ -234,7 +193,6 @@ export class GameFactory {
 			systemManager,
 			screenManager,
 			controlSwitchSystem,
-			effectSystem,
 			entities,
 			mouse
 		);
@@ -276,7 +234,7 @@ export class GameFactory {
 
 			return {
 				sprite: engine.getImage(
-					`/js-rogue-like/images/floor_${blockHash.nextInt(3, 7)}.png`
+					`images/floor_${blockHash.nextInt(3, 7)}.png`
 				),
 			};
 		};
@@ -302,7 +260,7 @@ export class GameFactory {
 			const spriteY = Math.floor(index / 4) * (tileSize + gap);
 
 			return {
-				sprite: engine.getImage('/js-rogue-like/images/walls.png'),
+				sprite: engine.getImage('images/walls.png'),
 				spriteRect: {
 					x: spriteX,
 					y: spriteY,
@@ -320,7 +278,7 @@ export class GameFactory {
 
 			return {
 				sprite: engine.getImage(
-					`/js-rogue-like/images/floor_${blockHash.nextInt(0, 4)}.png`
+					`images/floor_${blockHash.nextInt(0, 4)}.png`
 				),
 			};
 		});

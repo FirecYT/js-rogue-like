@@ -1,7 +1,7 @@
 import Entity from '../entities/Entity';
 
 /**
- * Камера: следование за сущностью или свободный режим, возврат смещения для отрисовки мира.
+ * Камера: плавное следование за сущностью, возврат смещения для отрисовки мира.
  */
 export class Camera {
 	public x = 0;
@@ -9,49 +9,38 @@ export class Camera {
 	private targetX = 0;
 	private targetY = 0;
 	private followSpeed = 0.05;
-	private freeMode = false;
 
 	/**
-	 * @param canvas - Канвас (для возможного использования размеров)
-	 */
-	constructor(private canvas: HTMLCanvasElement) {}
-
-	/**
-	 * Включает режим следования за сущностью.
+	 * Устанавливает цель следования камеры (обычно управляемая сущность).
 	 * @param entity - Сущность, за которой следует камера
 	 */
 	follow(entity: Entity): void {
-		this.freeMode = false;
 		this.targetX = entity.x;
 		this.targetY = entity.y;
 	}
 
 	/**
-	 * Включает свободный режим с фиксированной целью.
-	 * @param x - Целевая X
-	 * @param y - Целевая Y
+	 * Мгновенно центрирует камеру на сущности (без плавности).
+	 * Используется при спавне/телепортации, чтобы не «догонять» цель через весь мир.
+	 * @param entity - Сущность для центрирования
 	 */
-	setFreeMode(x: number, y: number): void {
-		this.freeMode = true;
-		this.targetX = x;
-		this.targetY = y;
+	snapTo(entity: Entity): void {
+		this.targetX = entity.x;
+		this.targetY = entity.y;
+		this.x = entity.x;
+		this.y = entity.y;
 	}
 
 	/**
-	 * Обновляет позицию камеры (плавное следование или мгновенная в свободном режиме).
+	 * Обновляет позицию камеры (плавное следование за целью).
 	 */
 	update(): void {
-		if (!this.freeMode) {
-			this.x += (this.targetX - this.x) * this.followSpeed;
-			this.y += (this.targetY - this.y) * this.followSpeed;
-		} else {
-			this.x = this.targetX;
-			this.y = this.targetY;
-		}
+		this.x += (this.targetX - this.x) * this.followSpeed;
+		this.y += (this.targetY - this.y) * this.followSpeed;
 	}
 
 	/**
-	 * Возвращает смещение для отрисовки мира (чтобы центр камеры был в (0,0) после translate).
+	 * Возвращает смещение для отрисовки мира (чтобы позиция камеры оказалась в (0,0) после translate).
 	 * @returns { offsetX, offsetY } — смещение для context.translate
 	 */
 	getOffset(): { offsetX: number; offsetY: number } {

@@ -8,24 +8,6 @@ import { isModifier } from './items/Modifier';
 import { isWeapon } from './items/Weapon';
 
 /**
- * Проверяет, находится ли точка внутри прямоугольника.
- * @param point - Точка с координатами x, y
- * @param rect - Прямоугольник с полями x, y, width, height
- * @returns true, если точка внутри прямоугольника (включая границы)
- */
-export function pir(
-	point: { x: number; y: number },
-	rect: { x: number; y: number; width: number; height: number }
-): boolean {
-	return (
-		point.x > rect.x &&
-		point.y > rect.y &&
-		point.x < rect.x + rect.width &&
-		point.y < rect.y + rect.height
-	);
-}
-
-/**
  * Линейная интерполяция между двумя цветами в формате HEX.
  * @param color1 - Первый цвет (например, '#ff0000')
  * @param color2 - Второй цвет
@@ -78,23 +60,6 @@ export function interpolateColor(
 }
 
 /**
- * Вычисляет угол (в радианах) от точки (x1, y1) к точке (x2, y2).
- * @param x1 - X первой точки
- * @param y1 - Y первой точки
- * @param x2 - X второй точки
- * @param y2 - Y второй точки
- * @returns Угол в радианах (результат Math.atan2)
- */
-export function getAngleBetweenPoints(
-	x1: number,
-	y1: number,
-	x2: number,
-	y2: number
-): number {
-	return Math.atan2(y2 - y1, x2 - x1);
-}
-
-/**
  * Создаёт объект подбираемого предмета (PickupItem) по типу предмета и координатам.
  * @param item - Предмет (оружие, модификатор или чип)
  * @param x - Мировая координата X
@@ -116,29 +81,4 @@ export function createPickupFromItem(
 		return new ChipPickup(x, y, item);
 	}
 	throw new TypeError('Неизвестный тип предмета');
-}
-
-/**
- * Возвращает функцию-заменитель для JSON.stringify, заменяющую циклические ссылки на строку "[Circular]".
- * @returns Функция (key, value) для использования как replacer в JSON.stringify
- */
-export function getCircularReplacer(): (
-	this: object,
-	key: string,
-	value: object
-) => unknown {
-	const ancestors: object[] = [];
-	return function (this: object, key: string, value: object) {
-		if (typeof value !== 'object' || value === null) {
-			return value;
-		}
-		while (ancestors.length > 0 && ancestors.at(-1) !== this) {
-			ancestors.pop();
-		}
-		if (ancestors.includes(value)) {
-			return '[Circular]';
-		}
-		ancestors.push(value);
-		return value;
-	};
 }

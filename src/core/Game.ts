@@ -5,7 +5,6 @@ import type { ChunkViewManager } from '@firec/map-module';
 import type { SystemManager } from '../services/SystemManager';
 import type { ScreenManager } from '../ui/ScreenManager';
 import type { ControlSwitchSystem } from '../systems/ControlSwitchSystem';
-import type { EffectSystem } from '../systems/EffectSystem';
 import type Entity from '../entities/Entity';
 import type MouseInput from '../components/MouseInput';
 import { Crosshair } from '../ui/components/Crosshair';
@@ -17,18 +16,22 @@ import Keyboard from '../components/Keyboard';
  */
 export class Game {
 	private running = false;
-	/** Текущий масштаб рендеринга (изменяется колесом мыши) */
+	/** Текущий масштаб рендеринга (изменяется колесом мыши), worldScale = 2 ** scale. */
 	private scale = 0;
+
+	/** Минимальный показатель масштаба (2^-1 = 0.5x). */
+	private static readonly MIN_SCALE = -1;
+	/** Максимальный показатель масштаба (2^2 = 4x). */
+	private static readonly MAX_SCALE = 2;
 
 	/**
 	 * @param engine - Движок игры
 	 * @param camera - Камера для следования за игроком
 	 * @param worldService - Сервис мира для обновления чанков
 	 * @param viewManager - Менеджер рендеринга чанков
-	 * @param systemManager - Менеджер систем для обновления всех систем
+	 * @param systemManager - Менеджер систем для обновления и отрисовки всех систем
 	 * @param screenManager - Менеджер экранов для UI
 	 * @param controlSwitch - Система переключения управления
-	 * @param effectSystem - Система эффектов для рендеринга
 	 * @param entities - Массив всех сущностей для рендеринга
 	 * @param mouse - Состояние мыши для прицела и прокрутки
 	 */
@@ -40,7 +43,6 @@ export class Game {
 		private readonly systemManager: SystemManager,
 		private readonly screenManager: ScreenManager,
 		private readonly controlSwitch: ControlSwitchSystem,
-		private readonly effectSystem: EffectSystem,
 		private readonly entities: Entity[],
 		private readonly mouse: MouseInput
 	) {}
@@ -50,6 +52,8 @@ export class Game {
 	 */
 	start(): void {
 		if (this.running) return;
+		// Камера стартует ровно на управляемой сущности, без «долёта» из (0, 0)
+		this.camera.snapTo(this.controlSwitch.getCurrentControlled());
 		this.running = true;
 		requestAnimationFrame(this.tick);
 	}
@@ -80,7 +84,7 @@ export class Game {
 	};
 
 	/**
-	 * Обновление: камера, мир, системы, UI, ввод.
+	 * Обновление: камера, мир, зум, системы (если не на паузе), UI, ввод.
 	 */
 	private update(): void {
 		const controlled = this.controlSwitch.getCurrentControlled();
@@ -89,13 +93,16 @@ export class Game {
 		this.camera.follow(controlled);
 		this.worldService.update(controlled.x, controlled.y);
 
-		// Обработка прокрутки колеса мыши для зума
+		// Обработка прокрутки колеса мыши для зума (с ограничением диапазона)
 		if (this.mouse.wheelDelta !== 0) {
-			this.scale -= this.mouse.wheelDelta;
-			this.mouse.update();
+			this.scale = Math.min(
+				Game.MAX_SCALE,
+				Math.max(Game.MIN_SCALE, this.scale - this.mouse.wheelDelta)
+			);
 		}
+		this.mouse.update();
 
-		if (!this.screenManager.hasActiveWindows()) {
+		if (!this.screenManager.isGamePaused()) {
 			this.systemManager.update();
 		}
 
@@ -104,24 +111,20 @@ export class Game {
 	}
 
 	/**
-	 * Рендеринг: фон, мир, прицел, эффекты, сущности, всплывающие тексты, UI.
+	 * Рендеринг: фон, мир, прицел, сущности, эффекты и всплывающие тексты, UI.
 	 */
 	private render(): void {
 		const controlled = this.controlSwitch.getCurrentControlled();
+		const ctx = this.engine.context;
 
 		this.engine.clear();
-		this.engine.context.fillStyle = '#222';
-		this.engine.context.fillRect(
-			0,
-			0,
-			this.engine.canvas.width,
-			this.engine.canvas.height
-		);
+		ctx.fillStyle = '#222';
+		ctx.fillRect(0, 0, this.engine.canvas.width, this.engine.canvas.height);
 
 		const chunks = this.worldService.getLoadedChunks();
 		this.viewManager.render(
 			chunks,
-			this.engine.context,
+			ctx,
 			this.camera.x,
 			this.camera.y,
 			this.engine.canvas.width,
@@ -129,35 +132,30 @@ export class Game {
 			2 ** this.scale
 		);
 
-		this.engine.context.save();
-		this.engine.context.translate(
+		ctx.save();
+		ctx.translate(
 			Math.floor(this.engine.canvas.width / 2),
 			Math.floor(this.engine.canvas.height / 2)
 		);
-		this.engine.context.scale(2 ** this.scale, 2 ** this.scale);
+		ctx.scale(2 ** this.scale, 2 ** this.scale);
 		const { offsetX, offsetY } = this.camera.getOffset();
-		this.engine.context.translate(offsetX, offsetY);
+		ctx.translate(offsetX, offsetY);
 
 		if (!controlled.isDead()) {
 			const mouseWorld = this.getMousePosition(controlled);
-			Crosshair.render(
-				this.engine.context,
-				controlled.x,
-				controlled.y,
-				mouseWorld.x,
-				mouseWorld.y
-			);
+			Crosshair.render(ctx, controlled.x, controlled.y, mouseWorld.x, mouseWorld.y);
 		}
-
-		this.effectSystem.render(this.engine.context);
 
 		this.entities.forEach((entity: Entity) => {
 			if (!entity.isDead()) {
-				entity.render(this.engine.context);
+				entity.render(ctx);
 			}
 		});
 
-		this.engine.context.restore();
+		// Эффекты и всплывающие тексты рисуются поверх сущностей
+		this.systemManager.render(ctx);
+
+		ctx.restore();
 		this.screenManager.render();
 	}
 

@@ -1,11 +1,9 @@
-```
 # Dependencies
 node_modules/
 
 # Build artifacts
-dist/
 build/
-target/
+dist/
 
 # IDE files
 .vscode/
@@ -21,12 +19,6 @@ target/
 # Logs
 *.log
 
-# Python specific
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
 # Temporary files
 *.tmp
 *.temp
@@ -37,11 +29,3 @@ Thumbs.db
 
 # Coverage
 coverage/
-htmlcov/
-.coverage
-
-# Cache directories
-.mypy_cache/
-.pytest_cache/
-.gradle/
-```

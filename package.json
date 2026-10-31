@@ -9,9 +9,9 @@
     "build:dev": "webpack --mode development",
     "build:prod": "webpack --mode production",
     "watch": "webpack --watch --progress",
+    "serve": "node serve.js",
     "lint": "eslint \"src/**/*.ts\"",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "prepare": "npm run lint && npm run format"
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "keywords": [],
   "author": "",
