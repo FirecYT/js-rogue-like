@@ -160,12 +160,14 @@ export class TradeWindow extends Window {
 		const playerItem = this.entity.inventory.getAt(ref);
 		if (!playerItem || this.selectedOffer < 0) return;
 
+		let receivedId: string | null = null;
 		this.trader.barter(this.selectedOffer, playerItem, (offer) => {
+			receivedId = offer?.id ?? null;
 			this.entity.inventory.setAt(ref, offer);
 		});
 		eventBus.emit('barterCompleted', {
 			offerId: playerItem.id,
-			playerId: playerItem.id,
+			playerId: receivedId,
 		});
 		this.selectedOffer = -1;
 		this.createUI();

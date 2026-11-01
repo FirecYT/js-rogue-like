@@ -71,14 +71,16 @@ export class JournalWindow extends Window {
 		list.spacing = 6;
 		const entries = this.journal.entries(this.category);
 		for (const entry of entries) {
+			const badge = this.journal.isNew(entry.id) ? ' • новое' : '';
 			const button = new Button(
-				entry.unlocked ? entry.name : '???',
+				entry.unlocked ? entry.name + badge : '???',
 				220,
 				26
 			);
 			if (entry.unlocked) {
 				button.setOnClick(() => {
 					this.selected = entry;
+					this.journal.markRead(entry.id);
 					this.rebuild();
 				});
 			}

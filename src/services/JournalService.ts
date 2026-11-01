@@ -31,10 +31,12 @@ export interface JournalEntry {
 export class JournalService {
 	private readonly meta: MetaState;
 	private readonly unlocked: Set<string>;
+	private readonly fresh: Set<string>;
 
 	constructor() {
 		this.meta = loadMeta();
 		this.unlocked = new Set(this.meta.journal);
+		this.fresh = new Set(this.meta.journalNew);
 	}
 
 	/**
@@ -44,8 +46,30 @@ export class JournalService {
 	unlock(id: string): void {
 		if (this.unlocked.has(id)) return;
 		this.unlocked.add(id);
+		this.fresh.add(id);
 		this.meta.journal = [...this.unlocked];
+		this.meta.journalNew = [...this.fresh];
 		saveMeta(this.meta);
+	}
+
+	/**
+	 * Помечает запись прочитанной (снимает метку «Новое»).
+	 * @param id - Id записи
+	 */
+	markRead(id: string): void {
+		if (!this.fresh.has(id)) return;
+		this.fresh.delete(id);
+		this.meta.journalNew = [...this.fresh];
+		saveMeta(this.meta);
+	}
+
+	/**
+	 * Не прочитана ли запись в журнале (метка «Новое»).
+	 * @param id - Id записи
+	 * @returns true, если запись открыта, но ещё не прочитана
+	 */
+	isNew(id: string): boolean {
+		return this.fresh.has(id);
 	}
 
 	/**

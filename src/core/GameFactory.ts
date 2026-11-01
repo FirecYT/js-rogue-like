@@ -30,6 +30,7 @@ import { RegionFeatureSystem } from '../systems/RegionFeatureSystem';
 import type { BootOptions } from './BootOptions';
 import { navigateTo } from './BootOptions';
 import { GameFlow } from './GameFlow';
+import { eventBus } from '../events/EventBus';
 import { JournalService } from '../services/JournalService';
 import { StatsService } from '../services/StatsService';
 import { loadSave, saveSave, type SaveData } from '../services/SaveService';
@@ -260,6 +261,17 @@ export class GameFactory {
 		const journal = new JournalService();
 		const stats = new StatsService(getControlled);
 		if (saveData) stats.restoreRun(saveData.stats);
+
+		// Журнал: подбор предметов, убийства и бартер открывают записи
+		eventBus.on('itemPicked', ({ item }) => journal.unlockItem(item.id));
+		eventBus.on('entityKilled', ({ victim }) => {
+			const def = (victim as { definition?: { id: string } }).definition;
+			if (def) journal.unlockEntity(def.id);
+		});
+		eventBus.on('barterCompleted', ({ offerId, playerId }) => {
+			if (offerId) journal.unlockItem(offerId);
+			if (playerId) journal.unlockItem(playerId);
+		});
 
 		// 7. Системы
 		const pickupSystem = new PickupSystem(

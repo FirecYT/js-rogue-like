@@ -22,6 +22,8 @@ export interface MetaStats {
 export interface MetaState {
 	/** Открытые записи журнала (id с префиксами e:/i:/n:). */
 	journal: string[];
+	/** Открытые, но ещё не прочитанные в журнале записи (метка «Новое»). */
+	journalNew: string[];
 	stats: MetaStats;
 }
 
@@ -31,6 +33,7 @@ const KEY = 'jsrl.meta.v1';
 function defaultMeta(): MetaState {
 	return {
 		journal: [],
+		journalNew: [],
 		stats: {
 			runs: 0,
 			runsEnded: 0,
@@ -56,6 +59,7 @@ export function loadMeta(): MetaState {
 		const base = defaultMeta();
 		return {
 			journal: Array.isArray(parsed.journal) ? parsed.journal : [],
+			journalNew: Array.isArray(parsed.journalNew) ? parsed.journalNew : [],
 			stats: { ...base.stats, ...(parsed.stats ?? {}) },
 		};
 	} catch {

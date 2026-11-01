@@ -103,13 +103,29 @@ export class ScreenManager {
 	}
 
 	/**
-	 * Обновляет HUD и все открытые окна (снизу вверх).
+	 * Обновляет HUD и все открытые окна (снизу вверх). Ввод мыши получает
+	 * ТОЛЬКО верхнее окно: перекрытые окна не должны ловить клики сквозь
+	 * модальное окно поверх них.
 	 */
 	update(): void {
 		this.hud.update(this.mouse);
-		for (const window of this.windows) {
-			window.update(this.mouse);
+		for (let i = 0; i < this.windows.length; i++) {
+			const isTop = i === this.windows.length - 1;
+			this.windows[i].update(isTop ? this.mouse : this.getInertMouse());
 		}
+	}
+
+	/** «Мёртвая» мышь для перекрытых окон: курсор вне экрана, ничего не нажато. */
+	private inertMouse: MouseInput | null = null;
+	private getInertMouse(): MouseInput {
+		if (!this.inertMouse) {
+			this.inertMouse = new MouseInput(document.createElement('canvas'));
+			this.inertMouse.x = -9999;
+			this.inertMouse.y = -9999;
+			this.inertMouse.cx = -9999;
+			this.inertMouse.cy = -9999;
+		}
+		return this.inertMouse;
 	}
 
 	/**
