@@ -36,6 +36,14 @@ export class Button extends Component {
 	 * Обновить текст кнопки
 	 * @param text Новый текст
 	 */
+	/**
+	 * Текущий текст кнопки (для тестов и доступности).
+	 * @returns Текст кнопки
+	 */
+	getText(): string {
+		return this.text;
+	}
+
 	setText(text: string): void {
 		this.text = text;
 	}

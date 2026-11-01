@@ -2,6 +2,7 @@ import Entity from './Entity';
 import type { Controllable, HasPosition, HasSpeed } from '../types/EntityTraits';
 import type { IController } from '../controllers/Controller';
 import type { EntityDefinition } from '../content/entities/definitions';
+import { settingsState } from '../services/SettingsService';
 
 /**
  * Универсальная сущность конвейера: всё поведение и внешность описаны
@@ -71,7 +72,7 @@ export class DeclarativeEntity
 			}
 		}
 
-		if (appearance.showHpBar) {
+		if (appearance.showHpBar && settingsState.current.hud.hpBars) {
 			const barWidth = Math.max(appearance.size + 6, 22);
 			const hpPercent = this.getHP() / this.maxHP;
 			ctx.fillStyle = '#000';

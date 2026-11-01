@@ -1,5 +1,6 @@
 import type { EntityWorld } from '../core/EntityWorld';
 import type { Pathfinder } from './Pathfinder';
+import type { JournalService } from './JournalService';
 import type Entity from '../entities/Entity';
 import { DeclarativeEntity } from '../entities/DeclarativeEntity';
 import { AiController } from '../controllers/AiController';
@@ -26,7 +27,8 @@ export class EntityFactory {
 	constructor(
 		private readonly entityWorld: EntityWorld,
 		private readonly pathfinder: Pathfinder,
-		private readonly getTarget: () => Entity
+		private readonly getTarget: () => Entity,
+		private readonly journal?: JournalService
 	) {}
 
 	/**
@@ -42,6 +44,14 @@ export class EntityFactory {
 
 		this.applyLoadout(entity, definition);
 		entity.controller = this.createController(definition, entity);
+
+		// Журнал: встреча с сущностью рядом с игроком открывает запись
+		if (this.journal && definition.journal) {
+			const target = this.getTarget();
+			if (Math.hypot(target.x - x, target.y - y) < 900) {
+				this.journal.unlockEntity(definition.id);
+			}
+		}
 
 		this.entityWorld.spawn(entity);
 		return entity;

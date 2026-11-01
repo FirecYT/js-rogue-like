@@ -13,6 +13,7 @@ import { isWeapon } from '../items/Weapon';
 import { isModifier } from '../items/modifiers/Modifier';
 import { isChip } from '../items/Chip';
 import type { Item } from '../items/Item';
+import { eventBus } from '../events/EventBus';
 
 /**
  * Система подбора предметов: обнаруживает пикапы рядом с управляемой сущностью
@@ -104,6 +105,8 @@ export class PickupSystem implements ISystem {
 				const old = inventory.installChip(item, slotIndex);
 				if (old) this.dropItem(old, controlled);
 			}
+
+			eventBus.emit('itemPicked', { item, by: controlled });
 
 			// Удаляем пикап из мира ТОЛЬКО после подтверждения
 			this.entityWorld.remove(pickup);

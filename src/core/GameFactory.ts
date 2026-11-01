@@ -27,6 +27,26 @@ import { DeclarativeEntity } from '../entities/DeclarativeEntity';
 import { WormPlayerController } from '../controllers/WormPlayerController';
 import { RegionMap } from '../services/RegionMap';
 import { RegionFeatureSystem } from '../systems/RegionFeatureSystem';
+import type { BootOptions } from './BootOptions';
+import { navigateTo } from './BootOptions';
+import { GameFlow } from './GameFlow';
+import { JournalService } from '../services/JournalService';
+import { StatsService } from '../services/StatsService';
+import { loadSave, saveSave, type SaveData } from '../services/SaveService';
+import { loadMeta, saveMeta } from '../services/MetaStorage';
+import { settingsState } from '../services/SettingsService';
+import { ITEM_DEFINITIONS } from '../content/items/definitions';
+import { MainMenuWindow } from '../ui/windows/MainMenuWindow';
+import { SlotPickerWindow } from '../ui/windows/SlotPickerWindow';
+import { JournalWindow } from '../ui/windows/JournalWindow';
+import { StatsWindow } from '../ui/windows/StatsWindow';
+import { SettingsWindow } from '../ui/windows/SettingsWindow';
+import { RunResultsWindow } from '../ui/windows/RunResultsWindow';
+import { PauseWindow } from '../ui/windows/PauseWindow';
+import type { Window } from '../ui/Window';
+import type { InputAction } from '../input/InputAction';
+import type { Modifier } from '../items/modifiers/Modifier';
+import type { Chip } from '../items/Chip';
 import { housesForChunk } from '../map/structures/houses';
 import {
 	regionFloorCanvas,
@@ -57,6 +77,10 @@ export interface GameDebugHooks {
 	giveChip: (id: 'dash') => void;
 	/** Выдать тестовый модификатор в слот 0 (только debug-сцена). */
 	giveItem: (id: 'damage_plus' | 'pierce') => void;
+	/** Открытые записи журнала (смоук-тесты). */
+	journalUnlocked: () => string[];
+	/** Мгновенная смерть управляемой сущности (смоук-тесты итогов). */
+	forceDeath: () => void;
 	/** Неуязвимость управляемой сущности (только debug-сцена). */
 	setInvulnerable: (value: boolean) => void;
 }
@@ -99,7 +123,11 @@ export class GameFactory {
 	 * Создаёт и настраивает все компоненты игры, возвращает готовый Game.
 	 * @returns Экземпляр Game, готовый к запуску
 	 */
-	static async create(): Promise<Game> {
+	static async create(boot: BootOptions): Promise<Game> {
+		// 0. Загрузка: сохранение слота и настройки из localStorage
+		const saveData = boot.slot !== null ? loadSave(boot.slot) : null;
+		const settings = settingsState.current;
+
 		// 1. Базовые компоненты
 		const canvas = document.querySelector<HTMLCanvasElement>('#canvas');
 		if (!canvas) {
@@ -109,7 +137,11 @@ export class GameFactory {
 		const engine = new Engine(canvas);
 		const mouse = new MouseInput(canvas);
 		const input = new InputMapper();
+		for (const [action, keys] of Object.entries(settings.bindings)) {
+			input.rebind(action as InputAction, keys);
+		}
 		const camera = new Camera(canvas);
+		camera.setMinZoom(settings.minZoom);
 
 		// 2. Загрузка изображений (пути относительные — работают и локально, и на GitHub Pages)
 		await engine.loadImages([
@@ -124,14 +156,14 @@ export class GameFactory {
 		]);
 
 		// 3. Создание мира (тайловая карта): seed забега и карта зон
-		const runSeed = (Math.random() * 0x7fffffff) | 0;
+		const runSeed = saveData?.seed ?? ((Math.random() * 0x7fffffff) | 0);
 		const regionMap = new RegionMap(
 			DEFAULT_WORLD_CONFIG.chunkSize,
 			DEFAULT_WORLD_CONFIG.tileSize
 		);
 		const world = this.createWorld(runSeed, regionMap, {
 			config: {
-				loadRadius: 8,
+				loadRadius: settings.renderRadius,
 			},
 		});
 		const visuals = this.createVisuals(world, engine, regionMap);
@@ -161,6 +193,32 @@ export class GameFactory {
 		const playerController = new PlayerController(mouse, input, camera);
 		player.controller = playerController;
 		player.inventory.setWeapon(new PistolWeapon());
+		if (saveData) {
+			// Продолжение забега: позиция, прогресс и инвентарь из сейва
+			player.x = saveData.player.x;
+			player.y = saveData.player.y;
+			player.setHP(saveData.player.hp);
+			const inv = saveData.inventory;
+			if (inv.weapon && ITEM_DEFINITIONS[inv.weapon]) {
+				player.inventory.setWeapon(ITEM_DEFINITIONS[inv.weapon].factory() as never);
+			}
+			inv.modifiers.forEach((id, index) => {
+				if (id && ITEM_DEFINITIONS[id]) {
+					player.inventory.installModifier(
+						ITEM_DEFINITIONS[id].factory() as Modifier,
+						index
+					);
+				}
+			});
+			inv.chips.forEach((id, index) => {
+				if (id && ITEM_DEFINITIONS[id]) {
+					player.inventory.installChip(
+						ITEM_DEFINITIONS[id].factory() as Chip,
+						index
+					);
+				}
+			});
+		}
 		entityWorld.spawn(player);
 
 		// 6. Управление и UI
@@ -192,8 +250,16 @@ export class GameFactory {
 		);
 		const floatingTextSystem = new FloatingTextSystem();
 		const playerProgression = new PlayerProgression();
+		if (saveData) {
+			playerProgression.level = saveData.player.level;
+			playerProgression.experience = saveData.player.experience;
+		}
 
 		const getControlled = () => controlSwitch.getCurrentControlled();
+		const flow = new GameFlow(boot.mode === 'menu' ? 'menu' : 'playing');
+		const journal = new JournalService();
+		const stats = new StatsService(getControlled);
+		if (saveData) stats.restoreRun(saveData.stats);
 
 		// 7. Системы
 		const pickupSystem = new PickupSystem(
@@ -214,7 +280,8 @@ export class GameFactory {
 		const entityFactory = new EntityFactory(
 			entityWorld,
 			pathfinder,
-			getControlled
+			getControlled,
+			journal
 		);
 		const interactSystem = new InteractSystem(entityWorld, getControlled, input);
 		systemManager.register(interactSystem);
@@ -227,9 +294,11 @@ export class GameFactory {
 			screenManager,
 			engine,
 			floatingTextSystem,
-			getControlled
+			getControlled,
+			journal
 		);
 		systemManager.register(regionFeatureSystem);
+		systemManager.register(stats);
 		systemManager.register(
 			new EnemySpawnerSystem(
 				player,
@@ -261,7 +330,9 @@ export class GameFactory {
 		// 9. Отладочный полигон (только при ?playground в URL)
 		if (isPlaygroundEnabled()) {
 			populatePlayground(entityWorld, player, entityFactory);
-			// Отладочный доступ только для debug-сцены: смоук-тесты и консоль
+		}
+		// Отладочные хуки для смоук-тестов UI (меню, пауза, журнал)
+		{
 			(window as unknown as { __debug?: GameDebugHooks }).__debug = {
 				getControlled,
 				entityWorld,
@@ -280,6 +351,10 @@ export class GameFactory {
 				setInvulnerable: (value: boolean) => {
 					getControlled().invulnerable = value;
 				},
+				journalUnlocked: () => journal.getUnlocked(),
+				forceDeath: () => {
+					getControlled().takeDamage(999999);
+				},
 				giveItem: (id: 'damage_plus' | 'pierce') => {
 					const modifiers = {
 						damage_plus: new DamagePlusModifier(),
@@ -289,6 +364,118 @@ export class GameFactory {
 				},
 			};
 		}
+
+		// 9.5. Окна оболочек: пауза, итоги, меню; мета-счётчик запусков
+		const cw = engine.canvas.width;
+		const ch = engine.canvas.height;
+		const openWindow = (win: Window): void => screenManager.openWindow(win);
+		const openJournal = (): void =>
+			openWindow(
+				new JournalWindow(journal, cw, ch, () =>
+					screenManager.closeWindowsOfType(JournalWindow)
+				)
+			);
+		const openStats = (): void =>
+			openWindow(
+				new StatsWindow(stats, cw, ch, () =>
+					screenManager.closeWindowsOfType(StatsWindow)
+				)
+			);
+		const openSettings = (): void =>
+			openWindow(
+				new SettingsWindow(
+					input,
+					cw,
+					ch,
+					(zoom) => camera.setMinZoom(zoom),
+					(radius) => {
+						world.config.loadRadius = radius;
+					},
+					() => screenManager.closeWindowsOfType(SettingsWindow)
+				)
+			);
+		const createPauseWindow = (): Window => {
+			const win = new PauseWindow(cw, ch, {
+				resume: () => screenManager.closeWindow(win),
+				save: () =>
+					openWindow(
+						new SlotPickerWindow(
+							'save',
+							cw,
+							ch,
+							(slot) => {
+								saveSave(slot, buildSave());
+								screenManager.closeWindowsOfType(SlotPickerWindow);
+							},
+							() => screenManager.closeWindowsOfType(SlotPickerWindow)
+						)
+					),
+				journal: openJournal,
+				stats: openStats,
+				settings: openSettings,
+				quit: () => navigateTo(''),
+			});
+			return win;
+		};
+		const createResultsWindow = (): Window =>
+			new RunResultsWindow(
+				stats.getRunStats(),
+				true,
+				cw,
+				ch,
+				() => navigateTo('?run=new'),
+				() => navigateTo('')
+			);
+		const buildSave = (): SaveData => ({
+			version: 1,
+			seed: runSeed,
+			date: new Date().toISOString(),
+			player: {
+				x: player.x,
+				y: player.y,
+				hp: player.getHP(),
+				level: playerProgression.level,
+				experience: playerProgression.experience,
+			},
+			inventory: {
+				weapon: player.inventory.weapon?.id ?? null,
+				modifiers: (player.inventory.weapon?.modifierSlots ?? []).map(
+					(modifier) => modifier?.id ?? null
+				),
+				chips: player.inventory.chips.map((chip) => chip?.id ?? null),
+			},
+			stats: stats.getRunStats(),
+		});
+
+		if (boot.mode === 'play') {
+			const meta = loadMeta();
+			meta.stats.runs++;
+			saveMeta(meta);
+			journal.unlockItem(player.inventory.weapon?.id ?? 'pistol');
+		} else {
+			screenManager.getHud().setVisible(false);
+			openWindow(
+				new MainMenuWindow(cw, ch, {
+					newRun: () => navigateTo('?run=new'),
+					continueRun: () =>
+						openWindow(
+							new SlotPickerWindow(
+								'load',
+								cw,
+								ch,
+								(slot) => navigateTo(`?slot=${slot}`),
+								() => screenManager.closeWindowsOfType(SlotPickerWindow)
+							)
+						),
+					journal: openJournal,
+					stats: openStats,
+					settings: openSettings,
+				})
+			);
+		}
+		screenManager
+			.getHud()
+			.setDebugGetter(() => ({ chunks: worldService.getLoadedChunks().length }));
 
 		// 10. Контекст игры
 		const ctx: GameContext = {
@@ -306,6 +493,11 @@ export class GameFactory {
 			entityFactory,
 			regionMap,
 			runSeed,
+			flow,
+			journal,
+			stats,
+			createPauseWindow,
+			createResultsWindow,
 		};
 
 		return new Game(ctx);

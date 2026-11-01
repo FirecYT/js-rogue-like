@@ -1,7 +1,7 @@
 import Entity from '../entities/Entity';
 
 /** Минимальный масштаб мира на экране. */
-const MIN_ZOOM = 0.2;
+let MIN_ZOOM = 0.2;
 /** Максимальный масштаб мира на экране. */
 const MAX_ZOOM = 4;
 
@@ -40,6 +40,25 @@ export class Camera {
 			MAX_ZOOM,
 			Math.max(MIN_ZOOM, this.zoomLevel * 2 ** -steps)
 		);
+	}
+
+	/**
+	 * Задаёт точку следования камеры напрямую (attract-камера меню).
+	 * @param x - Мировая координата X
+	 * @param y - Мировая координата Y
+	 */
+	setFollowPoint(x: number, y: number): void {
+		this.targetX = x;
+		this.targetY = y;
+	}
+
+	/**
+	 * Задаёт минимальный зум (предел отдаления камеры) из настроек.
+	 * @param zoom - Минимальное значение зума (0.05..1)
+	 */
+	setMinZoom(zoom: number): void {
+		MIN_ZOOM = Math.min(Math.max(zoom, 0.05), 1);
+		this.zoomLevel = Math.max(this.zoomLevel, MIN_ZOOM);
 	}
 
 	/**

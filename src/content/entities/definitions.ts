@@ -114,6 +114,10 @@ export interface EntityDefinition {
 	ai?: AiProfile;
 	loadout?: LoadoutSpec;
 	boss?: BossSpec;
+	/** Категория журнала: враг, босс или NPC (нет — не попадает в журнал). */
+	journal?: 'enemy' | 'boss' | 'npc';
+	/** Лор-описание для журнала. */
+	description?: string;
 }
 
 /**
@@ -124,6 +128,8 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	/** Рядовой моб клана ржавых: преследует и стреляет из дробовика. */
 	rust_grunt: {
 		id: 'rust_grunt',
+		journal: 'enemy',
+		description: 'Пехота клана ржавых: бывший шахтёрский персонал, закованный в сварные доспехи. Держится группами, стреляет очередями из обрезанных дробовиков и не задаёт вопросов.',
 		name: 'Ржавый боец',
 		hp: 12,
 		speed: 1.2,
@@ -143,6 +149,8 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	 */
 	rust_worm: {
 		id: 'rust_worm',
+		journal: 'boss',
+		description: 'Механический червь пустоты: сегментированный бурильный комплекс, сорвавшийся с привязки. Пробивает руины насквозь, реагирует на вибрацию шагов. Пробуждается только у алтаря.',
 		name: 'Ржавый червь',
 		hp: 350,
 		speed: 1.7,
@@ -178,6 +186,8 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	/** Осколочный моб равнины: быстрый боец с лазером. */
 	glass_shard: {
 		id: 'glass_shard',
+		journal: 'enemy',
+		description: 'Оживший осколок стеклянной равнины: медленно плывёт к цели и бьёт лучом преломлённого света. Красив, тих и совершенно равнодушен к тому, что вы дышите.',
 		name: 'Стеклянный осколок',
 		hp: 10,
 		speed: 1.6,
@@ -192,6 +202,8 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	/** Ближний моб равнины: очень быстрый, слабый, с пистолетом. */
 	glass_wisp: {
 		id: 'glass_wisp',
+		journal: 'enemy',
+		description: 'Стеклянный блик: быстрая искра отражений, рождается там, где свет ломается о дюны. Нападает роем, сгорает от одного меткого попадания.',
 		name: 'Стеклянный блик',
 		hp: 6,
 		speed: 2.4,
@@ -206,6 +218,8 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	/** Поселенец: дружелюбный NPC восстановленных домов и города. */
 	settler: {
 		id: 'settler',
+		journal: 'npc',
+		description: 'Поселенец восстановленных домов: один из тех, кто решился жить среди руин. Чинит стены, разводит грибницы и охотно делится новостями — но не выходит за порог без необходимости.',
 		name: 'Поселенец',
 		hp: 30,
 		speed: 0.6,
@@ -219,6 +233,8 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	/** Моб ледяных полей: медленный стрелок, держит дистанцию. */
 	ice_shard: {
 		id: 'ice_shard',
+		journal: 'enemy',
+		description: 'Ледяной осколок: вмороженный в торос обломок дозиметрической вышки поля. Держит дистанцию и стреляет выверенными ледяными иглами.',
 		name: 'Ледяной осколок',
 		hp: 12,
 		speed: 1.4,
@@ -236,6 +252,8 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	 */
 	glass_warden: {
 		id: 'glass_warden',
+		journal: 'boss',
+		description: 'Стеклянный страж: неподвижная турель-хранительница равнины, собранная из цельного монолита. Не преследует — не нужно: её залпы достают всё, что движется в прямой видимости.',
 		name: 'Стеклянный страж',
 		hp: 300,
 		speed: 0,

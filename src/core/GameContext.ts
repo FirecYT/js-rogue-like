@@ -11,6 +11,10 @@ import type { ScreenManager } from '../ui/ScreenManager';
 import type { ControlSwitchService } from '../services/ControlSwitchService';
 import type { EntityFactory } from '../services/EntityFactory';
 import type { RegionMap } from '../services/RegionMap';
+import type { GameFlow } from './GameFlow';
+import type { JournalService } from '../services/JournalService';
+import type { StatsService } from '../services/StatsService';
+import type { Window } from '../ui/Window';
 
 /**
  * Набор ключевых сервисов игры.
@@ -48,4 +52,14 @@ export interface GameContext {
 	readonly regionMap: RegionMap;
 	/** Seed забега (руины и раскладка зон уникальны на партию). */
 	readonly runSeed: number;
+	/** Машина состояний: меню / забег / итоги. */
+	readonly flow: GameFlow;
+	/** Журнал мира (открытие записей по встрече). */
+	readonly journal: JournalService;
+	/** Статистика забега и меты. */
+	readonly stats: StatsService;
+	/** Фабрика окна паузы (Esc во время забега). */
+	readonly createPauseWindow: () => Window;
+	/** Фабрика экрана итогов забега. */
+	readonly createResultsWindow: () => Window;
 }

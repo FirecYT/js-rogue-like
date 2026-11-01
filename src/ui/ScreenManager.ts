@@ -87,6 +87,14 @@ export class ScreenManager {
 	}
 
 	/**
+	 * Верхнее окно стека (для глобальных клавиш вроде Esc).
+	 * @returns Верхнее окно или null
+	 */
+	getTopWindow(): Window | null {
+		return this.windows.length ? this.windows[this.windows.length - 1] : null;
+	}
+
+	/**
 	 * Список открытых окон (для отладки и смоук-тестов).
 	 * @returns Массив открытых окон
 	 */

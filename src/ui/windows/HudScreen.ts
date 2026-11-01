@@ -1,4 +1,5 @@
 import { Component } from '../Component';
+import { settingsState } from '../../services/SettingsService';
 import MouseInput from '../../components/MouseInput';
 import Engine from '../../components/Engine';
 import { PlayerProgression } from '../../systems/PlayerProgression';
@@ -39,6 +40,10 @@ export class HudScreen extends Component {
 	private readonly pickupHintLabel = new Label('[E] Подобрать');
 	private zoneName = '';
 	private zoneColor = '#ffffff';
+	private visible = true;
+	private debugGetter: (() => { chunks: number }) | null = null;
+	private fps = 60;
+	private lastFrameAt = 0;
 	private getInteractInRange: (() => (Entity & Interactable) | null) | null =
 		null;
 	private readonly interactHintLabel = new Label('');
@@ -90,6 +95,22 @@ export class HudScreen extends Component {
 	 * @param name - Имя биома
 	 * @param color - Цвет метки
 	 */
+	/**
+	 * Показывать/скрывать HUD (в главном меню скрыт).
+	 * @param value - Флаг видимости
+	 */
+	setVisible(value: boolean): void {
+		this.visible = value;
+	}
+
+	/**
+	 * Регистрирует источник данных debug-оверлея (счётчик чанков).
+	 * @param getter - Функция получения числа загруженных чанков
+	 */
+	setDebugGetter(getter: () => { chunks: number }): void {
+		this.debugGetter = getter;
+	}
+
 	setZoneName(name: string, color: string): void {
 		this.zoneName = name;
 		this.zoneColor = color;
@@ -109,6 +130,12 @@ export class HudScreen extends Component {
 	 * @param mouse - Состояние мыши
 	 */
 	update(mouse: MouseInput): void {
+		const now = performance.now();
+		if (this.lastFrameAt) {
+			const instant = 1000 / Math.max(now - this.lastFrameAt, 1);
+			this.fps = this.fps * 0.9 + instant * 0.1;
+		}
+		this.lastFrameAt = now;
 		const entity = this.getControlledEntity();
 		if (!entity) return;
 
@@ -192,10 +219,11 @@ export class HudScreen extends Component {
 	 * @param ctx - Контекст канваса
 	 */
 	render(ctx: CanvasRenderingContext2D): void {
+		if (!this.visible) return;
 		const entity = this.getControlledEntity();
 		if (!entity) return;
 
-		if (this.zoneName) {
+		if (this.zoneName && settingsState.current.hud.zoneLabel) {
 			ctx.fillStyle = this.zoneColor;
 			ctx.font = '14px Arial';
 			ctx.textAlign = 'left';
@@ -314,5 +342,17 @@ export class HudScreen extends Component {
 		);
 
 		this.chipsBar.render(ctx, x, y);
+
+		if (settingsState.current.debugOverlay && this.debugGetter) {
+			ctx.fillStyle = '#0f0';
+			ctx.font = '12px monospace';
+			ctx.textAlign = 'right';
+			ctx.fillText(
+				`FPS ${Math.round(this.fps)} | чанков ${this.debugGetter().chunks}`,
+				ctx.canvas.width - 12,
+				16
+			);
+			ctx.textAlign = 'left';
+		}
 	}
 }

@@ -1,6 +1,8 @@
 import type { GameContext } from './GameContext';
 import { Crosshair } from '../ui/components/Crosshair';
 import Keyboard from '../components/Keyboard';
+import { PauseWindow } from '../ui/windows/PauseWindow';
+import { RunResultsWindow } from '../ui/windows/RunResultsWindow';
 
 /**
  * Главный класс игры: игровой цикл с фиксированным шагом и оркестрация
@@ -80,8 +82,22 @@ export class Game {
 	 * Один логический тик: камера, мир, зум, системы (если не на паузе), UI, ввод.
 	 */
 	private update(): void {
-		const { camera, mouse, worldService, screenManager, systemManager, controlSwitch } =
+		const { camera, mouse, worldService, screenManager, systemManager, controlSwitch, flow } =
 			this.ctx;
+
+		// Главное меню: attract-камера кружит над миром, симуляция стоит
+		if (flow.state === 'menu') {
+			flow.menuTicks++;
+			const angle = flow.menuTicks * 0.0016;
+			camera.setFollowPoint(Math.cos(angle) * 6200, Math.sin(angle) * 6200);
+			camera.update();
+			worldService.update(camera.x, camera.y);
+			mouse.update();
+			screenManager.update();
+			Keyboard.getInstance().update();
+			return;
+		}
+
 		const controlled = controlSwitch.getCurrentControlled();
 
 		camera.update();
@@ -101,7 +117,30 @@ export class Game {
 		}
 
 		screenManager.update();
-		Keyboard.getInstance().update();
+		const keyboard = Keyboard.getInstance();
+
+		// Esc: закрыть верхнее окно, иначе пауза (итогы не закрываются)
+		if (flow.state === 'playing' && keyboard.isKeyPressedOnce('Escape')) {
+			const top = screenManager.getTopWindow();
+			if (top instanceof RunResultsWindow) {
+				// итоги забега не закрываются Esc
+			} else if (top instanceof PauseWindow) {
+				screenManager.closeWindow(top);
+			} else if (top) {
+				screenManager.closeWindow(top);
+			} else {
+				screenManager.openWindow(this.ctx.createPauseWindow());
+			}
+		}
+
+		// Смерть управляемой сущности без перерождения — итоги забега
+		if (flow.state === 'playing' && controlled.isDead()) {
+			flow.state = 'ended';
+			this.ctx.stats.endRun(true);
+			screenManager.openWindow(this.ctx.createResultsWindow());
+		}
+
+		keyboard.update();
 	}
 
 	/**
@@ -137,14 +176,17 @@ export class Game {
 		const { offsetX, offsetY } = camera.getOffset();
 		ctx.translate(offsetX, offsetY);
 
-		if (!controlled.isDead()) {
+		const inMenu = this.ctx.flow.state === 'menu';
+		if (!inMenu && !controlled.isDead()) {
 			const mouseWorld = camera.screenToWorld(mouse.x, mouse.y);
 			Crosshair.render(ctx, controlled.x, controlled.y, mouseWorld.x, mouseWorld.y);
 		}
 
-		for (const entity of entityWorld.all) {
-			if (!entity.isDead()) {
-				entity.render(ctx);
+		if (!inMenu) {
+			for (const entity of entityWorld.all) {
+				if (!entity.isDead()) {
+					entity.render(ctx);
+				}
 			}
 		}
 

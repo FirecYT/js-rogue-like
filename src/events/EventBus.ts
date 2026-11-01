@@ -1,4 +1,5 @@
 import Entity from '../entities/Entity';
+import type { Item } from '../items/Item';
 import type { ProjectileSpec } from '../items/CastState';
 
 /** Карта событий: имя события -> тип данных */
@@ -11,6 +12,10 @@ export interface EventMap {
 	weaponFired: { source: Entity; specs: ProjectileSpec[] };
 	/** Запуск катсцены: массив строк для отображения. */
 	cutsceneStart: { lines: string[] };
+	/** Предмет подобран в инвентарь. */
+	itemPicked: { item: Item; by: Entity };
+	/** Завершён обмен бартера. */
+	barterCompleted: { offerId: string | null; playerId: string | null };
 }
 
 /** Функция отписки, возвращаемая EventBus.on(). */

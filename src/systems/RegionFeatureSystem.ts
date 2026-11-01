@@ -16,6 +16,7 @@ import { Trader } from '../entities/Trader';
 import { createPickupFromItem } from '../utils';
 import { TradeWindow } from '../ui/windows/TradeWindow';
 import type { Unsubscribe } from '../events/EventBus';
+import type { JournalService } from '../services/JournalService';
 import {
 	housesForChunk,
 	houseInterior,
@@ -73,7 +74,8 @@ export class RegionFeatureSystem implements ISystem {
 		private readonly screenManager: ScreenManager,
 		private readonly engine: Engine,
 		private readonly floatingTextSystem: FloatingTextSystem,
-		private readonly getControlled: () => Entity
+		private readonly getControlled: () => Entity,
+		private readonly journal?: JournalService
 	) {
 		this.unsubscribe = worldService.onChunkLoaded((chunkX, chunkY) => {
 			this.processChunk(chunkX, chunkY);
@@ -263,6 +265,7 @@ export class RegionFeatureSystem implements ISystem {
 	 * @param actor - Покупатель
 	 */
 	private openTrade(trader: Trader, actor: Entity): void {
+		this.journal?.unlock('n:trader');
 		const win = new TradeWindow(
 			trader,
 			actor,

@@ -8,6 +8,7 @@ import { ItemSlot } from '../components/ItemSlot';
 import { VerticalLayout } from '../containers/VerticalLayout';
 import { HorizontalLayout } from '../containers/HorizontalLayout';
 import type MouseInput from '../../components/MouseInput';
+import { eventBus } from '../../events/EventBus';
 
 /**
  * Окно бартера: прилавок торговца (3 предложения) и ряд предметов игрока
@@ -161,6 +162,10 @@ export class TradeWindow extends Window {
 
 		this.trader.barter(this.selectedOffer, playerItem, (offer) => {
 			this.entity.inventory.setAt(ref, offer);
+		});
+		eventBus.emit('barterCompleted', {
+			offerId: playerItem.id,
+			playerId: playerItem.id,
 		});
 		this.selectedOffer = -1;
 		this.createUI();

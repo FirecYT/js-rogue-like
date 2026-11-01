@@ -1,6 +1,7 @@
 import type { ISystem, IRenderable } from '../core/interfaces';
 import { UpdatePhase } from '../core/interfaces';
 import type FloatingText from '../components/FloatingText';
+import { settingsState } from '../services/SettingsService';
 
 /**
  * Система всплывающих текстов: управление жизненным циклом и отрисовка.
@@ -37,6 +38,7 @@ export class FloatingTextSystem implements ISystem, IRenderable {
 	 * @param ctx - Контекст канваса
 	 */
 	render(ctx: CanvasRenderingContext2D): void {
+		if (!settingsState.current.hud.floatingTexts) return;
 		for (const text of this.texts) {
 			text.render(ctx);
 		}

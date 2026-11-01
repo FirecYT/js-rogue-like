@@ -73,6 +73,14 @@ export default abstract class Entity extends GameObject {
 	}
 
 	/**
+	 * Устанавливает здоровье напрямую (загрузка сохранений).
+	 * @param value - Новое значение HP (ограничивается максимумом)
+	 */
+	setHP(value: number): void {
+		this.hp = Math.max(0, Math.min(value, this.maxHP));
+	}
+
+	/**
 	 * Восстанавливает здоровье, не превышая максимум.
 	 * @param amount - Количество восстановления
 	 */
