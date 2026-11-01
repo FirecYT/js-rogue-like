@@ -165,3 +165,18 @@ friendly fire — area-эффекты и самодельные паттерны
 - Отладка/смоук: controller.state и phaseIndex публичны; сценарий `ai`
   проверяет idle→chase, поводок и возврат с полным лечением, взрыв
   камикадзе, бегство timid, дистанцию kiter и переключение фаз босса.
+
+## Юнит-тесты: vitest (этап 11)
+
+- `npm test` = `vitest run` (однократный прогон, без watch/coverage).
+- Окружение node + ин-memory-заглушка localStorage (tests/setup.ts):
+  сервисы персистентности тестируются без DOM.
+- Минимальный набор по чистым сервисам (tests/*.test.ts, 22 теста):
+  MetaStorage (дефолты/round-trip/устойчивость к битым данным),
+  JournalService (unlock/метка «Новое»/префиксы e:, i:/персистентность),
+  SettingsService (дефолты/сохранение/частичное слияние),
+  StatsService (счётчики забега по событиям шины, однократный endRun),
+  RegionMap (void_core/city/bunker/iced_fields/glass_plain/ruins-fallback,
+  согласованность world↔chunk), дома руин (детерминизм от seed,
+  интерьер/стены), InputMapper (дефолты/ремап/изоляция экземпляров).
+- Тесты лежат вне src/ и не попадают в webpack-сборку игры.
