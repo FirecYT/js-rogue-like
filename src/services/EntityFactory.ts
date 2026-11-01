@@ -1,9 +1,10 @@
 import type { EntityWorld } from '../core/EntityWorld';
 import type { Pathfinder } from './Pathfinder';
 import type { JournalService } from './JournalService';
+import type { EffectSystem } from '../systems/EffectSystem';
 import type Entity from '../entities/Entity';
 import { DeclarativeEntity } from '../entities/DeclarativeEntity';
-import { AiController } from '../controllers/AiController';
+import { EnemyFsmController } from '../controllers/EnemyFsmController';
 import { WormController } from '../controllers/WormController';
 import { TurretController } from '../controllers/TurretController';
 import { SettlerController } from '../controllers/SettlerController';
@@ -28,7 +29,8 @@ export class EntityFactory {
 		private readonly entityWorld: EntityWorld,
 		private readonly pathfinder: Pathfinder,
 		private readonly getTarget: () => Entity,
-		private readonly journal?: JournalService
+		private readonly journal?: JournalService,
+		private readonly effectSystem?: EffectSystem
 	) {}
 
 	/**
@@ -132,8 +134,13 @@ export class EntityFactory {
 		if (!ai) return null;
 
 		switch (ai.kind) {
-			case 'chaser':
-				return new AiController(this.getTarget(), this.pathfinder);
+			case 'enemy':
+				return new EnemyFsmController(
+					this.getTarget,
+					this.pathfinder,
+					ai,
+					this.effectSystem
+				);
 			case 'worm':
 				return new WormController(this.getTarget, ai);
 			case 'turret':

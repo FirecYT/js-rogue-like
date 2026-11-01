@@ -6,6 +6,7 @@ import type { WorldService } from '../services/WorldService';
 import type { EntityFactory } from '../services/EntityFactory';
 import type { RegionMap } from '../services/RegionMap';
 import type { RegionSpawnEntry } from '../content/regions/definitions';
+import { getEntityDefinition } from '../content/entities/definitions';
 
 /** Точка безопасной зоны (торговца): спавн врагов рядом запрещён. */
 export interface SafeZone {
@@ -61,6 +62,9 @@ export class EnemySpawnerSystem implements ISystem {
 		if (region.safe) return;
 		const defId = this.pickSpawn(region.spawns);
 		if (!defId) return;
+		// FSM-враги блуждают в покое: держим спавн дальше от безопасных зон,
+		// чтобы патруль не заходил в дома торговцев
+		const safeMargin = getEntityDefinition(defId).ai?.kind === 'enemy' ? 240 : 0;
 
 		for (let attempt = 0; attempt < 6; attempt++) {
 			const angle = Math.random() * Math.PI * 2;
@@ -73,7 +77,7 @@ export class EnemySpawnerSystem implements ISystem {
 			const y = this.player.y + Math.sin(angle) * distance;
 
 			if (!this.world.isPassable(x, y)) continue;
-			if (this.inSafeZone(x, y)) continue;
+			if (this.inSafeZone(x, y, safeMargin)) continue;
 
 			this.entityFactory.spawn(defId, x, y);
 			return;
@@ -100,11 +104,12 @@ export class EnemySpawnerSystem implements ISystem {
 	 * Проверяет попадание точки в безопасную зону торговца.
 	 * @param x - Координата X
 	 * @param y - Координата Y
+	 * @param margin - Дополнительный отступ (радиус блуждания FSM-врагов в покое)
 	 * @returns true, если спавн здесь запрещён
 	 */
-	private inSafeZone(x: number, y: number): boolean {
+	private inSafeZone(x: number, y: number, margin = 0): boolean {
 		for (const zone of this.getSafeZones()) {
-			if (Math.hypot(zone.x - x, zone.y - y) < zone.radius) return true;
+			if (Math.hypot(zone.x - x, zone.y - y) < zone.radius + margin) return true;
 		}
 		return false;
 	}

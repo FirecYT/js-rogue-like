@@ -42,6 +42,12 @@ export default abstract class Entity extends GameObject {
 	public invulnerable = false;
 	/** Участвует ли сущность в расталкивании с другими сущностями. */
 	public solid = true;
+	/** Точка спавна (для «поводка» ИИ и возврата домой). */
+	public spawnX: number;
+	/** Точка спавна (для «поводка» ИИ и возврата домой). */
+	public spawnY: number;
+	/** Кто нанёс последний урон (аггро FSM-врагов по атакующему). */
+	public lastAttacker: Entity | null = null;
 
 	/**
 	 * @param x - Мировая координата X
@@ -51,6 +57,8 @@ export default abstract class Entity extends GameObject {
 	constructor(x: number, y: number, hp: number) {
 		super(x, y, hp);
 		this.inventory = new Inventory(this);
+		this.spawnX = x;
+		this.spawnY = y;
 	}
 
 	/**
@@ -60,6 +68,7 @@ export default abstract class Entity extends GameObject {
 	 */
 	takeDamage(damage: number, attacker?: Entity): void {
 		if (this.isDead() || this.invulnerable) return;
+		if (attacker) this.lastAttacker = attacker;
 		this.hp -= damage;
 		if (this.hp <= 0) {
 			if (attacker) {

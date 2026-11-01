@@ -286,14 +286,16 @@ export class GameFactory {
 		systemManager.register(new CollisionSystem(entityWorld, worldService));
 		systemManager.register(new RebirthSystem(entityWorld, controlSwitch));
 		systemManager.register(floatingTextSystem);
-		systemManager.register(new EffectSystem(entityWorld, worldService));
+		const effectSystem = new EffectSystem(entityWorld, worldService);
+		systemManager.register(effectSystem);
 		systemManager.register(new CleanupSystem(entityWorld, getControlled));
 		systemManager.register(pickupSystem);
 		const entityFactory = new EntityFactory(
 			entityWorld,
 			pathfinder,
 			getControlled,
-			journal
+			journal,
+			effectSystem
 		);
 		const interactSystem = new InteractSystem(entityWorld, getControlled, input);
 		systemManager.register(interactSystem);

@@ -17,6 +17,8 @@ export class DeclarativeEntity
 	public controller: IController | null = null;
 	/** Опыт за убийство (из определения, для прогрессии игрока). */
 	public readonly experience: number;
+	/** Временная перекраска тела (фазы боссов); null — цвет из определения. */
+	public colorOverride: string | null = null;
 
 	/**
 	 * @param definition - Декларативное описание сущности
@@ -48,7 +50,7 @@ export class DeclarativeEntity
 		const { appearance } = this.definition;
 		const half = appearance.size / 2;
 
-		ctx.fillStyle = appearance.color;
+		ctx.fillStyle = this.colorOverride ?? appearance.color;
 		if (appearance.shape === 'rect') {
 			ctx.fillRect(this.x - half, this.y - half, appearance.size, appearance.size);
 			if (appearance.outline) {

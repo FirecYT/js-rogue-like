@@ -15,8 +15,6 @@ export class TrainingDummy extends Entity implements HasPosition {
 	private respawnTimer = 0;
 	private lastDamage = 0;
 	private lastDamageTimer = 0;
-	private readonly spawnX: number;
-	private readonly spawnY: number;
 
 	/**
 	 * @param x - Мировая координата X
@@ -25,8 +23,6 @@ export class TrainingDummy extends Entity implements HasPosition {
 	 */
 	constructor(x: number, y: number, hp = 100) {
 		super(x, y, hp);
-		this.spawnX = x;
-		this.spawnY = y;
 		this.width = 12;
 		this.height = 12;
 		// Манекен стоит на месте: не участвует в расталкивании

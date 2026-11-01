@@ -14,9 +14,11 @@ export class ExplosionEffect extends Effect {
 	 * @param y - Центр взрыва Y
 	 * @param source - Источник
 	 * @param damage - Урон взрыва (по умолчанию 15)
+	 * @param radius - Радиус поражения (по умолчанию 40)
 	 */
-	constructor(x: number, y: number, source: Entity, damage = 15) {
+	constructor(x: number, y: number, source: Entity, damage = 15, radius = 40) {
 		super(x, y, 0, source, damage);
+		this.radius = radius;
 	}
 
 	/**

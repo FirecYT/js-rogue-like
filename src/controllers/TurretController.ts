@@ -1,7 +1,8 @@
 import type { IController } from './Controller';
 import type Entity from '../entities/Entity';
 import type { WorldService } from '../services/WorldService';
-import type { AiProfile } from '../content/entities/definitions';
+import type { AiProfile, AiPhase } from '../content/entities/definitions';
+import type { DeclarativeEntity } from '../entities/DeclarativeEntity';
 
 /** Скорость поворота ствола, радиан за кадр. */
 const TURN_RATE = 0.03;
@@ -13,6 +14,14 @@ const TURN_RATE = 0.03;
  */
 export class TurretController implements IController {
 	private heading = 0;
+	/** Индекс текущей фазы босса (0 — базовая; для отладки и смоука). */
+	public phaseIndex = 0;
+	/** Базовые характеристики оружия, захваченные до первых модификаций фаз. */
+	private baseWeapon: {
+		fireRate: number;
+		shots: number;
+		shotSpread: number;
+	} | null = null;
 
 	/**
 	 * @param getTarget - Функция получения текущей цели
@@ -29,6 +38,8 @@ export class TurretController implements IController {
 	 * @param world - Сервис мира для проверки видимости
 	 */
 	update(entity: Entity, world: WorldService): void {
+		this.updatePhase(entity);
+
 		const target = this.getTarget();
 		const dx = target.x - entity.x;
 		const dy = target.y - entity.y;
@@ -63,5 +74,41 @@ export class TurretController implements IController {
 	 */
 	getHeading(): number {
 		return this.heading;
+	}
+
+	/**
+	 * Фазы босса: выбирает последнюю фазу, чей порог hpBelow достигнут,
+	 * и при переключении применяет её паттерн к оружию и внешности.
+	 * Фазы только усиливают турель по мере падения HP — образец конвейера.
+	 * @param entity - Сущность турели
+	 */
+	private updatePhase(entity: Entity): void {
+		const phases = this.profile.phases;
+		if (!phases || phases.length === 0) return;
+
+		const fraction = entity.getHP() / entity.maxHP;
+		let index = 0;
+		for (let i = 0; i < phases.length; i++) {
+			if (fraction <= phases[i].hpBelow) index = i;
+		}
+		if (index === this.phaseIndex && this.baseWeapon) return;
+
+		const weapon = entity.inventory.weapon;
+		if (!weapon) return;
+		if (!this.baseWeapon) {
+			this.baseWeapon = {
+				fireRate: weapon.fireRate,
+				shots: weapon.shots,
+				shotSpread: weapon.shotSpread,
+			};
+		}
+		this.phaseIndex = index;
+		const phase: AiPhase = phases[index];
+		weapon.fireRate = this.baseWeapon.fireRate * (phase.fireRateMult ?? 1);
+		weapon.shots = phase.shots ?? this.baseWeapon.shots;
+		weapon.shotSpread = phase.spread ?? this.baseWeapon.shotSpread;
+		weapon.damageMultiplier = phase.damageMult ?? 1;
+		const decl = entity as DeclarativeEntity;
+		if ('colorOverride' in decl) decl.colorOverride = phase.color ?? null;
 	}
 }

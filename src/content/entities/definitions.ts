@@ -19,12 +19,12 @@ import { RebirthChip } from '../../items/chips/RebirthChip';
 
 /** Вид поведения сущности, управляемого контроллером конвейера. */
 export type AiKind =
-	/** Преследование цели с поиском пути и стрельбой (классический моб). */
-	| 'chaser'
 	/** Голова червя: направленное движение с волной и залпами по цели. */
 	| 'worm'
 	/** Турель: не движется, поворачивает ствол и бьёт по линии видимости. */
 	| 'turret'
+	/** Полноценный FSM-враг: покой/патруль, аггро с памятью, атака по архетипу, поводок и возврат. */
+	| 'enemy'
 	/** Сегмент тела: держится позади лидера на заданной дистанции. */
 	| 'follower'
 	/** Неподвижная сущность без поведения. */
@@ -50,6 +50,52 @@ export interface AiProfile {
 	waveFrequency?: number;
 	/** Дистанция, которую сегмент держит до лидера (follower). */
 	followDistance?: number;
+	/** Архетип поведения FSM-врага (enemy, по умолчанию chaser). */
+	behavior?: EnemyBehavior;
+	/** Максимальное удаление от точки спавна в погоне; дальше — возврат (enemy). */
+	leashRange?: number;
+	/** Радиус блуждания в покое вокруг точки спавна (enemy). */
+	wanderRadius?: number;
+	/** Доля HP, ниже которой трусливый враг убегает (timid). */
+	fleeBelow?: number;
+	/** Радиус срабатывания самоподрыва камикадзе, px. */
+	explodeTrigger?: number;
+	/** Радиус поражения взрыва камикадзе, px. */
+	explodeRadius?: number;
+	/** Урон взрыва камикадзе. */
+	explodeDamage?: number;
+	/** Множитель скорости в рывке камикадзе. */
+	chargeSpeedMult?: number;
+	/** Фазы босса: переключаются по порогу доли HP (turret). */
+	phases?: AiPhase[];
+}
+
+/**
+ * Архетип поведения FSM-врага (этап 10 «жизнь вражеского AI»):
+ * - chaser: преследует в упор и стреляет на ходу;
+ * - kiter: держит дистанцию огня, отходит, если подошли вплотную;
+ * - kamikaze: разгоняется и взрывается рядом с целью, погибая сам;
+ * - timid: воюет как kiter, но на низком HP убегает и возвращается домой.
+ */
+export type EnemyBehavior = 'chaser' | 'kiter' | 'kamikaze' | 'timid';
+
+/**
+ * Фаза босса-турели: применяется, когда доля HP впервые опускается до hpBelow.
+ * Множители и паттерн относительны к базовым характеристикам оружия.
+ */
+export interface AiPhase {
+	/** Порог доли HP (1 = полная шкала, 0.3 = ниже 30%). */
+	hpBelow: number;
+	/** Число снарядов залпа (заменяет weapon.shots). */
+	shots?: number;
+	/** Сектор веера залпа в радианах (заменяет weapon.shotSpread). */
+	spread?: number;
+	/** Множитель темпа стрельбы: <1 — чаще (меняет weapon.fireRate). */
+	fireRateMult?: number;
+	/** Множитель урона (weapon.damageMultiplier). */
+	damageMult?: number;
+	/** Перекраска тела босса в фазе (colorOverride). */
+	color?: string;
 }
 
 /** Внешность сущности: примитив канваса и цвета. */
@@ -137,7 +183,15 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 		team: 'enemy',
 		experience: 5,
 		appearance: { shape: 'rect', size: 8, color: '#f90', showHpBar: true },
-		ai: { kind: 'chaser', aggroRange: 500, fireRange: 400, repathInterval: 60 },
+		ai: {
+			kind: 'enemy',
+			behavior: 'chaser',
+			aggroRange: 500,
+			fireRange: 400,
+			repathInterval: 60,
+			leashRange: 1500,
+			wanderRadius: 180,
+		},
 		loadout: { weapon: () => new ShotgunWeapon() },
 	},
 
@@ -195,7 +249,16 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 		team: 'enemy',
 		experience: 6,
 		appearance: { shape: 'rect', size: 8, color: '#a5f3fc', showHpBar: true },
-		ai: { kind: 'chaser', aggroRange: 520, fireRange: 380, repathInterval: 50 },
+		ai: {
+			kind: 'enemy',
+			behavior: 'timid',
+			aggroRange: 520,
+			fireRange: 380,
+			repathInterval: 50,
+			leashRange: 1400,
+			wanderRadius: 200,
+			fleeBelow: 0.4,
+		},
 		loadout: { weapon: () => new LaserGunWeapon() },
 	},
 
@@ -211,7 +274,15 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 		team: 'enemy',
 		experience: 4,
 		appearance: { shape: 'circle', size: 6, color: '#e0f2fe', showHpBar: true },
-		ai: { kind: 'chaser', aggroRange: 600, fireRange: 220, repathInterval: 40 },
+		ai: {
+			kind: 'enemy',
+			behavior: 'kiter',
+			aggroRange: 600,
+			fireRange: 300,
+			repathInterval: 40,
+			leashRange: 1600,
+			wanderRadius: 240,
+		},
 		loadout: { weapon: () => new PistolWeapon() },
 	},
 
@@ -234,7 +305,7 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 	ice_shard: {
 		id: 'ice_shard',
 		journal: 'enemy',
-		description: 'Ледяной осколок: вмороженный в торос обломок дозиметрической вышки поля. Держит дистанцию и стреляет выверенными ледяными иглами.',
+		description: 'Ледяной осколок: вмороженный в торос обломок дозиметрической вышки поля. Накопив холод, бросается в атаку и рассыпается ледяным взрывом.',
 		name: 'Ледяной осколок',
 		hp: 12,
 		speed: 1.4,
@@ -242,7 +313,18 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 		team: 'enemy',
 		experience: 6,
 		appearance: { shape: 'rect', size: 8, color: '#bfdbfe', showHpBar: true },
-		ai: { kind: 'chaser', aggroRange: 500, fireRange: 360, repathInterval: 55 },
+		ai: {
+			kind: 'enemy',
+			behavior: 'kamikaze',
+			aggroRange: 500,
+			repathInterval: 30,
+			leashRange: 1400,
+			wanderRadius: 160,
+			explodeTrigger: 34,
+			explodeRadius: 70,
+			explodeDamage: 18,
+			chargeSpeedMult: 1.8,
+		},
 		loadout: { weapon: () => new LaserGunWeapon() },
 	},
 
@@ -268,7 +350,22 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 			outline: '#e0f2fe',
 			showHpBar: true,
 		},
-		ai: { kind: 'turret', fireRange: 480 },
+		ai: {
+			kind: 'turret',
+			fireRange: 480,
+			phases: [
+				{ hpBelow: 1 },
+				{ hpBelow: 0.6, shots: 3, spread: 0.5, fireRateMult: 0.75 },
+				{
+					hpBelow: 0.3,
+					shots: 8,
+					spread: Math.PI * 2 * (7 / 8),
+					fireRateMult: 0.6,
+					damageMult: 1.25,
+					color: '#f87171',
+				},
+			],
+		},
 		loadout: {
 			weapon: () => new LaserGunWeapon(),
 			modifiers: () => [new DamageMultModifier(), new MulticastModifier(2, 0.4)],
