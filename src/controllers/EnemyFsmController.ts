@@ -77,10 +77,15 @@ export class EnemyFsmController implements IController {
 		this.prevHP = hp;
 		if (this.damageMemory > 0) this.damageMemory--;
 
+		// Аггро только по факту обнаружения: прямая видимость в радиусе агро
+		// ИЛИ недавний урон от цели (атакованный враг знает, откуда прилетело).
+		// Сквозь стены на дистанции никто не «чувствует» игрока.
+		const seesNow =
+			dist < aggroRange &&
+			world.hasLineOfSight(entity.x, entity.y, target.x, target.y, aggroRange);
 		const aggro =
 			targetAlive &&
-			(dist < aggroRange ||
-				(this.damageMemory > 0 && dist < aggroRange * 1.5));
+			(seesNow || (this.damageMemory > 0 && dist < aggroRange * 1.5));
 
 		switch (this.state) {
 			case 'idle':
@@ -178,7 +183,11 @@ export class EnemyFsmController implements IController {
 				return;
 			}
 			const mult = this.profile.chargeSpeedMult ?? 1.8;
-			this.moveToPoint(entity, world, target.x, target.y, mult, canSee);
+			const kamiGoal =
+				canSee || !this.lastKnown
+					? { x: target.x, y: target.y }
+					: this.lastKnown;
+			this.moveAlong(entity, world, kamiGoal.x, kamiGoal.y, mult, canSee);
 			return;
 		}
 
@@ -200,7 +209,11 @@ export class EnemyFsmController implements IController {
 				};
 				this.moveToPoint(entity, world, away.x, away.y, 1, false);
 			} else if (dist > keep) {
-				this.moveToPoint(entity, world, target.x, target.y, 1, canSee);
+				const kiteGoal =
+					canSee || !this.lastKnown
+						? { x: target.x, y: target.y }
+						: this.lastKnown;
+				this.moveAlong(entity, world, kiteGoal.x, kiteGoal.y, 1, canSee);
 			}
 			this.tryShoot(entity, world, target, dist, fireRange, canSee);
 			return;
@@ -208,7 +221,7 @@ export class EnemyFsmController implements IController {
 
 		// chaser/timid(полный HP): сближаемся и стреляем на ходу
 		const goal = canSee || !this.lastKnown ? { x: target.x, y: target.y } : this.lastKnown;
-		this.moveToPoint(entity, world, goal.x, goal.y, 1, canSee);
+		this.moveAlong(entity, world, goal.x, goal.y, 1, canSee);
 		this.tryShoot(entity, world, target, dist, fireRange, canSee);
 	}
 
@@ -370,6 +383,73 @@ export class EnemyFsmController implements IController {
 			if (d < 4) return;
 			nx = (dx / d) * speed;
 			ny = (dy / d) * speed;
+		}
+
+		const newPos = world.tryMove(
+			entity.x,
+			entity.y,
+			nx,
+			ny,
+			entity.width,
+			entity.height
+		);
+		entity.x = newPos.x;
+		entity.y = newPos.y;
+	}
+
+	/**
+	 * Боевое перемещение: всегда через A*-путь (враг огибает стены, а не
+	 * давит в них); прямолинейный ход допустим только при видимости цели.
+	 * Без пути и без видимости враг стоит на месте — дальше отработает
+	 * память цели (search) и возврат домой.
+	 * @param entity - Сущность
+	 * @param world - Сервис мира (коллизии)
+	 * @param tx - Цель X
+	 * @param ty - Цель Y
+	 * @param speedMult - Множитель скорости
+	 * @param canSee - Видна ли цель сейчас
+	 */
+	private moveAlong(
+		entity: Entity,
+		world: WorldService,
+		tx: number,
+		ty: number,
+		speedMult: number,
+		canSee: boolean
+	): void {
+		const speed = entity.speed * speedMult;
+		this.repathCooldown--;
+		if (this.repathCooldown <= 0) {
+			this.path = this.pathfinder.findPath({
+				start: { x: entity.x, y: entity.y },
+				end: { x: tx, y: ty },
+				maxNodes: 500,
+			});
+			this.repathCooldown = this.profile.repathInterval ?? 60;
+		}
+
+		let nx = 0;
+		let ny = 0;
+		if (this.path.length > 1) {
+			const next = this.path[1];
+			const dx = next.x - entity.x;
+			const dy = next.y - entity.y;
+			const d = Math.hypot(dx, dy);
+			if (d < speed) {
+				this.path.shift();
+				return;
+			}
+			nx = (dx / d) * speed;
+			ny = (dy / d) * speed;
+		} else if (canSee) {
+			const dx = tx - entity.x;
+			const dy = ty - entity.y;
+			const d = Math.hypot(dx, dy);
+			if (d < 4) return;
+			nx = (dx / d) * speed;
+			ny = (dy / d) * speed;
+		} else {
+			return; // цель за стеной и путь не найден — стоим, ждём search/return
 		}
 
 		const newPos = world.tryMove(

@@ -50,6 +50,7 @@ export class RegionFeatureSystem implements ISystem {
 		loot: 0,
 	};
 	private readonly safeZones: SafeZone[] = [];
+	private journalScanCooldown = 0;
 	private unsubscribe: Unsubscribe | null = null;
 	private lastRegionId = '';
 	private onZoneChange: ((name: string, color: string) => void) | null = null;
@@ -99,18 +100,38 @@ export class RegionFeatureSystem implements ISystem {
 	}
 
 	/**
-	 * Следит за сменой региона управляемой сущностью: объявляет название.
+	 * Следит за сменой региона управляемой сущностью: объявляет название и
+	 * открывает запись региона в журнале. Периодически сканирует окружение:
+	 * встреча с любой сущностью из журнала (включая поселенцев, которые
+	 * спавнятся вместе с домами вдалеке от игрока) открывает её запись.
 	 */
 	update(): void {
 		const controlled = this.getControlled();
 		const region = this.regionMap.regionAtWorld(controlled.x, controlled.y);
-		if (region.id === this.lastRegionId) return;
-		this.lastRegionId = region.id;
+		if (region.id !== this.lastRegionId) {
+			this.lastRegionId = region.id;
+			this.journal?.unlockRegion(region.id);
 
-		this.floatingTextSystem.add(
-			new FloatingText(controlled.x, controlled.y - 40, region.name, 150)
-		);
-		this.onZoneChange?.(region.name, region.palette.fog);
+			this.floatingTextSystem.add(
+				new FloatingText(controlled.x, controlled.y - 40, region.name, 150)
+			);
+			this.onZoneChange?.(region.name, region.palette.fog);
+		}
+
+		// Журнал встреч: сканирование раз в 30 кадров (не каждый тик)
+		this.journalScanCooldown--;
+		if (this.journal && this.journalScanCooldown <= 0) {
+			this.journalScanCooldown = 30;
+			for (const entity of this.entityWorld.all) {
+				const def = (entity as { definition?: { id: string; journal?: string } })
+					.definition;
+				if (!def?.journal) continue;
+				if (Math.hypot(entity.x - controlled.x, entity.y - controlled.y) > 900) {
+					continue;
+				}
+				this.journal.unlockEntity(def.id);
+			}
+		}
 	}
 
 	/**

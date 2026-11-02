@@ -7,7 +7,14 @@ import {
 	PierceModifier,
 	MulticastModifier,
 	ExplosiveEndModifier,
+	DamageMultModifier,
+	SinusoidalModifier,
+	DestructModifier,
 } from '../../items/modifiers/catalog';
+import { FlamethrowerWeapon } from '../../items/weapons/FlamethrowerWeapon';
+import { RocketLauncherWeapon } from '../../items/weapons/RocketLauncherWeapon';
+import { BossCannonWeapon } from '../../items/weapons/BossCannonWeapon';
+import { RebirthChip } from '../../items/chips/RebirthChip';
 import type { Chip } from '../../items/Chip';
 import { DashChip } from '../../items/chips/DashChip';
 import { TeleportChip } from '../../items/chips/TeleportChip';
@@ -60,6 +67,8 @@ export type RegionGeneratorId =
 export interface RegionDefinition {
 	id: string;
 	name: string;
+	/** Лор-описание региона (журнал, категория «Регионы»). */
+	description: string;
 	palette: RegionPalette;
 	/** Прямоугольник чанков относительно спавна; null — регион по умолчанию. */
 	rect: RegionRect | null;
@@ -94,6 +103,8 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 	void_core: {
 		id: 'void_core',
 		name: 'Пустота',
+		description:
+			'Ядро Пустоты: ровная тёмная платформа в центре мира, единственное место, где ничего не случается само. Смотрители просыпаются здесь — и отсюда расходятся во все стороны руин.',
 		palette: {
 			floor: ['#101013'],
 			wall: '#1c1c22',
@@ -111,6 +122,8 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 	city: {
 		id: 'city',
 		name: 'Город',
+		description:
+			'Город выживших: кварталы зданий-ячеек, разделённые дорогами. Единственное крупное поселение после падения: здесь живут, чинят стены и меняют найденное в пустошах на прилавках. Оружие носят, но в черте города не пускают в ход.',
 		palette: {
 			floor: ['#33363b', '#2d3035', '#3a3d43'],
 			wall: '#8a8f98',
@@ -132,6 +145,8 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 	bunker: {
 		id: 'bunker',
 		name: 'Бункер',
+		description:
+			'Бункер: подземный военный склад к востоку от города, запечатанный после падения. Сетка комнат и коридоров, дежурные посты клана ржавых и лучшие стволы, какие вообще можно найти в пустошах.',
 		palette: {
 			floor: ['#24262a', '#1f2124', '#2a2c31'],
 			wall: '#5c636d',
@@ -146,6 +161,10 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			() => new MulticastModifier(2, 0.3),
 			() => new ExplosiveEndModifier(),
 			() => new ShotgunWeapon(),
+			() => new FlamethrowerWeapon(),
+			() => new RocketLauncherWeapon(),
+			() => new BossCannonWeapon(),
+			() => new DestructModifier(),
 		],
 	},
 
@@ -153,6 +172,8 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 	worm_altar: {
 		id: 'worm_altar',
 		name: 'Алтарь червя',
+		description:
+			'Алтарь червя: каменное кольцо-подиум посреди выжженной площадки к западу от города. Здесь спит механический червь — и здесь же хранители оставили заначки для тех, кто решится его пробудить.',
 		palette: {
 			floor: ['#2f2622', '#292019', '#332a24'],
 			wall: '#7c5a43',
@@ -163,13 +184,19 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 		generator: 'altar',
 		spawns: [{ defId: 'rust_grunt', weight: 2 }],
 		bossDefId: 'rust_worm',
-		loot: [() => new PierceModifier(), () => new ShotgunWeapon()],
+		loot: [
+			() => new PierceModifier(),
+			() => new ShotgunWeapon(),
+			() => new RebirthChip(),
+		],
 	},
 
 	/** Ледяные поля влево от спавна: открытый снег и лёд. */
 	iced_fields: {
 		id: 'iced_fields',
 		name: 'Ледяные поля',
+		description:
+			'Ледяные поля: открытое снежное пространство далеко на западе, усеянное обломками дозиметрических вышек. Из вмороженного железа встают ледяные осколки — они копят холод и отдают его целиком, в одном взрыве.',
 		palette: {
 			floor: ['#3b4c5c', '#354655', '#415262'],
 			wall: '#7fa8bd',
@@ -183,6 +210,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			() => new LaserGunWeapon(),
 			() => new PierceModifier(),
 			() => new TeleportChip(),
+			() => new DamageMultModifier(),
 		],
 	},
 
@@ -190,6 +218,8 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 	glass_plain: {
 		id: 'glass_plain',
 		name: 'Стеклянная равнина',
+		description:
+			'Стеклянная равнина: зеркальное отражение ледяных полей на востоке — дюны спечённого песка, в которых свет ломается на осколки и блики. В центре равнины несёт вечную вахту Стеклянный страж.',
 		palette: {
 			floor: ['#31404a', '#2c3a44', '#36474f'],
 			wall: '#9fb8c4',
@@ -208,6 +238,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			() => new MulticastModifier(2, 0.3),
 			() => new ExplosiveEndModifier(),
 			() => new TeleportChip(),
+			() => new DamageMultModifier(),
 		],
 	},
 
@@ -215,6 +246,8 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 	ruins: {
 		id: 'ruins',
 		name: 'Ржавые пустоши',
+		description:
+			'Ржавые пустоши: бесконечные руины вокруг Ядра Пустоты — то, что осталось от мира после падения. Среди обломков прячутся тайники, а восстановители поднимают из них дома, где снова горит свет и стоят прилавки.',
 		palette: {
 			floor: ['#2b2b2b', '#262626', '#2e2a26'],
 			wall: '#6b7280',
@@ -232,6 +265,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			() => new DamagePlusModifier(),
 			() => new PierceModifier(),
 			() => new DashChip(),
+			() => new SinusoidalModifier(),
 		],
 		bossDefId: 'rust_worm',
 		imageTiles: true,

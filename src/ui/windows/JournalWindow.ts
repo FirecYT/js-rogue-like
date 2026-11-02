@@ -6,11 +6,15 @@ import { HorizontalLayout } from '../containers/HorizontalLayout';
 import type { JournalService, JournalEntry } from '../../services/JournalService';
 
 /** Категории журнала с заголовками вкладок. */
-const CATEGORIES: { id: 'enemy' | 'boss' | 'npc' | 'item'; title: string }[] = [
+const CATEGORIES: {
+	id: 'enemy' | 'boss' | 'npc' | 'item' | 'region';
+	title: string;
+}[] = [
 	{ id: 'enemy', title: 'Враги' },
 	{ id: 'boss', title: 'Боссы' },
 	{ id: 'npc', title: 'NPC' },
 	{ id: 'item', title: 'Предметы' },
+	{ id: 'region', title: 'Регионы' },
 ];
 
 /**
@@ -18,7 +22,7 @@ const CATEGORIES: { id: 'enemy' | 'boss' | 'npc' | 'item'; title: string }[] = [
  * (неоткрытые показаны как «???») и карточка с описанием выбранного.
  */
 export class JournalWindow extends Window {
-	private category: 'enemy' | 'boss' | 'npc' | 'item' = 'enemy';
+	private category: 'enemy' | 'boss' | 'npc' | 'item' | 'region' = 'enemy';
 	private selected: JournalEntry | null = null;
 
 	/**
@@ -54,7 +58,7 @@ export class JournalWindow extends Window {
 		const tabs = new HorizontalLayout();
 		tabs.spacing = 8;
 		for (const category of CATEGORIES) {
-			const button = new Button(category.title, 100, 28);
+			const button = new Button(category.title, 92, 28);
 			button.setOnClick(() => {
 				this.category = category.id;
 				this.selected = null;

@@ -6,6 +6,10 @@ import {
 	ITEM_DEFINITIONS,
 	type ItemJournalDefinition,
 } from '../content/items/definitions';
+import {
+	REGION_DEFINITIONS,
+	REGION_ORDER,
+} from '../content/regions/definitions';
 import { loadMeta, saveMeta, type MetaState } from './MetaStorage';
 
 /** Статическая запись журнала о торговце (не сущность конвейера). */
@@ -21,7 +25,7 @@ export interface JournalEntry {
 	id: string;
 	name: string;
 	description: string;
-	category: 'enemy' | 'boss' | 'npc' | 'item';
+	category: 'enemy' | 'boss' | 'npc' | 'item' | 'region';
 }
 
 /**
@@ -92,6 +96,11 @@ export class JournalService {
 		if (ITEM_DEFINITIONS[itemId]) this.unlock(`i:${itemId}`);
 	}
 
+	/** Открывает запись региона (при первом посещении). */
+	unlockRegion(regionId: string): void {
+		if (REGION_DEFINITIONS[regionId]) this.unlock(`r:${regionId}`);
+	}
+
 	/**
 	 * Открытые id записей (для смоук-тестов и отладки).
 	 * @returns Массив открытых id
@@ -106,9 +115,22 @@ export class JournalService {
 	 * @returns Записи с флагом открытия
 	 */
 	entries(
-		category: 'enemy' | 'boss' | 'npc' | 'item'
+		category: 'enemy' | 'boss' | 'npc' | 'item' | 'region'
 	): (JournalEntry & { unlocked: boolean })[] {
 		const result: (JournalEntry & { unlocked: boolean })[] = [];
+		if (category === 'region') {
+			for (const id of REGION_ORDER) {
+				const def = REGION_DEFINITIONS[id];
+				result.push({
+					id: `r:${def.id}`,
+					name: def.name,
+					description: def.description,
+					category: 'region',
+					unlocked: this.isUnlocked(`r:${def.id}`),
+				});
+			}
+			return result;
+		}
 		if (category === 'item') {
 			for (const def of Object.values(ITEM_DEFINITIONS) as ItemJournalDefinition[]) {
 				result.push({
