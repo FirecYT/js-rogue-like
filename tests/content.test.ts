@@ -39,6 +39,18 @@ describe('Контент-таблицы', () => {
 		}
 	});
 
+	it('регион с пулом лута спавнит тайники (lootChance > 0)', () => {
+		for (const regionId of REGION_ORDER) {
+			const region = REGION_DEFINITIONS[regionId];
+			if (region.loot.length) {
+				expect(
+					region.lootChance ?? 0,
+					`${regionId}: пул лута есть, но тайники не спавнятся`
+				).toBeGreaterThan(0);
+			}
+		}
+	});
+
 	it('у каждого региона есть имя и лор-описание', () => {
 		for (const regionId of REGION_ORDER) {
 			const region = REGION_DEFINITIONS[regionId];

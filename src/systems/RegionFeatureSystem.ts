@@ -29,8 +29,8 @@ const HOUSE_SAFE_RADIUS = 256;
 /**
  * Система фич регионов: при загрузке чанка обустраивает структуры региона —
  * восстановленные дома руин с дружественными NPC (торговцы и поселенцы),
- * жителей города, фиксированные алтари боссов в алтарных регионах и редкий
- * лут в руинах. Детерминирована seed'ом забега и координатами.
+ * жителей города, фиксированные алтари боссов в алтарных регионах и
+ * тайники лута в регионах с настроенным шансом. Детерминирована seed'ом забега и координатами.
  * Также объявляет имя региона при входе управляемой сущности в регион.
  */
 export class RegionFeatureSystem implements ISystem {
@@ -136,7 +136,7 @@ export class RegionFeatureSystem implements ISystem {
 
 	/**
 	 * Обустраивает свежезагруженный чанк (однократно): дома и NPC руин,
-	 * жители города, алтари алтарных регионов, редкий лут.
+	 * жители города, алтари алтарных регионов, тайники лута.
 	 * @param chunkX - Координата чанка X
 	 * @param chunkY - Координата чанка Y
 	 */
@@ -156,23 +156,8 @@ export class RegionFeatureSystem implements ISystem {
 
 		if (region.id === 'ruins') {
 			this.processHouses(chunkX, chunkY, rng, region.loot);
-			// Редкий лут в открытых руинах
-			if (rng.next() < (region.lootChance ?? 0) && region.loot.length) {
-				const origin = this.chunkOrigin(chunkX, chunkY);
-				const spot = this.findSpot(rng, origin.x, origin.y);
-				if (spot) {
-					const item =
-						region.loot[Math.floor(rng.next() * region.loot.length)]();
-					this.entityWorld.spawn(createPickupFromItem(item, spot.x, spot.y));
-					this.debugStats.loot++;
-				}
-			}
-			return;
-		}
-
-		if (region.id === 'city') {
+		} else if (region.id === 'city') {
 			this.processCityCell(chunkX, chunkY, rng, region.loot);
-			return;
 		}
 
 		if (region.bossDefId && region.rect) {
@@ -190,6 +175,23 @@ export class RegionFeatureSystem implements ISystem {
 					)
 				);
 				this.debugStats.altars++;
+			}
+		}
+
+		// Тайники лута: во всех регионах с непустым пулом и шансом спавна
+		// (раньше шаг жил только в ветке руин — остальные регионы оставались без лута)
+		if (
+			!region.safe &&
+			region.loot.length &&
+			rng.next() < (region.lootChance ?? 0)
+		) {
+			const origin = this.chunkOrigin(chunkX, chunkY);
+			const spot = this.findSpot(rng, origin.x, origin.y);
+			if (spot) {
+				const item =
+					region.loot[Math.floor(rng.next() * region.loot.length)]();
+				this.entityWorld.spawn(createPickupFromItem(item, spot.x, spot.y));
+				this.debugStats.loot++;
 			}
 		}
 	}

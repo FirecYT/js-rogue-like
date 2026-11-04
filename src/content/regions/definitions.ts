@@ -86,7 +86,7 @@ export interface RegionDefinition {
 	imageTiles?: boolean;
 	/** Множитель плотности руин (0..1 от базовой) для руин-генератора. */
 	ruinsDensity?: number;
-	/** Шанс тайника с лутом на чанк (для регионов с редким лутом). */
+	/** Шанс тайника с лутом на чанк; нужен всем регионам с непустым пулом. */
 	lootChance?: number;
 }
 
@@ -131,6 +131,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			fog: '#e5e7eb',
 		},
 		rect: { x: -20, y: -70, w: 40, h: 40 },
+		lootChance: 0.05,
 		generator: 'city',
 		spawns: [],
 		safe: true,
@@ -154,6 +155,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			fog: '#9ca3af',
 		},
 		rect: { x: 80, y: -70, w: 40, h: 40 },
+		lootChance: 0.12,
 		generator: 'bunker',
 		spawns: [{ defId: 'rust_grunt', weight: 4 }],
 		loot: [
@@ -181,6 +183,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			fog: '#f97316',
 		},
 		rect: { x: -106, y: -56, w: 12, h: 12 },
+		lootChance: 0.1,
 		generator: 'altar',
 		spawns: [{ defId: 'rust_grunt', weight: 2 }],
 		bossDefId: 'rust_worm',
@@ -204,6 +207,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			fog: '#a5f3fc',
 		},
 		rect: { x: -230, y: -30, w: 60, h: 60 },
+		lootChance: 0.08,
 		generator: 'iced',
 		spawns: [{ defId: 'ice_shard', weight: 3 }],
 		loot: [
@@ -227,6 +231,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			fog: '#67e8f9',
 		},
 		rect: { x: 170, y: -30, w: 60, h: 60 },
+		lootChance: 0.08,
 		generator: 'glass',
 		spawns: [
 			{ defId: 'glass_shard', weight: 3 },

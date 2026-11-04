@@ -157,7 +157,8 @@ export class GameFactory {
 		]);
 
 		// 3. Создание мира (тайловая карта): seed забега и карта зон
-		const runSeed = saveData?.seed ?? ((Math.random() * 0x7fffffff) | 0);
+		const runSeed =
+			saveData?.seed ?? boot.seed ?? ((Math.random() * 0x7fffffff) | 0);
 		const regionMap = new RegionMap(
 			DEFAULT_WORLD_CONFIG.chunkSize,
 			DEFAULT_WORLD_CONFIG.tileSize
