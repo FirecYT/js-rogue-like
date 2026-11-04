@@ -102,3 +102,28 @@ export class DestructModifier implements Modifier {
 		state.destruct = true;
 	}
 }
+
+/** Самонаведение: снаряд доворачивает курс к ближайшей враждебной цели. */
+export class HomingModifier implements Modifier {
+	id = 'mod_homing';
+	name = 'Самонаведение';
+	type = 'modifier' as const;
+	description = 'Снаряд доворачивает курс к ближайшей враждебной цели.';
+
+	applyToCast(state: CastState): void {
+		state.homing = true;
+	}
+}
+
+/** Расщепление: широкий веер из трёх копий снаряда. */
+export class SplitModifier implements Modifier {
+	id = 'mod_split';
+	name = 'Расщепление';
+	type = 'modifier' as const;
+	description = 'Снаряд расщепляется на три копии в широком веере.';
+
+	applyToCast(state: CastState): void {
+		state.copies *= 3;
+		state.spread += 1.4;
+	}
+}

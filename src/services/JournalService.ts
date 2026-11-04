@@ -20,6 +20,14 @@ export const TRADER_JOURNAL = {
 		'Молчаливый меновщик из домов восстановителей: раскладывает прилавок из трёх предметов и меняет их строго «предмет на предмет». Денег не признаёт: после падения пустоты валютой снова стали вещи.',
 };
 
+/** Статическая запись журнала о полевом медике (не сущность конвейера). */
+export const MEDIC_JOURNAL = {
+	id: 'n:medic',
+	name: 'Полевой медик',
+	description:
+		'Медик восстановленных домов: бывший фельдшер шахт, который штопает всех подряд — смотрителей, поселенцев, случайных мусорщиков. Берёт не деньгами и не вещами, а ожиданием: после приёма ему нужно отдышаться.',
+};
+
 /** Запись списка журнала с категорией. */
 export interface JournalEntry {
 	id: string;
@@ -158,6 +166,11 @@ export class JournalService {
 				...TRADER_JOURNAL,
 				category: 'npc',
 				unlocked: this.isUnlocked(TRADER_JOURNAL.id),
+			});
+			result.push({
+				...MEDIC_JOURNAL,
+				category: 'npc',
+				unlocked: this.isUnlocked(MEDIC_JOURNAL.id),
 			});
 		}
 		return result;

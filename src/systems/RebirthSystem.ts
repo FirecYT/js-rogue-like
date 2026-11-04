@@ -7,10 +7,13 @@ import type { Controllable } from '../types/EntityTraits';
 import { isControllable } from '../types/EntityTraits';
 import { eventBus } from '../events/EventBus';
 import type { Unsubscribe } from '../events/EventBus';
+import { areHostile } from '../types/Team';
 
 /**
  * Система перерождения: если у умершей сущности есть чип Rebirth,
- * управление передаётся ближайшей живой управляемой сущности.
+ * управление передаётся ближайшему живому управляемому ВРАГУ
+ * (враждебная команда: рядовые мобы, боссы). Мирные NPC кандидатами
+ * не являются; если врагов рядом нет — смерть остаётся смертью.
  * Чисто событийная система: update() пуст, вся логика в подписке на entityKilled.
  */
 export class RebirthSystem implements ISystem {
@@ -48,15 +51,16 @@ export class RebirthSystem implements ISystem {
 		);
 		if (chipIdx === -1) return;
 
-		// Перерождение — лор-хак сознания: тело может быть любым (враги, боссы),
-		// поэтому фильтр по команде намеренно отсутствует
+		// Перерождение — лор-хак сознания: новое тело всегда враждебное
+		// (мобы и боссы), мирные поселенцы и мусорщики не подходят
 		const candidates = this.entityWorld.all.filter(
 			(e): e is Entity & Controllable =>
 				e !== victim &&
 				e !== this.controlSwitch.getCurrentControlled() &&
 				!e.isDead() &&
 				isControllable(e) &&
-				e.controller !== null
+				e.controller !== null &&
+				areHostile(e.team, victim.team)
 		);
 
 		if (candidates.length === 0) return;

@@ -5,6 +5,9 @@ import { ShotgunWeapon } from '../../items/weapons/ShotgunWeapon';
 import { FlamethrowerWeapon } from '../../items/weapons/FlamethrowerWeapon';
 import { RocketLauncherWeapon } from '../../items/weapons/RocketLauncherWeapon';
 import { BossCannonWeapon } from '../../items/weapons/BossCannonWeapon';
+import { MinigunWeapon } from '../../items/weapons/MinigunWeapon';
+import { RailgunWeapon } from '../../items/weapons/RailgunWeapon';
+import { PlasmaRifleWeapon } from '../../items/weapons/PlasmaRifleWeapon';
 import {
 	DamagePlusModifier,
 	DamageMultModifier,
@@ -13,10 +16,15 @@ import {
 	MulticastModifier,
 	ExplosiveEndModifier,
 	DestructModifier,
+	HomingModifier,
+	SplitModifier,
 } from '../../items/modifiers/catalog';
 import { DashChip } from '../../items/chips/DashChip';
 import { TeleportChip } from '../../items/chips/TeleportChip';
 import { RebirthChip } from '../../items/chips/RebirthChip';
+import { HealChip } from '../../items/chips/HealChip';
+import { ShieldChip } from '../../items/chips/ShieldChip';
+import { NovaChip } from '../../items/chips/NovaChip';
 
 /** Вид предмета для вкладок журнала и слотов инвентаря. */
 export type ItemKind = 'weapon' | 'modifier' | 'chip';
@@ -86,6 +94,30 @@ export const ITEM_DEFINITIONS: Record<string, ItemJournalDefinition> = {
 			'Снятая с корпуса червя корпусная пушка: тяжёлый снаряд, тяжёлая отдача, тяжёлые воспоминания у всего, что выживет после залпа.',
 		factory: () => new BossCannonWeapon(),
 	},
+	minigun: {
+		id: 'minigun',
+		kind: 'weapon',
+		name: 'Minigun',
+		description:
+			'Многоствольный пулемёт бункерной охраны: четыре выстрела в секунду честного калибра. Точность спорная, аргументация убедительная.',
+		factory: () => new MinigunWeapon(),
+	},
+	railgun: {
+		id: 'railgun',
+		kind: 'weapon',
+		name: 'Railgun',
+		description:
+			'Рельсотрон кристальных залов: разгоняет снаряд вдоль проводящих граней и отпускает с концом коридора. Перезарядка долгая — попадание последнее.',
+		factory: () => new RailgunWeapon(),
+	},
+	plasma_rifle: {
+		id: 'plasma_rifle',
+		kind: 'weapon',
+		name: 'Plasma Rifle',
+		description:
+			'Плазменная винтовка пепельных пустошей: неторопливые сгустки света, которые почему-то всегда догоняют того, кто убегал. Работает даже под пеплом.',
+		factory: () => new PlasmaRifleWeapon(),
+	},
 	mod_damage_plus: {
 		id: 'mod_damage_plus',
 		kind: 'modifier',
@@ -142,6 +174,22 @@ export const ITEM_DEFINITIONS: Record<string, ItemJournalDefinition> = {
 			'Инженерный заряд: снаряд крошит стены и перекрытия. Иногда лучший путь через руины — прямо через руины.',
 		factory: () => new DestructModifier(),
 	},
+	mod_homing: {
+		id: 'mod_homing',
+		kind: 'modifier',
+		name: 'Самонаведение',
+		description:
+			'Сенсорная головка наведения: снаряд доворачивает курс к ближайшей враждебной цели. Промаз остаётся в прошлом, бюджет — в руинах.',
+		factory: () => new HomingModifier(),
+	},
+	mod_split: {
+		id: 'mod_split',
+		kind: 'modifier',
+		name: 'Расщепление',
+		description:
+			'Призма-расщепитель: один снаряд выходит из ствола широким веером из трёх. Для тех, кто не выбирал между «туда» и «сюда».',
+		factory: () => new SplitModifier(),
+	},
 	dash: {
 		id: 'dash',
 		kind: 'chip',
@@ -165,6 +213,30 @@ export const ITEM_DEFINITIONS: Record<string, ItemJournalDefinition> = {
 		description:
 			'Чип переноса сознания: при смерти тела сознание переезжает в ближайшего живого носителя. Юридически это всё ещё вы. Почти.',
 		factory: () => new RebirthChip(),
+	},
+	heal: {
+		id: 'heal',
+		kind: 'chip',
+		name: 'Repair Kit',
+		description:
+			'Ремкомплект смотрителя: нанитная паста, жгут и немного упрямства. Возвращает 300 HP мгновенно; заряд восстанавливается мучительно долго.',
+		factory: () => new HealChip(),
+	},
+	shield: {
+		id: 'shield',
+		kind: 'chip',
+		name: 'Shield',
+		description:
+			'Щитовой контур: четыре секунды полной неуязвимости. Достаточно, чтобы выйти из взрыва, — мало, чтобы перестать в него заходить.',
+		factory: () => new ShieldChip(),
+	},
+	nova: {
+		id: 'nova',
+		kind: 'chip',
+		name: 'Impulse',
+		description:
+			'Импульсный эмиттер: круговая волна вокруг носителя сносит всё враждебное в радиусе 140 шагов. Споры решает громко и сразу.',
+		factory: () => new NovaChip(),
 	},
 };
 

@@ -18,6 +18,13 @@ import { RebirthChip } from '../../items/chips/RebirthChip';
 import type { Chip } from '../../items/Chip';
 import { DashChip } from '../../items/chips/DashChip';
 import { TeleportChip } from '../../items/chips/TeleportChip';
+import { MinigunWeapon } from '../../items/weapons/MinigunWeapon';
+import { RailgunWeapon } from '../../items/weapons/RailgunWeapon';
+import { PlasmaRifleWeapon } from '../../items/weapons/PlasmaRifleWeapon';
+import { HomingModifier, SplitModifier } from '../../items/modifiers/catalog';
+import { HealChip } from '../../items/chips/HealChip';
+import { ShieldChip } from '../../items/chips/ShieldChip';
+import { NovaChip } from '../../items/chips/NovaChip';
 
 /** Запись таблицы спавна региона: определение конвейера + вес. */
 export interface RegionSpawnEntry {
@@ -56,7 +63,9 @@ export type RegionGeneratorId =
 	| 'bunker'
 	| 'altar'
 	| 'iced'
-	| 'glass';
+	| 'glass'
+	| 'ash'
+	| 'crystal';
 
 /**
  * Декларативное определение региона мира. Мир собран из регионов:
@@ -88,6 +97,10 @@ export interface RegionDefinition {
 	ruinsDensity?: number;
 	/** Шанс тайника с лутом на чанк; нужен всем регионам с непустым пулом. */
 	lootChance?: number;
+	/** Шанс костра (точки отдыха) на чанк в диких регионах. */
+	campfireChance?: number;
+	/** Шанс встречи мусорщика (бродячий NPC) на чанк в диких регионах. */
+	scavengerChance?: number;
 }
 
 /**
@@ -139,6 +152,7 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			() => new ShotgunWeapon(),
 			() => new DamagePlusModifier(),
 			() => new DashChip(),
+			() => new HealChip(),
 		],
 	},
 
@@ -157,7 +171,10 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 		rect: { x: 80, y: -70, w: 40, h: 40 },
 		lootChance: 0.12,
 		generator: 'bunker',
-		spawns: [{ defId: 'rust_grunt', weight: 4 }],
+		spawns: [
+			{ defId: 'rust_grunt', weight: 4 },
+			{ defId: 'rust_sniper', weight: 2 },
+		],
 		loot: [
 			() => new LaserGunWeapon(),
 			() => new MulticastModifier(2, 0.3),
@@ -167,6 +184,39 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			() => new RocketLauncherWeapon(),
 			() => new BossCannonWeapon(),
 			() => new DestructModifier(),
+			() => new MinigunWeapon(),
+			() => new HomingModifier(),
+			() => new ShieldChip(),
+		],
+	},
+
+	/** Кристальные залы к югу от бункера: комнаты, проросшие кристаллом. */
+	crystal_halls: {
+		id: 'crystal_halls',
+		name: 'Кристальные залы',
+		description:
+			'Кристальные залы: подземный комплекс к югу от бункера, где переборки проросли фиолетовым кристаллом, а освещение давно стало живым. Часовые-призмы до сих пор обходят коридоры по вечному расписанию, а на арене в центре залов спит Кристальный змей.',
+		palette: {
+			floor: ['#2a2140', '#322850', '#241d38'],
+			wall: '#6d5bd0',
+			wallDark: '#3b2f77',
+			fog: '#c4b5fd',
+		},
+		rect: { x: 80, y: 30, w: 40, h: 40 },
+		lootChance: 0.12,
+		generator: 'crystal',
+		spawns: [
+			{ defId: 'crystal_sentinel', weight: 3 },
+			{ defId: 'glass_wisp', weight: 1 },
+		],
+		bossDefId: 'crystal_serpent',
+		loot: [
+			() => new RailgunWeapon(),
+			() => new PlasmaRifleWeapon(),
+			() => new MinigunWeapon(),
+			() => new HomingModifier(),
+			() => new DamageMultModifier(),
+			() => new TeleportChip(),
 		],
 	},
 
@@ -187,10 +237,12 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 		generator: 'altar',
 		spawns: [{ defId: 'rust_grunt', weight: 2 }],
 		bossDefId: 'rust_worm',
+		campfireChance: 0.06,
 		loot: [
 			() => new PierceModifier(),
 			() => new ShotgunWeapon(),
 			() => new RebirthChip(),
+			() => new NovaChip(),
 		],
 	},
 
@@ -209,6 +261,8 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 		rect: { x: -230, y: -30, w: 60, h: 60 },
 		lootChance: 0.08,
 		generator: 'iced',
+		campfireChance: 0.04,
+		scavengerChance: 0.06,
 		spawns: [{ defId: 'ice_shard', weight: 3 }],
 		loot: [
 			() => new LaserGunWeapon(),
@@ -238,12 +292,48 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 			{ defId: 'glass_wisp', weight: 2 },
 		],
 		bossDefId: 'glass_warden',
+		campfireChance: 0.04,
+		scavengerChance: 0.06,
 		loot: [
 			() => new LaserGunWeapon(),
 			() => new MulticastModifier(2, 0.3),
 			() => new ExplosiveEndModifier(),
 			() => new TeleportChip(),
 			() => new DamageMultModifier(),
+			() => new SplitModifier(),
+		],
+	},
+
+	/** Пепельные пустоши к югу от ледяных полей: зола, ползуны, тиран. */
+	ash_wastes: {
+		id: 'ash_wastes',
+		name: 'Пепельные пустоши',
+		description:
+			'Пепельные пустоши: выжженное поле далеко на юго-западе, где вместо снега лежит тёплый пепел. В золе копошатся бронированные ползуны и тлеющие зольки, а на каменном подиуме в центре дремлет Скрепный тиран — крепость, которая научилась стрелять.',
+		palette: {
+			floor: ['#3a3432', '#443c38', '#332e2b'],
+			wall: '#6b5d54',
+			wallDark: '#463c35',
+			fog: '#a8a29e',
+		},
+		rect: { x: -230, y: 30, w: 60, h: 60 },
+		lootChance: 0.08,
+		generator: 'ash',
+		campfireChance: 0.05,
+		scavengerChance: 0.07,
+		spawns: [
+			{ defId: 'ash_crawler', weight: 3 },
+			{ defId: 'cinder_mite', weight: 2 },
+			{ defId: 'scrap_hound', weight: 1 },
+		],
+		bossDefId: 'scrap_tyrant',
+		loot: [
+			() => new PlasmaRifleWeapon(),
+			() => new SplitModifier(),
+			() => new ShieldChip(),
+			() => new NovaChip(),
+			() => new ShotgunWeapon(),
+			() => new PierceModifier(),
 		],
 	},
 
@@ -263,14 +353,18 @@ export const REGION_DEFINITIONS: Record<string, RegionDefinition> = {
 		generator: 'ruins',
 		spawns: [
 			{ defId: 'rust_grunt', weight: 3 },
+			{ defId: 'scrap_hound', weight: 2 },
 			{ defId: 'rust_worm', weight: 0 },
 		],
+		campfireChance: 0.05,
+		scavengerChance: 0.07,
 		loot: [
 			() => new ShotgunWeapon(),
 			() => new DamagePlusModifier(),
 			() => new PierceModifier(),
 			() => new DashChip(),
 			() => new SinusoidalModifier(),
+			() => new HealChip(),
 		],
 		bossDefId: 'rust_worm',
 		imageTiles: true,
@@ -284,9 +378,11 @@ export const REGION_ORDER: string[] = [
 	'void_core',
 	'city',
 	'bunker',
+	'crystal_halls',
 	'worm_altar',
 	'iced_fields',
 	'glass_plain',
+	'ash_wastes',
 	'ruins',
 ];
 

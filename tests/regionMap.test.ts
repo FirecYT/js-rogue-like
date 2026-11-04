@@ -28,6 +28,15 @@ describe('RegionMap', () => {
 		expect(map.regionAtChunk(200, 0).id).toBe('glass_plain');
 	});
 
+	it('южные регионы: кристальные залы под бункером, пепел под льдами', () => {
+		// crystal_halls {80,30,40×40} → центр (100, 50)
+		expect(map.regionAtChunk(100, 50).id).toBe('crystal_halls');
+		// ash_wastes {-230,30,60×60} → центр (-200, 60)
+		expect(map.regionAtChunk(-200, 60).id).toBe('ash_wastes');
+		// Между бункером и залами (y=0..29) — руины
+		expect(map.regionAtChunk(100, 0).id).toBe('ruins');
+	});
+
 	it('regionAtWorld согласован с regionAtChunk', () => {
 		const wx = -10 * 512 + 256;
 		const wy = -50 * 512 + 256;

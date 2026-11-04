@@ -12,6 +12,8 @@ import type { FloatingTextSystem } from './FloatingTextSystem';
 import FloatingText from '../components/FloatingText';
 import type { SafeZone } from './EnemySpawnerSystem';
 import { Altar } from '../entities/Altar';
+import { Medic } from '../entities/Medic';
+import { Campfire } from '../entities/Campfire';
 import { Trader } from '../entities/Trader';
 import { createPickupFromItem } from '../utils';
 import { TradeWindow } from '../ui/windows/TradeWindow';
@@ -28,9 +30,9 @@ const HOUSE_SAFE_RADIUS = 256;
 
 /**
  * Система фич регионов: при загрузке чанка обустраивает структуры региона —
- * восстановленные дома руин с дружественными NPC (торговцы и поселенцы),
- * жителей города, фиксированные алтари боссов в алтарных регионах и
- * тайники лута в регионах с настроенным шансом. Детерминирована seed'ом забега и координатами.
+ * восстановленные дома руин с дружественными NPC (торговцы, поселенцы,
+ * медики), жителей города, фиксированные алтари боссов в алтарных регионах,
+ * тайники лута, костры и бродячих мусорщиков в диких регионах. Детерминирована seed'ом забега и координатами.
  * Также объявляет имя региона при входе управляемой сущности в регион.
  */
 export class RegionFeatureSystem implements ISystem {
@@ -48,6 +50,9 @@ export class RegionFeatureSystem implements ISystem {
 		settlers: 0,
 		altars: 0,
 		loot: 0,
+		medics: 0,
+		scavengers: 0,
+		campfires: 0,
 	};
 	private readonly safeZones: SafeZone[] = [];
 	private journalScanCooldown = 0;
@@ -123,12 +128,17 @@ export class RegionFeatureSystem implements ISystem {
 		if (this.journal && this.journalScanCooldown <= 0) {
 			this.journalScanCooldown = 30;
 			for (const entity of this.entityWorld.all) {
+				const near =
+					Math.hypot(entity.x - controlled.x, entity.y - controlled.y) <= 900;
+				if (!near) continue;
+				// Медик — не сущность конвейера: journal открывается встречей или лечением
+				if (entity instanceof Medic) {
+					this.journal.unlock('n:medic');
+					continue;
+				}
 				const def = (entity as { definition?: { id: string; journal?: string } })
 					.definition;
 				if (!def?.journal) continue;
-				if (Math.hypot(entity.x - controlled.x, entity.y - controlled.y) > 900) {
-					continue;
-				}
 				this.journal.unlockEntity(def.id);
 			}
 		}
@@ -194,6 +204,36 @@ export class RegionFeatureSystem implements ISystem {
 				this.debugStats.loot++;
 			}
 		}
+
+		// Мусорщики: бродячие NPC в диких регионах (вне домов и города)
+		if (
+			!region.safe &&
+			(region.scavengerChance ?? 0) > 0 &&
+			rng.next() < (region.scavengerChance ?? 0)
+		) {
+			const origin = this.chunkOrigin(chunkX, chunkY);
+			const spot = this.findSpot(rng, origin.x, origin.y);
+			if (spot) {
+				this.entityFactory.spawn('scavenger', spot.x, spot.y);
+				this.debugStats.scavengers++;
+			}
+		}
+
+		// Костры: точки отдыха в диких регионах
+		if (
+			!region.safe &&
+			(region.campfireChance ?? 0) > 0 &&
+			rng.next() < (region.campfireChance ?? 0)
+		) {
+			const origin = this.chunkOrigin(chunkX, chunkY);
+			const spot = this.findSpot(rng, origin.x, origin.y);
+			if (spot) {
+				this.entityWorld.spawn(
+					new Campfire(spot.x, spot.y, this.entityWorld)
+				);
+				this.debugStats.campfires++;
+			}
+		}
 	}
 
 	/**
@@ -232,6 +272,9 @@ export class RegionFeatureSystem implements ISystem {
 			if (rng.next() < 0.6 && loot.length) {
 				this.spawnTrader(wx + 32, wy, rng, loot);
 			}
+			if (rng.next() < 0.35) {
+				this.spawnMedic(wx - 40, wy + 20);
+			}
 		}
 	}
 
@@ -264,6 +307,20 @@ export class RegionFeatureSystem implements ISystem {
 		if (rng.next() < 0.5 && loot.length) {
 			this.spawnTrader(wx + 48, wy, rng, loot);
 		}
+		if (rng.next() < 0.25) {
+			this.spawnMedic(wx - 48, wy + 24);
+		}
+	}
+
+	/**
+	 * Полевой медик: лечит обратившихся; первый приём открывает запись
+	 * журнала (медик — не сущность конвейера, журнал открывается колбэком).
+	 */
+	private spawnMedic(x: number, y: number): void {
+		const medic = new Medic(x, y);
+		medic.onHeal = () => this.journal?.unlock('n:medic');
+		this.entityWorld.spawn(medic);
+		this.debugStats.medics++;
 	}
 
 	/** Торговец с прилавком из пула лута региона. */

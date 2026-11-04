@@ -6,13 +6,15 @@ import type { WorldService } from '../services/WorldService';
  * Снаряд: движется по прямой, наносит урон при пересечении с сущностями, уничтожается о стены или по времени.
  */
 export class BulletEffect extends Effect {
-	private speed = 6;
-	private lifetime = 100;
-	private half_size = 8;
+	protected speed = 6;
+	protected lifetime = 100;
+	protected half_size = 8;
 	/** Снаряд разрушает непроходимые тайлы на своём пути. */
 	public destruct = false;
 	/** Взрыв при пронзании цели и в конце полёта. */
 	public explodeOnHit = false;
+	/** Самонаведение: снаряд доворачивает курс к ближайшей цели. */
+	public homing = false;
 	/** onDeath вызывается однократно. */
 	private deathNotified = false;
 
@@ -40,6 +42,9 @@ export class BulletEffect extends Effect {
 	 * @param world - Сервис мира для проверки коллизий с тайлами
 	 */
 	update(entities: readonly Entity[], world?: WorldService): void {
+		if (this.homing) {
+			this.steer(entities);
+		}
 		this.x += Math.cos(this.angle) * this.speed;
 		this.y += Math.sin(this.angle) * this.speed;
 		this.applyWave();
@@ -71,6 +76,35 @@ export class BulletEffect extends Effect {
 		if (this.lifetime <= 0) {
 			this.die();
 		}
+	}
+
+	/** Радиус поиска цели самонаведения, px. */
+	private static readonly HOMING_RANGE = 460;
+	/** Максимальный доворот курса за кадр, радианы. */
+	private static readonly HOMING_TURN = 0.1;
+
+	/**
+	 * Доворачивает курс к ближайшей поражаемой цели в радиусе наведения.
+	 * @param entities - Список сущностей
+	 */
+	private steer(entities: readonly Entity[]): void {
+		let best: Entity | null = null;
+		let bestDist = BulletEffect.HOMING_RANGE;
+		for (const entity of entities) {
+			if (!this.canHit(entity)) continue;
+			const d = Math.hypot(entity.x - this.x, entity.y - this.y);
+			if (d < bestDist) {
+				bestDist = d;
+				best = entity;
+			}
+		}
+		if (!best) return;
+		const desired = Math.atan2(best.y - this.y, best.x - this.x);
+		let diff = desired - this.angle;
+		while (diff > Math.PI) diff -= Math.PI * 2;
+		while (diff < -Math.PI) diff += Math.PI * 2;
+		const turn = BulletEffect.HOMING_TURN;
+		this.angle += Math.max(-turn, Math.min(turn, diff));
 	}
 
 	/**

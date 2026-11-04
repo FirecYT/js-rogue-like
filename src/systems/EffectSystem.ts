@@ -12,6 +12,7 @@ import { LaserBeam } from '../effects/LaserBeam';
 import { FireZone } from '../effects/FireZone';
 import { ExplosionEffect } from '../effects/ExplosionEffect';
 import { RocketEffect } from '../effects/RocketEffect';
+import { PlasmaBall } from '../effects/PlasmaBall';
 
 /** Фабрика эффекта по спецификации снаряда. */
 type SpecFactory = (source: Entity, spec: ProjectileSpec) => Effect;
@@ -62,6 +63,7 @@ export class EffectSystem implements ISystem, IRenderable {
 			effect.wave = spec.wave;
 			effect.destruct = spec.destruct;
 			effect.explodeOnHit = spec.explodeOnHit;
+			effect.homing = spec.homing;
 			if (spec.explodeOnHit) {
 				// Взрыв при пронзании цели…
 				effect.onHit = (target) => {
@@ -85,6 +87,45 @@ export class EffectSystem implements ISystem, IRenderable {
 
 		this.specFactories.set('fire_zone', (source, spec) => {
 			return new FireZone(source.x, source.y, spec.angle, source, spec.damage);
+		});
+
+		this.specFactories.set('plasma', (source, spec) => {
+			const plasma = new PlasmaBall(
+				source.x,
+				source.y,
+				spec.angle,
+				source,
+				spec.damage
+			);
+			plasma.pierce = spec.pierce;
+			plasma.wave = spec.wave;
+			plasma.destruct = spec.destruct;
+			plasma.explodeOnHit = spec.explodeOnHit;
+			plasma.homing = spec.homing;
+			if (spec.explodeOnHit) {
+				plasma.onHit = (target) => {
+					this.add(
+						new ExplosionEffect(target.x, target.y, source, spec.damage)
+					);
+				};
+				plasma.onDeath = () => {
+					this.add(
+						new ExplosionEffect(plasma.x, plasma.y, source, spec.damage)
+					);
+				};
+			}
+			return plasma;
+		});
+
+		// Мгновенный взрыв в точке источника (импульсный чип)
+		this.specFactories.set('explosion', (source, spec) => {
+			return new ExplosionEffect(
+				source.x,
+				source.y,
+				source,
+				spec.damage,
+				spec.radius ?? 40
+			);
 		});
 
 		this.specFactories.set('rocket', (source, spec) => {

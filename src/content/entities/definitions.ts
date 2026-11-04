@@ -7,6 +7,9 @@ import { LaserGunWeapon } from '../../items/weapons/LaserGunWeapon';
 import { PistolWeapon } from '../../items/weapons/PistolWeapon';
 import { DamageMultModifier, MulticastModifier } from '../../items/modifiers/catalog';
 import { BossCannonWeapon } from '../../items/weapons/BossCannonWeapon';
+import { RocketLauncherWeapon } from '../../items/weapons/RocketLauncherWeapon';
+import { RailgunWeapon } from '../../items/weapons/RailgunWeapon';
+import { PlasmaRifleWeapon } from '../../items/weapons/PlasmaRifleWeapon';
 import { RebirthChip } from '../../items/chips/RebirthChip';
 
 /**
@@ -384,6 +387,252 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 		team: 'enemy',
 		appearance: { shape: 'circle', size: 16, color: '#92400e', showHpBar: true },
 		ai: { kind: 'follower', followDistance: 26 },
+	},
+
+	/** Быстрый пёс клана ржавых: догоняет и кусает очередями. */
+	scrap_hound: {
+		id: 'scrap_hound',
+		journal: 'enemy',
+		description: 'Мусорный пёс: четвероногий каркас на гироскопах, собранный ржавыми из подручного лома. Охотится сворами, берёт скоростью и наглостью — пока хозяева спорят о добыче, пёс уже рядом.',
+		name: 'Мусорный пёс',
+		hp: 8,
+		speed: 2.2,
+		size: 7,
+		team: 'enemy',
+		experience: 4,
+		appearance: { shape: 'rect', size: 7, color: '#d97706', showHpBar: true },
+		ai: {
+			kind: 'enemy',
+			behavior: 'chaser',
+			aggroRange: 540,
+			fireRange: 320,
+			repathInterval: 40,
+			leashRange: 1500,
+			wanderRadius: 240,
+		},
+		loadout: { weapon: () => new PistolWeapon() },
+	},
+
+	/** Тяжёлый ползун пепла: медленный, живучий, бьёт дробью. */
+	ash_crawler: {
+		id: 'ash_crawler',
+		journal: 'enemy',
+		description: 'Пепельный ползун: низкий бронированный корпус на гусеничных лентах, весь в спекшейся золе. Никуда не спешит — знает, что дробовик достанет и так.',
+		name: 'Пепельный ползун',
+		hp: 16,
+		speed: 1.0,
+		size: 10,
+		team: 'enemy',
+		experience: 7,
+		appearance: { shape: 'rect', size: 10, color: '#78716c', outline: '#a8a29e', showHpBar: true },
+		ai: {
+			kind: 'enemy',
+			behavior: 'chaser',
+			aggroRange: 500,
+			fireRange: 380,
+			repathInterval: 60,
+			leashRange: 1400,
+			wanderRadius: 160,
+		},
+		loadout: { weapon: () => new ShotgunWeapon() },
+	},
+
+	/** Искра-камикадзе: маленькая, быстрая, очень горячая. */
+	cinder_mite: {
+		id: 'cinder_mite',
+		journal: 'enemy',
+		description: 'Золовка: тлеющий комок расплава с зачатками злой воли. Летит к цели молча и на полной скорости — последний метр всегда общий для вас обоих.',
+		name: 'Золовка',
+		hp: 5,
+		speed: 2.6,
+		size: 6,
+		team: 'enemy',
+		experience: 3,
+		appearance: { shape: 'circle', size: 6, color: '#fb923c', outline: '#fde047', showHpBar: true },
+		ai: {
+			kind: 'enemy',
+			behavior: 'kamikaze',
+			aggroRange: 480,
+			repathInterval: 30,
+			leashRange: 1300,
+			wanderRadius: 140,
+			explodeTrigger: 30,
+			explodeRadius: 55,
+			explodeDamage: 12,
+			chargeSpeedMult: 2.0,
+		},
+	},
+
+	/** Снайпер бункера: держит максимальную дистанцию, бьёт рельсотроном. */
+	rust_sniper: {
+		id: 'rust_sniper',
+		journal: 'enemy',
+		description: 'Ржавый снайпер: часами сидит в коридорах бункера, приникнув к рельсотрону. Предпочитает не сближаться — и очень удивляется, когда сближаются с ним.',
+		name: 'Ржавый снайпер',
+		hp: 10,
+		speed: 0.9,
+		size: 8,
+		team: 'enemy',
+		experience: 8,
+		appearance: { shape: 'rect', size: 8, color: '#94a3b8', showHpBar: true },
+		ai: {
+			kind: 'enemy',
+			behavior: 'kiter',
+			aggroRange: 750,
+			fireRange: 600,
+			repathInterval: 70,
+			leashRange: 1800,
+			wanderRadius: 120,
+		},
+		loadout: { weapon: () => new RailgunWeapon() },
+	},
+
+	/** Часовой кристальных залов: методичный лучник-дистанционщик. */
+	crystal_sentinel: {
+		id: 'crystal_sentinel',
+		journal: 'enemy',
+		description: 'Кристальный часовой: выросшая из стены зала призма с лазерной жилой внутри. Патрулирует свои коридоры по вечному расписанию и не понимает слова «гость».',
+		name: 'Кристальный часовой',
+		hp: 18,
+		speed: 1.1,
+		size: 9,
+		team: 'enemy',
+		experience: 8,
+		appearance: { shape: 'rect', size: 9, color: '#c084fc', outline: '#e9d5ff', showHpBar: true },
+		ai: {
+			kind: 'enemy',
+			behavior: 'kiter',
+			aggroRange: 620,
+			fireRange: 420,
+			repathInterval: 55,
+			leashRange: 1600,
+			wanderRadius: 180,
+		},
+		loadout: { weapon: () => new LaserGunWeapon() },
+	},
+
+	/**
+	 * БОСС пепельных пустошей: неподвижная крепость на орудийном лафете.
+	 * Три фазы: одиночные ракеты → веер → кольцо залпа с удвоенной яростью.
+	 */
+	scrap_tyrant: {
+		id: 'scrap_tyrant',
+		journal: 'boss',
+		description: 'Скрепный тиран: вросший в платформу артиллерийский лафет, собранный из всего, что пережило падение. Не ходит — ему приносят всё сами. Пробуждается у алтаря пепельных пустошей.',
+		name: 'Скрепный тиран',
+		hp: 420,
+		speed: 0,
+		size: 24,
+		team: 'enemy',
+		experience: 150,
+		controlScheme: 'tank',
+		appearance: {
+			shape: 'circle',
+			size: 24,
+			color: '#737373',
+			outline: '#f97316',
+			showHpBar: true,
+		},
+		ai: {
+			kind: 'turret',
+			fireRange: 520,
+			phases: [
+				{ hpBelow: 1 },
+				{ hpBelow: 0.6, shots: 4, spread: 1.1, fireRateMult: 0.8 },
+				{
+					hpBelow: 0.3,
+					shots: 10,
+					spread: Math.PI * 2 * (9 / 10),
+					fireRateMult: 0.6,
+					damageMult: 1.25,
+					color: '#f97316',
+				},
+			],
+		},
+		loadout: {
+			weapon: () => new RocketLauncherWeapon(),
+			chips: [() => new RebirthChip()],
+		},
+		boss: {
+			title: 'СКРЕПНЫЙ ТИРАН',
+			segments: 0,
+			summonLines: [
+				'Пепел взмывает столбом: площадка алтаря дрожит.',
+				'СКРЕПНЫЙ ТИРАН пробуждён.',
+				'Его орудия помнят ещё первый день падения.',
+			],
+		},
+	},
+
+	/**
+	 * БОСС кристальных залов: змей из головы и пяти сегментов.
+	 * Быстрее ржавого червя, шире волна, плазменный залп.
+	 */
+	crystal_serpent: {
+		id: 'crystal_serpent',
+		journal: 'boss',
+		description: 'Кристальный змей: живая цепь преломляющих граней, прописанная в коридорах залов. Огибает колонны так плавно, что успеваешь залюбоваться — и зря.',
+		name: 'Кристальный змей',
+		hp: 300,
+		speed: 2.0,
+		size: 20,
+		team: 'enemy',
+		experience: 130,
+		controlScheme: 'tank',
+		appearance: {
+			shape: 'circle',
+			size: 20,
+			color: '#8b5cf6',
+			outline: '#ddd6fe',
+			showHpBar: true,
+		},
+		ai: {
+			kind: 'worm',
+			aggroRange: 640,
+			fireRange: 420,
+			waveAmplitude: 0.7,
+			waveFrequency: 0.06,
+		},
+		loadout: {
+			weapon: () => new PlasmaRifleWeapon(),
+			chips: [() => new RebirthChip()],
+		},
+		boss: {
+			title: 'КРИСТАЛЬНЫЙ ЗМЕЙ',
+			segments: 5,
+			segmentGap: 22,
+			summonLines: [
+				'Грани арены вспыхивают изнутри: залы проснулись.',
+				'КРИСТАЛЬНЫЙ ЗМЕЙ пробуждён.',
+				'Он помнит всех, кто ходил по этим коридорам до вас.',
+			],
+		},
+	},
+
+	/** Сегмент тела кристального змея. */
+	crystal_serpent_segment: {
+		id: 'crystal_serpent_segment',
+		name: 'Грань змея',
+		hp: 45,
+		speed: 2.4,
+		size: 14,
+		team: 'enemy',
+		appearance: { shape: 'circle', size: 14, color: '#a78bfa', showHpBar: true },
+		ai: { kind: 'follower', followDistance: 22 },
+	},
+
+	/** Странник пустошей: мирный NPC, бродит далеко от домов. */
+	scavenger: {
+		id: 'scavenger',
+		journal: 'npc',
+		description: 'Мусорщик: одиночка, променявший стены дома на бесконечные переходы между тайниками. Бормочет про урожай лома, кивает всем подряд и никогда не задерживается на одном месте надолго.',
+		name: 'Мусорщик',
+		hp: 25,
+		speed: 0.7,
+		size: 9,
+		team: 'player',
+		appearance: { shape: 'circle', size: 9, color: '#a3e635', showHpBar: false },
+		ai: { kind: 'settler' },
 	},
 };
 

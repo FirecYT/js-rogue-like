@@ -6,7 +6,6 @@ import {
 import type { Chunk, BuildContext } from '@firec/map-module';
 import { TILES } from '../Types';
 import type { RegionMap } from '../../services/RegionMap';
-import { REGION_DEFINITIONS } from '../../content/regions/definitions';
 
 /** Шаг сетки комнат бункера в тайлах. */
 const ROOM_TILES = 32;
@@ -19,14 +18,16 @@ const GATE_HALF = 4;
  * Генератор бункера: замкнутый контур внешних стен с воротами по центрам
  * сторон и внутренняя сетка комнат 32×32 тайла с дверными проёмами.
  * Стены считаются по глобальным координатам — стыки чанков бесшовны.
+ * Прямоугольник берётся из региона текущего тайла, поэтому класс служит
+ * базой всем «комнатным» регионам (бункер, кристальные залы).
  */
 export class BunkerGenerator extends BaseGenerator {
-	readonly id = 'bunker';
+	readonly id: string = 'bunker';
 
 	/**
-	 * @param regionMap - Карта регионов: бункер занимает свой прямоугольник
+	 * @param regionMap - Карта регионов: комнатный регион занимает свой прямоугольник
 	 */
-	constructor(private readonly regionMap: RegionMap) {
+	constructor(protected readonly regionMap: RegionMap) {
 		super();
 	}
 
@@ -47,9 +48,13 @@ export class BunkerGenerator extends BaseGenerator {
 		}
 	}
 
-	/** Тайл стены бункера по глобальным координатам. */
-	private bunkerWallAt(gx: number, gy: number): boolean {
-		const rect = REGION_DEFINITIONS.bunker.rect;
+	/** Тайл стены комнатного региона по глобальным координатам. */
+	protected bunkerWallAt(gx: number, gy: number): boolean {
+		const region = this.regionMap.regionAtChunk(
+			Math.floor(gx / 16),
+			Math.floor(gy / 16)
+		);
+		const rect = region.rect;
 		if (!rect) return false;
 		const x0 = rect.x * 16;
 		const y0 = rect.y * 16;

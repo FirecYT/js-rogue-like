@@ -39,8 +39,8 @@
 без игрового движка; единственный внешний игровой модуль — `@firec/map-module`
 (тайловый мир с чанковой подгрузкой).
 
-**Масштаб:** 129 TypeScript-файлов, ~12 900 строк в `src/`; 8 файлов
-юнит-тестов (26 тестов); E2E-смоук из 8 сценариев на puppeteer.
+**Масштаб:** 140 TypeScript-файлов, ~14 000 строк в `src/`; 8 файлов
+юнит-тестов (31 тест); E2E-смоук из 8 сценариев на puppeteer.
 
 **Ключевые свойства:**
 
@@ -267,7 +267,7 @@ stats, createPauseWindow, createResultsWindow`.
 | `PickupSystem` | Pickup | Подбор пикапов на E; при занятых слотах — PickupWindow; эмитит `itemPicked` |
 | `InteractSystem` | Pickup | Ближайший `Interactable` в радиусе → подсказка `[E] <interactLabel>` в HUD; вызов `interact()` по E |
 | `EnemySpawnerSystem` | Spawner | Периодический спавн мобов вокруг игрока: интервал **180 кадров**, кольцо **300–500 px**, 6 попыток; фильтры: регион не `safe`, тайл проходим, вне безопасных зон (+**240 px** отступа для FSM-врагов — блуждающий патруль не заходит в дома); выбор `defId` по весам таблицы региона |
-| `RegionFeatureSystem` | Spawner | Структуры по загрузке чанка: дома руин (поселенцы, торговцы), ячейки города, алтари боссов в центрах алтарных регионов, тайники лута; безопасные зоны; объявление смены региона + открытие региона в журнале; скан встреч для журнала (см. §14); `debugStats` |
+| `RegionFeatureSystem` | Spawner | Структуры по загрузке чанка: дома руин (поселенцы, торговцы, медики), ячейки города, алтари боссов в центрах алтарных регионов, тайники лута, костры и бродячие мусорщики в диких регионах; безопасные зоны; объявление смены региона + открытие региона в журнале; скан встреч для журнала (см. §14); `debugStats` |
 | `CleanupSystem` | Cleanup | Удаляет мёртвых из EntityWorld; защищает управляемую сущность и `persistent` |
 | `ProgressionSystem` | UI | Подписка на `entityKilled`: опыт управляемого-убийцы, всплывающий `+N`, LEVEL UP → LevelUpWindow |
 | `CutsceneSystem` | UI | Подписка на `cutsceneStart`: CutsceneWindow (пауза), далее — клик/E |
@@ -335,6 +335,7 @@ A* по тайлам: `findPath({ start, end, maxNodes }): Path` (`Path = WorldC
 | Враги/NPC (`e:`/`n:`) | спавн в 900 px от игрока; периодический скан встреч (радиус 900 px, раз в 30 кадров); убийство (`entityKilled`) |
 | Предметы (`i:`) | подбор (`itemPicked`); обе стороны бартера (`barterCompleted`) |
 | Торговец (`n:trader`) | открытие окна бартера |
+| Медик (`n:medic`) | встреча в радиусе 900 px (скан) или первое успешное лечение |
 | Регионы (`r:`) | первое посещение региона |
 
 ### StatsService
@@ -460,7 +461,19 @@ interface EntityDefinition {
 | `glass_wisp` | Стеклянный блик | 6 | 2.4 | 6 | enemy | 4 | enemy/**kiter** (агро 600, огонь 300, репуть 40, поводок 1600, блуждание 240) | Pistol | enemy |
 | `ice_shard` | Ледяной осколок | 12 | 1.4 | 8 | enemy | 6 | enemy/**kamikaze** (агро 500, репуть 30, поводок 1400, блуждание 160; подрыв: триггер 34 px, радиус 70, урон 18, разгон ×1.8) | LaserGun (не используется) | enemy |
 | `glass_warden` | Стеклянный страж (БОСС) | 300 | 0 | 22 | enemy | 100 | turret (огонь 480, **фазы** ниже); tank; boss: 0 сегментов | LaserGun + DamageMult + Multicast(2, 0.4) + RebirthChip | boss |
+| `scrap_hound` | Мусорный пёс | 8 | 2.2 | 7 | enemy | 4 | enemy/**chaser** (агро 540, огонь 320, репуть 40, поводок 1500, блуждание 240) | Pistol | enemy |
+| `ash_crawler` | Пепельный ползун | 16 | 1.0 | 10 | enemy | 7 | enemy/**chaser** (агро 500, огонь 380, репуть 60, поводок 1400, блуждание 160) | Shotgun | enemy |
+| `cinder_mite` | Золовка | 5 | 2.6 | 6 | enemy | 3 | enemy/**kamikaze** (агро 480, репуть 30, поводок 1300, блуждание 140; подрыв: триггер 30 px, радиус 55, урон 12, разгон ×2.0) | — | enemy |
+| `rust_sniper` | Ржавый снайпер | 10 | 0.9 | 8 | enemy | 8 | enemy/**kiter** (агро 750, огонь 600, репуть 70, поводок 1800, блуждание 120) | Railgun | enemy |
+| `crystal_sentinel` | Кристальный часовой | 18 | 1.1 | 9 | enemy | 8 | enemy/**kiter** (агро 620, огонь 420, репуть 55, поводок 1600, блуждание 180) | LaserGun | enemy |
+| `scrap_tyrant` | Скрепный тиран (БОСС) | 420 | 0 | 24 | enemy | 150 | turret (огонь 520, **фазы** ниже); tank; boss: 0 сегментов | RocketLauncher + RebirthChip | boss |
+| `crystal_serpent` | Кристальный змей (БОСС) | 300 | 2.0 | 20 | enemy | 130 | worm (агро 640, огонь 420, волна 0.7/0.06); boss: 5 сегментов, gap 22; tank | PlasmaRifle + RebirthChip | boss |
+| `crystal_serpent_segment` | Грань змея | 45 | 2.4 | 14 | enemy | — | follower (дистанция 22) | — | — |
 | `settler` | Поселенец | 30 | 0.6 | 9 | player | — | settler (прогулки у дома) | Pistol (декорация) | npc |
+| `scavenger` | Мусорщик | 25 | 0.7 | 9 | player | — | settler (прогулки у точки спавна) | — | npc |
+
+Не-конвейерные NPC (отдельные классы, §12): `Trader` (бартер), `Medic`
+(полное лечение по E, перезарядка 900 кадров), `Altar` (призыв босса).
 
 ### Фазы glass_warden (`AiProfile.phases`)
 
@@ -469,6 +482,14 @@ interface EntityDefinition {
 | 0 | ≤ 1.0 (старт) | базовый (1 × Multicast 2) | ×1 | ×1 | синий `#0ea5e9` |
 | 1 | ≤ 0.6 | 3 снаряда, веер 0.5 рад | ×0.75 (чаще) | ×1 | — |
 | 2 | ≤ 0.3 | 8 снарядов, кольцо 2π | ×0.6 | ×1.25 | красный `#f87171` (`colorOverride`) |
+
+### Фазы scrap_tyrant
+
+| Фаза | Условие (доля HP) | Залп | Темп | Урон | Внешность |
+|---|---|---|---|---|---|
+| 0 | ≤ 1.0 (старт) | 1 ракета | ×1 | ×1 | серый `#737373` |
+| 1 | ≤ 0.6 | 4 ракеты, веер 1.1 рад | ×0.8 | ×1 | — |
+| 2 | ≤ 0.3 | 10 ракет, кольцо 2π | ×0.6 | ×1.25 | оранжевый `#f97316` |
 
 Фазы применяются `TurretController.updatePhase()`: перезапись
 `weapon.fireRate/shots/shotSpread/damageMultiplier` от захваченных базовых
@@ -484,10 +505,10 @@ interface EntityDefinition {
 | kind | Контроллер | Для кого |
 |---|---|---|
 | `enemy` | **EnemyFsmController** | все рядовые враги (4 архетипа) |
-| `worm` | WormController | голова rust_worm |
-| `turret` | TurretController (+фазы) | glass_warden |
-| `follower` | FollowerController | сегменты червя |
-| `settler` | SettlerController | поселенцы |
+| `worm` | WormController | головы rust_worm, crystal_serpent |
+| `turret` | TurretController (+фазы) | glass_warden, scrap_tyrant |
+| `follower` | FollowerController | сегменты червя и змея |
+| `settler` | SettlerController | поселенцы, мусорщики |
 | `stationary` | — (null) | неподвижные |
 | — | PlayerController / WormPlayerController | управляемая сущность |
 
@@ -527,9 +548,9 @@ interface EntityDefinition {
 
 | Архетип | Тактика | Кто использует |
 |---|---|---|
-| `chaser` | Сближается по пути и стреляет в `fireRange` при LOS | rust_grunt |
-| `kiter` | Держит дистанцию ~`fireRange × 0.75`; ближе `0.55×` — отходит; стреляет при LOS | glass_wisp |
-| `kamikaze` | Разгон `speed × chargeSpeedMult`; на `explodeTrigger` px — `ExplosionEffect(explodeRadius, explodeDamage)` и гибель (без attacker → опыт не начисляется) | ice_shard |
+| `chaser` | Сближается по пути и стреляет в `fireRange` при LOS | rust_grunt, scrap_hound, ash_crawler |
+| `kiter` | Держит дистанцию ~`fireRange × 0.75`; ближе `0.55×` — отходит; стреляет при LOS | glass_wisp, rust_sniper, crystal_sentinel |
+| `kamikaze` | Разгон `speed × chargeSpeedMult`; на `explodeTrigger` px — `ExplosionEffect(explodeRadius, explodeDamage)` и гибель (без attacker → опыт не начисляется) | ice_shard, cinder_mite |
 | `timid` | Как kiter, но при HP < `fleeBelow × maxHP` → `flee` | glass_shard |
 
 Константы: `MEMORY_FRAMES = 180`, `SEARCH_FRAMES = 240`,
@@ -565,7 +586,7 @@ Shift → чип `dash` (если экипирован и готов); 1–5/Q �
   `shotSpread`, `damageMultiplier`, `modifierSlotsCount = 4`, `cooldown`.
 - `Weapon.fire(source, angle)`: `resolveShot()` прогоняет модификаторы слотов
   **по порядку**, накапливая **CastState** (`copies, spread, damageAdd,
-  damageMult, pierce, wave, explodeOnHit, destruct`), и эмитит `weaponFired`
+  damageMult, pierce, wave, explodeOnHit, destruct, homing`), и эмитит `weaponFired`
   со списком **ProjectileSpec** (`projectileId, angle, damage, …`);
   EffectSystem создаёт из них снаряды.
 - Копии распределяются веером: `copies = shots × state.copies`, углы
@@ -581,6 +602,9 @@ Shift → чип `dash` (если экипирован и готов); 1–5/Q �
 | FlamethrowerWeapon | `flamethrower` | 20 | 3 | fire_zone | зона огня |
 | RocketLauncherWeapon | `rocket_launcher` | 90 | 15 | rocket | детонация → взрыв |
 | BossCannonWeapon | `boss_cannon` | 90 | 12 | bullet | корпусная пушка (оружие червя; встречается в бункере) |
+| MinigunWeapon | `minigun` | 4 | 3 | bullet | шквальный темп, собственный разброс 0.12 |
+| RailgunWeapon | `railgun` | 75 | 70 | laser | редкий тяжёлый луч |
+| PlasmaRifleWeapon | `plasma_rifle` | 40 | 30 | plasma | медленный крупный шар (PlasmaBall) |
 
 ### Модификаторы (`items/modifiers/catalog.ts`)
 
@@ -593,6 +617,8 @@ Shift → чип `dash` (если экипирован и готов); 1–5/Q �
 | MulticastModifier(count, spread) | `mod_multicast` | `copies *= count; spread += spread` |
 | ExplosiveEndModifier | `mod_explosive_end` | `explodeOnHit = true` (взрыв при попадании/гибели снаряда) |
 | DestructModifier | `mod_destruct` | `destruct = true` (снаряд разрушает стены → пол) |
+| HomingModifier | `mod_homing` | `homing = true` (снаряд доворачивает к ближайшей цели: радиус 460 px, доворот 0.1 рад/кадр) |
+| SplitModifier | `mod_split` | `copies *= 3; spread += 1.4` (широкий веер) |
 
 ### Чипы (`items/chips/`)
 
@@ -600,7 +626,10 @@ Shift → чип `dash` (если экипирован и готов); 1–5/Q �
 |---|---|---|---|
 | DashChip | `dash` | 60 кадров | `speedMultiplier × 3` на короткую активную фазу; множитель снимается по таймеру и при снятии чипа (парные умножение/деление — накопления нет) |
 | TeleportChip | `teleport` | 120 кадров | Мгновенный перенос к курсору |
-| RebirthChip | `rebirth` | — | Пассивный: при смерти носителя управление переходит ближайшему живому врагу |
+| RebirthChip | `rebirth` | — | Пассивный: при смерти носителя управление переходит ближайшему живому **враждебному** телу (враг/босс) |
+| HealChip | `heal` | 900 кадров | Мгновенно +300 HP |
+| ShieldChip | `shield` | 1200 кадров | Неуязвимость на 240 кадров (парная установка/снятие флага, как у даша) |
+| NovaChip | `nova` | 480 кадров | Круговой взрыв вокруг носителя (урон 40, радиус 140) через снаряд-спецификацию `explosion` |
 
 ### ITEM_DEFINITIONS
 
@@ -615,18 +644,26 @@ factory() }` — источник для сохранений (id), журнал
 | Предмет | Где найти |
 |---|---|
 | pistol | стартовое оружие |
-| shotgun | руины, город, бункер, алтарь червя |
+| shotgun | руины, город, бункер, алтарь червя, пепельные пустоши |
 | laser_gun | бункер, ледяные поля, стеклянная равнина |
 | flamethrower, rocket_launcher, boss_cannon | бункер |
+| minigun | бункер, кристальные залы |
+| railgun | кристальные залы |
+| plasma_rifle | кристальные залы, пепельные пустоши |
 | mod_damage_plus | руины, город |
-| mod_pierce | руины, алтарь червя, ледяные поля |
+| mod_pierce | руины, алтарь червя, ледяные поля, пепельные пустоши |
 | mod_sinusoidal | руины |
 | mod_multicast, mod_explosive_end | бункер, стеклянная равнина |
-| mod_damage_mult | ледяные поля, стеклянная равнина |
+| mod_damage_mult | ледяные поля, стеклянная равнина, кристальные залы |
 | mod_destruct | бункер |
+| mod_homing | бункер, кристальные залы |
+| mod_split | стеклянная равнина, пепельные пустоши |
 | dash | руины, город |
-| teleport | ледяные поля, стеклянная равнина |
+| teleport | ледяные поля, стеклянная равнина, кристальные залы |
 | rebirth | алтарь червя |
+| heal | руины, город |
+| shield | бункер, пепельные пустоши |
+| nova | алтарь червя, пепельные пустоши |
 
 ### Улучшения уровня (`content/upgrades.ts`)
 
@@ -648,11 +685,12 @@ factory() }` — источник для сохранений (id), журнал
 
 | Эффект | Поведение |
 |---|---|
-| `BulletEffect` | Прямолинейный снаряд; урон при пересечении; гибнет о стены/по времени |
+| `BulletEffect` | Прямолинейный снаряд; урон при пересечении; гибнет о стены/по времени; `homing` — доворот курса к ближайшей цели |
+| `PlasmaBall` | Наследник пули: медленный (3.5) крупный снаряд, время жизни 150 кадров, свечение; поддерживает те же флаги (pierce/wave/homing/взрыв) |
 | `LaserBeam` | Неподвижный отрезок `duration` кадров; урон всем в полосе |
 | `RocketEffect` | Летит, детонирует о стену/сущность/таймер; `onDeath` → EffectSystem создаёт взрыв |
 | `FireZone` | Круг периодического урона (огнемёт) |
-| `ExplosionEffect` | 12 кадров; на 6-м кадре урон в радиусе; радиус настраивается (дефолт 40); применяют ракеты, ExplosiveEnd, камикадзе |
+| `ExplosionEffect` | 12 кадров; на 6-м кадре урон в радиусе; радиус настраивается (дефолт 40); применяют ракеты, ExplosiveEnd, камикадзе, чип Nova (спецификация `explosion` с `radius`) |
 
 ---
 
@@ -672,24 +710,31 @@ factory() }` — источник для сохранений (id), журнал
 | id | Название | Rect (чанки x,y,w,h) | Генератор | Безопасен | Спавны (веса) | Босс | Пул лута | Тайник/чанк | Особенность |
 |---|---|---|---|---|---|---|---|---|---|
 | `void_core` | Пустота | `{-8,-8,16,16}` (центр) | void | ✅ | — | — | — | — | Точка спавна игрока |
-| `city` | Город | `{-20,-70,40,40}` | city | ✅ | — | — | Shotgun, DamagePlus, Dash | 0.05 | Здания-ячейки, жители, торговцы |
-| `bunker` | Бункер | `{80,-70,40,40}` | bunker | — | rust_grunt (4) | — | LaserGun, Multicast(2,0.3), ExplosiveEnd, Shotgun, Flamethrower, RocketLauncher, BossCannon, Destruct | 0.12 | Комнаты/коридоры, самый богатый лут |
-| `worm_altar` | Алтарь червя | `{-106,-56,12,12}` | altar | — | rust_grunt (2) | `rust_worm` | Pierce, Shotgun, RebirthChip | 0.10 | Алтарь в центре региона |
+| `city` | Город | `{-20,-70,40,40}` | city | ✅ | — | — | Shotgun, DamagePlus, Dash, Heal | 0.05 | Здания-ячейки, жители, торговцы, медики |
+| `bunker` | Бункер | `{80,-70,40,40}` | bunker | — | rust_grunt (4), rust_sniper (2) | — | LaserGun, Multicast(2,0.3), ExplosiveEnd, Shotgun, Flamethrower, RocketLauncher, BossCannon, Destruct, Minigun, Homing, Shield | 0.12 | Комнаты/коридоры, самый богатый лут |
+| `crystal_halls` | Кристальные залы | `{80,30,40,40}` | crystal | — | crystal_sentinel (3), glass_wisp (1) | `crystal_serpent` | Railgun, PlasmaRifle, Minigun, Homing, DamageMult, Teleport | 0.12 | Комнаты кристалла, арена змея в центре |
+| `worm_altar` | Алтарь червя | `{-106,-56,12,12}` | altar | — | rust_grunt (2) | `rust_worm` | Pierce, Shotgun, Rebirth, Nova | 0.10 | Алтарь в центре региона, костры 0.06 |
 | `iced_fields` | Ледяные поля | `{-230,-30,60,60}` | iced | — | ice_shard (3) | — | LaserGun, Pierce, Teleport, DamageMult | 0.08 | Открытое поле, обломки |
-| `glass_plain` | Стеклянная равнина | `{170,-30,60,60}` | glass | — | glass_shard (3), glass_wisp (2) | `glass_warden` | LaserGun, Multicast(2,0.3), ExplosiveEnd, Teleport, DamageMult | 0.08 | Дюны, алтарь стража в центре |
-| `ruins` | Ржавые пустоши | `null` (fallback) | ruins | — | rust_grunt (3), rust_worm (0) | `rust_worm` | Shotgun, DamagePlus, Pierce, Dash, Sinusoidal | 0.12 | PNG-тайлы (`imageTiles`), `ruinsDensity 1`, дома |
+| `glass_plain` | Стеклянная равнина | `{170,-30,60,60}` | glass | — | glass_shard (3), glass_wisp (2) | `glass_warden` | LaserGun, Multicast(2,0.3), ExplosiveEnd, Teleport, DamageMult, Split | 0.08 | Дюны, алтарь стража в центре |
+| `ash_wastes` | Пепельные пустоши | `{-230,30,60,60}` | ash | — | ash_crawler (3), cinder_mite (2), scrap_hound (1) | `scrap_tyrant` | PlasmaRifle, Split, Shield, Nova, Shotgun, Pierce | 0.08 | Поле золы, алтарь тирана в центре |
+| `ruins` | Ржавые пустоши | `null` (fallback) | ruins | — | rust_grunt (3), scrap_hound (2), rust_worm (0) | `rust_worm` | Shotgun, DamagePlus, Pierce, Dash, Sinusoidal, Heal | 0.12 | PNG-тайлы (`imageTiles`), `ruinsDensity 1`, дома |
 
 «Тайник/чанк» — `lootChance`: вероятность наземного тайника с предметом из
 пула региона на загруженный чанк. Инвариант фиксирует юнит-тест: у каждого
-региона с непустым пулом лута шанс больше нуля.
+региона с непустым пулом лута шанс больше нуля. Дополнительные поля диких
+регионов: `campfireChance` (костры: руины/пепел 0.05, поля 0.04, алтарь червя
+0.06) и `scavengerChance` (мусорщики: руины/пепел 0.07, поля 0.06).
 
 Каждый регион имеет `name` и `description` (лор — текст записи журнала в
-категории «Регионы»). `REGION_ORDER = [void_core, city, bunker, worm_altar,
-iced_fields, glass_plain, ruins]` (конкретные прямоугольники раньше fallback).
+категории «Регионы»). `REGION_ORDER = [void_core, city, bunker, crystal_halls,
+worm_altar, iced_fields, glass_plain, ash_wastes, ruins]` (конкретные
+прямоугольники раньше fallback; непересечение прямоугольников проверяет
+юнит-тест).
 
 ### Схема раскладки (координаты чанков)
 
 ```
+  СЕВЕР (y < 0)                                x
             iced_fields            city           worm_altar        bunker
            x=-230…-170          x=-20…20        x=-106…-95        x=80…120
               y=-30…30           y=-70…-30       y=-56…-45        y=-70…-30
@@ -701,7 +746,15 @@ iced_fields, glass_plain, ruins]` (конкретные прямоугольни
                ┌──────┐         (0,0)
                │ 60×60│  glass_plain
                └──────┘  x=170…230, y=-30…30
+  ЮГ (y ≥ 30)
+               ┌──────┐                                        ┌──────┐
+               │ 60×60│  ash_wastes              crystal_halls │ 40×40│
+               └──────┘  x=-230…-170, y=30…90    x=80…120      └──────┘
+                                                 y=30…70
 ```
+
+Южные регионы зеркальны северным: пепельные пустоши под ледяными полями,
+кристальные залы под бункером (между ними и бункером — полоса руин).
 
 ### Генераторы чанков (`map/generation/`)
 
@@ -713,10 +766,12 @@ iced_fields, glass_plain, ruins]` (конкретные прямоугольни
 | `VoidGenerator` | void_core | Ровный тёмный пол безопасной пустоты |
 | `RuinsGenerator` | ruins | Процедурные руины (плотность `ruinsDensity`); PNG-тайлы из `images/` (floor_0..6, walls, trash_0..2); штамповка домов |
 | `CityGenerator` | city | Сетка ячеек `CELL_TILES = 64` (4×4 чанка): здания с дверями (`DOOR_WIDTH = 4`), дороги |
-| `BunkerGenerator` | bunker | Сетка комнат `ROOM_TILES = 32`, коридоры, двери 4, внешние ворота (`GATE_HALF = 4`) |
+| `BunkerGenerator` | bunker | Сетка комнат `ROOM_TILES = 32`, коридоры, двери 4, внешние ворота (`GATE_HALF = 4`); прямоугольник берётся из региона тайла — базовый класс для «комнатных» регионов |
+| `CrystalHallsGenerator` | crystal_halls | Наследник бункера: та же сетка комнат + открытая арена с кольцом-подиумом в центре (алтарь Кристального змея) |
 | `IcedFieldsGenerator` | iced_fields | Открытое поле: ровный пол + детерминированные скопления обломков (базовый класс для открытых полей) |
 | `GlassPlainGenerator` | glass_plain | Стеклянные дюны + алтарная платформа стража в центре |
 | `AltarRegionGenerator` | worm_altar | Ровная площадка + кольцо-подиум в центре |
+| `AshWastesGenerator` | ash_wastes | Поле золы (густые скопления обломков 1–5 на чанк) + платформа алтаря Скрепного тирана в центре |
 | `structures.ts` | — | Общие штампы: кольцо алтарной платформы (Chebyshev) и пр. |
 
 ### Палитры и тайлы (`content/regions/palette.ts`)
@@ -746,14 +801,17 @@ API: `houseOfBlock(bx, by, runSeed)`, `housesForChunk(chunkX, chunkY, runSeed)`
 
 | Фича | Правило |
 |---|---|
-| Дома (ruins) | Каждый дом регистрируется один раз: 1–2 поселенца (±96/±64 px от центра), торговец с шансом **60%**; безопасная зона `HOUSE_SAFE_RADIUS = 256` |
-| Ячейки города | Якорный чанк (1,1) каждой сетки 4×4: здание с шансом **55%**, 1–2 жителя (±256 px), торговец с шансом **50%** |
+| Дома (ruins) | Каждый дом регистрируется один раз: 1–2 поселенца (±96/±64 px от центра), торговец с шансом **60%**, медик с шансом **35%**; безопасная зона `HOUSE_SAFE_RADIUS = 256` |
+| Ячейки города | Якорный чанк (1,1) каждой сетки 4×4: здание с шансом **55%**, 1–2 жителя (±256 px), торговец с шансом **50%**, медик с шансом **25%** |
 | Алтари | В центральном чанке алтарного региона, один на регион; `Altar(bossDefId)` + катсцена призыва |
 | Тайники лута | Во всех несейфовых регионах с непустым пулом и `lootChance` (0.05–0.12 на чанк): пикап случайного предмета из пула региона в проходимой точке чанка (до 10 попыток) |
 | Торговцы | `Trader` с 3 предложениями из `region.loot`; открытие окна → `n:trader` в журнал |
+| Медики | `Medic` в домах и городе: полное лечение по E, перезарядка 900 кадров; встреча/лечение → `n:medic` в журнал |
+| Мусорщики | Бродячий NPC (`scavenger`, ai settler) в диких регионах с `scavengerChance`; journal-запись открывается сканом встреч |
+| Костры | `Campfire` в диких регионах с `campfireChance`: лечит команду player на 1 HP/30 кадров в радиусе 130 px |
 | Регион в журнале | Смена региона управляемой сущностью → `unlockRegion` + объявление названия (FloatingText + метка HUD) |
-| Скан встреч | Раз в 30 кадров: сущности с `definition.journal` в радиусе 900 px от игрока открывают свою запись журнала (так открываются поселенцы — они спавнятся вместе с домом, часто дальше 900 px от игрока) |
-| debugStats | `{ chunks, houses, traders, settlers, altars, loot }` → `__debug.zoneStats()` |
+| Скан встреч | Раз в 30 кадров: сущности с `definition.journal` (и медики) в радиусе 900 px от игрока открывают свою запись журнала (так открываются поселенцы и мусорщики — они спавнятся вместе с чанком, часто дальше 900 px от игрока) |
+| debugStats | `{ chunks, houses, traders, settlers, altars, loot, medics, scavengers, campfires }` → `__debug.zoneStats()` |
 
 ---
 
@@ -819,7 +877,7 @@ API: `houseOfBlock(bx, by, runSeed)`, `housesForChunk(chunkX, chunkY, runSeed)`
 |---|---|---|
 | Враги | `e:` | `ENTITY_DEFINITIONS` с `journal: 'enemy'` |
 | Боссы | `e:` | `ENTITY_DEFINITIONS` с `journal: 'boss'` |
-| NPC | `n:` | `journal: 'npc'` (поселенец) + статическая запись `n:trader` |
+| NPC | `n:` | `journal: 'npc'` (поселенец, мусорщик) + статические записи `n:trader`, `n:medic` |
 | Предметы | `i:` | `ITEM_DEFINITIONS` |
 | Регионы | `r:` | `REGION_DEFINITIONS` (порядок `REGION_ORDER`) |
 
@@ -868,8 +926,10 @@ totalDeaths, bestRunTicks, totalTrades, totalPickups, bossesKilled }`.
 ## 17. Прогрессия и уровни
 
 - Опыт за убийство (только если убийца — управляемая сущность):
-  rust_grunt 5, glass_wisp 4, glass_shard 6, ice_shard 6, rust_worm 120,
-  glass_warden 100.
+  rust_grunt 5, glass_wisp 4, glass_shard 6, ice_shard 6, scrap_hound 4,
+  ash_crawler 7, cinder_mite 3, rust_sniper 8, crystal_sentinel 8;
+  боссы: rust_worm 120, glass_warden 100, crystal_serpent 130,
+  scrap_tyrant 150.
 - Порог уровня: `experienceToNext = level × 100`.
 - LEVEL UP → `LevelUpWindow` (пауза) → 1 из 3 случайных улучшений (§10).
 - Уровень/опыт сохраняются в слот и восстанавливаются при загрузке.
@@ -917,7 +977,7 @@ totalDeaths, bestRunTicks, totalTrades, totalPickups, bossesKilled }`.
 | `screenManager` | Стек окон (`getWindows()`, `isGamePaused()`) |
 | `worldService` | Фасад мира (тайлы, LOS) |
 | `housesAt(cx, cy)` | Дома, пересекающие чанк |
-| `zoneStats()` | `{ chunks, houses, traders, settlers, altars, loot }` |
+| `zoneStats()` | `{ chunks, houses, traders, settlers, altars, loot, medics, scavengers, campfires }` |
 | `journalUnlocked()` | Открытые id журнала |
 | `giveChip('dash')` / `giveItem('damage_plus'\|'pierce')` | Выдача тестовых предметов |
 | `setInvulnerable(bool)` | Неуязвимость управляемого (debug-сцена) |
@@ -925,10 +985,13 @@ totalDeaths, bestRunTicks, totalTrades, totalPickups, bossesKilled }`.
 
 ### Playground (`?playground`)
 
-Отладочный полигон рядом со спавном: пикапы всех оружий (x=800), всех
-модификаторов (x=600), чипов Teleport/Dash (x=700), тренировочные манекены,
-два rust_grunt, алтарь червя; игроку выдаются Teleport/Dash/Rebirth-чипы.
-При загрузке играет вступительная катсцена (закрывается клавишей E).
+Отладочный полигон рядом со спавном: пикапы всех 9 оружий (x=800), всех 9
+модификаторов (x=600), чипов Teleport/Dash/Heal/Shield/Nova (x=700),
+тренировочные манекены; мобы всех архетипов (rust_grunt ×2, scrap_hound,
+crystal_sentinel, cinder_mite в отдалении), мусорщик, медик, костёр и три
+алтаря (rust_worm, scrap_tyrant, crystal_serpent); игроку выдаются
+Teleport/Dash/Rebirth-чипы. При загрузке играет вступительная катсцена
+(закрывается клавишей E).
 
 ---
 
@@ -937,7 +1000,7 @@ totalDeaths, bestRunTicks, totalTrades, totalPickups, bossesKilled }`.
 ### Юнит-тесты (`npm test`, vitest)
 
 Окружение node + in-memory-заглушка localStorage (`tests/setup.ts`).
-8 файлов / 26 тестов:
+8 файлов / 31 тест:
 
 | Файл | Покрытие |
 |---|---|
@@ -945,10 +1008,10 @@ totalDeaths, bestRunTicks, totalTrades, totalPickups, bossesKilled }`.
 | `tests/journal.test.ts` | unlock/isNew, markRead, префиксы `e:`/`i:`, персистентность между экземплярами |
 | `tests/settings.test.ts` | Дефолты, сохранение, частичное слияние |
 | `tests/stats.test.ts` | Счётчики забега по событиям (только свои убийства), боссы/пикапы/трейды, однократный `endRun` |
-| `tests/regionMap.test.ts` | Все регионы раскладки, ruins-fallback, world↔chunk согласованность |
+| `tests/regionMap.test.ts` | Все регионы раскладки (включая южные), ruins-fallback, world↔chunk согласованность |
 | `tests/houses.test.ts` | Детерминизм от seed, наличие домов, интерьер/стены/дверь |
 | `tests/inputMapper.test.ts` | Дефолты, rebind, изоляция экземпляров |
-| `tests/content.test.ts` | **Достижимость каждого предмета** через стартовый набор + лут-пулы регионов; валидность ссылок лута на реестр; описания у всех регионов и журнальных сущностей |
+| `tests/content.test.ts` | **Достижимость каждого предмета** через стартовый набор + лут-пулы регионов; валидность ссылок лута на реестр; `lootChance > 0` у регионов с пулом; **каждый враг встречается в спавн-таблице**; **каждый босс доступен** (алтарь региона или спавн); непересечение прямоугольников регионов; описания у всех регионов и журнальных сущностей |
 
 ### E2E-смоук (puppeteer, 8 сценариев)
 
@@ -963,7 +1026,7 @@ seed (`?…&seed=777001`) — раскладка мира детерминиро
 | `altar` | `?playground` | призыв босса у алтаря (катсцена не перехватывает E), босс активен |
 | `fixes` | `?playground` | скорость 3 → даш → 3 (без остаточного ускорения); перерождение во врага |
 | `worm` | `?playground` | танковая схема червя: поворот, ход, перемещение |
-| `zones` | `?playground` | регион спавна; руины: имя региона и спавны; облёт: zoneStats; дом: поселенцы и отсутствие «живущих» врагов; бартер 1:1 (+ журнал обеих сторон); город: жители без врагов; алтарь червя; **бункер: наземные тайники лута ≥1**; журнал: `r:void_core/ruins/city/worm_altar`, `n:settler` |
+| `zones` | `?playground` | регион спавна; руины: имя региона и спавны; облёт: zoneStats; дом: поселенцы и отсутствие «живущих» врагов; бартер 1:1 (+ журнал обеих сторон); город: жители без врагов; алтарь червя; **бункер/кристальные залы: наземные тайники лута ≥1**; **алтари змея и тирана**; спавны пепла из таблицы; журнал: все посещённые регионы, `n:settler`, `n:scavenger`, `n:medic` |
 | `ai` | `?playground` | FSM: idle→chase, поводок→return→idle с полным HP; камикадзе взрывается; timid убегает <40% HP; kiter держит дистанцию; фазы босса 0/1/2 (shots 1/3/8, цвет) |
 | `shell` | (меню) | меню→забег; клик не проходит сквозь журнал к меню; бейдж «• новое» снимается при прочтении; пауза→сейв в слот 1→загрузка `?slot=1` (позиция/оружие/моды); журнал открывает врага по встрече и по убийству дальнего врага; смерть→итоги→меню |
 
@@ -978,7 +1041,9 @@ seed (`?…&seed=777001`) — раскладка мира детерминиро
   модификаторов → танковая схема червя → регионы и бартер → мир регионов с
   генераторами → оболочка (меню/сейвы/журнал/настройки) → FSM-враги и фазы
   боссов → юнит-тесты → исправления по отзывам и журнал регионов → лут-тайники
-  во всех регионах и seed забега из URL.
+  во всех регионах и seed забега из URL → контент-пак: кристальные залы и
+  пепельные пустоши, два босса, пять врагов, мусорщик/медик/костры, три оружия,
+  два модификатора и три чипа.
 - Сборка: `npm run build` → `build/index.js` (+ `index.html`, `images/`).
 - Дистрибутив истории: git-bundle `js-rogue-like-refactor.bundle` (ветка
   master целиком) — позволяет развернуть репозиторий без доступа к удалённому

@@ -20,6 +20,8 @@ export interface CastState {
 	explodeOnHit: boolean;
 	/** Снаряд разрушает непроходимые тайлы на своём пути. */
 	destruct: boolean;
+	/** Снаряд доворачивает курс к ближайшей враждебной цели. */
+	homing: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export function freshCastState(): CastState {
 		spread: 0,
 		explodeOnHit: false,
 		destruct: false,
+		homing: false,
 	};
 }
 
@@ -57,4 +60,8 @@ export interface ProjectileSpec {
 	explodeOnHit: boolean;
 	/** Разрушение тайлов на пути. */
 	destruct: boolean;
+	/** Самонаведение на ближайшую враждебную цель. */
+	homing: boolean;
+	/** Радиус поражения (для снаряда-взрыва 'explosion'). */
+	radius?: number;
 }

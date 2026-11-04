@@ -59,6 +59,52 @@ describe('Контент-таблицы', () => {
 		}
 	});
 
+	it('каждый журнальный враг встречается в таблице спавна региона', () => {
+		const spawned = new Set<string>();
+		for (const regionId of REGION_ORDER) {
+			for (const entry of REGION_DEFINITIONS[regionId].spawns) {
+				if (entry.weight > 0) spawned.add(entry.defId);
+			}
+		}
+		const missing = Object.values(ENTITY_DEFINITIONS).filter(
+			(def) => def.journal === 'enemy' && !spawned.has(def.id)
+		);
+		expect(missing.map((d) => d.id)).toEqual([]);
+	});
+
+	it('каждый босс доступен: алтарь региона или спавн-таблица', () => {
+		const reachable = new Set<string>();
+		for (const regionId of REGION_ORDER) {
+			const region = REGION_DEFINITIONS[regionId];
+			if (region.bossDefId) reachable.add(region.bossDefId);
+			for (const entry of region.spawns) {
+				if (entry.weight > 0) reachable.add(entry.defId);
+			}
+		}
+		const missing = Object.values(ENTITY_DEFINITIONS).filter(
+			(def) => def.journal === 'boss' && !reachable.has(def.id)
+		);
+		expect(missing.map((d) => d.id)).toEqual([]);
+	});
+
+	it('прямоугольники регионов не пересекаются', () => {
+		const rects = REGION_ORDER.map((id) => ({
+			id,
+			rect: REGION_DEFINITIONS[id].rect,
+		})).filter((r): r is { id: string; rect: NonNullable<typeof r.rect> } =>
+			Boolean(r.rect)
+		);
+		for (let i = 0; i < rects.length; i++) {
+			for (let j = i + 1; j < rects.length; j++) {
+				const a = rects[i].rect;
+				const b = rects[j].rect;
+				const overlap =
+					a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+				expect(overlap, `${rects[i].id} × ${rects[j].id}`).toBe(false);
+			}
+		}
+	});
+
 	it('у каждой журнальной сущности есть описание', () => {
 		for (const def of Object.values(ENTITY_DEFINITIONS)) {
 			if (def.journal) {

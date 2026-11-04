@@ -112,6 +112,8 @@ import { BunkerGenerator } from '../map/generation/BunkerGenerator';
 import { IcedFieldsGenerator } from '../map/generation/IcedFieldsGenerator';
 import { GlassPlainGenerator } from '../map/generation/GlassPlainGenerator';
 import { AltarRegionGenerator } from '../map/generation/AltarRegionGenerator';
+import { CrystalHallsGenerator } from '../map/generation/CrystalHallsGenerator';
+import { AshWastesGenerator } from '../map/generation/AshWastesGenerator';
 import { Game } from './Game';
 import type { GameContext } from './GameContext';
 
@@ -545,6 +547,8 @@ export class GameFactory {
 		world.registerGenerator(new IcedFieldsGenerator(regionMap));
 		world.registerGenerator(new GlassPlainGenerator(regionMap));
 		world.registerGenerator(new AltarRegionGenerator(regionMap));
+		world.registerGenerator(new CrystalHallsGenerator(regionMap));
+		world.registerGenerator(new AshWastesGenerator(regionMap));
 		return world;
 	}
 
