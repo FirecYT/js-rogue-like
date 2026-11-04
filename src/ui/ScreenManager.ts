@@ -134,8 +134,9 @@ export class ScreenManager {
 	render(): void {
 		this.hud.render(this.engine.context);
 
-		if (this.windows.length > 0) {
-			// Затемнение фона под модальными окнами (один слой на весь стек)
+		if (this.isGamePaused()) {
+			// Затемнение фона под модальными окнами (один слой на весь стек).
+			// Живые окна без паузы (админ-панель полигона) мир не затемняют.
 			this.engine.context.fillStyle = '#0008';
 			this.engine.context.fillRect(
 				0,

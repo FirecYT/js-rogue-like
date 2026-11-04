@@ -19,6 +19,10 @@ export class NovaChip implements Chip {
 	type = 'chip' as const;
 	isActive = true;
 	cooldown = new Cooldown(480);
+	/** Урон импульсной волны (настраивается админ-панелью полигона). */
+	public damage = NOVA_DAMAGE;
+	/** Радиус импульсной волны (настраивается админ-панелью полигона). */
+	public radius = NOVA_RADIUS;
 
 	/**
 	 * Создаёт импульсную волну с центром в носителе.
@@ -31,13 +35,13 @@ export class NovaChip implements Chip {
 				{
 					projectileId: 'explosion',
 					angle: 0,
-					damage: NOVA_DAMAGE,
+					damage: this.damage,
 					pierce: false,
 					wave: null,
 					explodeOnHit: false,
 					destruct: false,
 					homing: false,
-					radius: NOVA_RADIUS,
+					radius: this.radius,
 				},
 			],
 		});

@@ -42,6 +42,7 @@ import { SlotPickerWindow } from '../ui/windows/SlotPickerWindow';
 import { JournalWindow } from '../ui/windows/JournalWindow';
 import { StatsWindow } from '../ui/windows/StatsWindow';
 import { SettingsWindow } from '../ui/windows/SettingsWindow';
+import { AdminWindow } from '../ui/windows/AdminWindow';
 import { RunResultsWindow } from '../ui/windows/RunResultsWindow';
 import { PauseWindow } from '../ui/windows/PauseWindow';
 import type { Window } from '../ui/Window';
@@ -84,6 +85,12 @@ export interface GameDebugHooks {
 	forceDeath: () => void;
 	/** Неуязвимость управляемой сущности (только debug-сцена). */
 	setInvulnerable: (value: boolean) => void;
+	/** Тайл в мировых координатах (смоук-тесты карты и админ-панели). */
+	tileAt: (worldX: number, worldY: number) => number;
+	/** Открыть админ-панель полигона (только debug-сцена). */
+	openAdmin: () => void;
+	/** Закрыть админ-панель полигона, если открыта. */
+	closeAdmin: () => void;
 }
 import { RebirthSystem } from '../systems/RebirthSystem';
 import { PlayerProgression } from '../systems/PlayerProgression';
@@ -326,8 +333,53 @@ export class GameFactory {
 				() => regionFeatureSystem.getSafeZones()
 			)
 		);
+		// 7.5. Админ-панель полигона (F9): живое редактирование сущностей,
+		// предметов, тайлов и телепортация. Только debug-сцена (?playground).
+		let adminWindow: AdminWindow | null = null;
+		const isAdminOpen = (): boolean =>
+			adminWindow !== null && screenManager.getWindows().includes(adminWindow);
+		const openAdminWindow = (): void => {
+			if (isAdminOpen()) return;
+			const win = new AdminWindow(
+				{
+					getControlled,
+					entityWorld,
+					world,
+					camera,
+					runSeed,
+					restartWithSeed: (seed) => navigateTo(`?playground&seed=${seed}`),
+					regionCenter: (id) => regionMap.regionCenterWorld(id),
+				},
+				engine.canvas.width,
+				engine.canvas.height,
+				() => {
+					screenManager.closeWindow(win);
+					adminWindow = null;
+				}
+			);
+			adminWindow = win;
+			screenManager.openWindow(win);
+		};
+		const adminToggle = isPlaygroundEnabled()
+			? () => {
+					if (isAdminOpen()) {
+						screenManager.closeWindow(adminWindow as AdminWindow);
+						adminWindow = null;
+					} else {
+						openAdminWindow();
+					}
+				}
+			: undefined;
 		systemManager.register(
-			new UISystem(getControlled, entityWorld, input, screenManager, engine, floatingTextSystem)
+			new UISystem(
+				getControlled,
+				entityWorld,
+				input,
+				screenManager,
+				engine,
+				floatingTextSystem,
+				adminToggle
+			)
 		);
 		systemManager.register(
 			new ProgressionSystem(getControlled, playerProgression, screenManager, engine, floatingTextSystem)
@@ -367,6 +419,17 @@ export class GameFactory {
 				},
 				setInvulnerable: (value: boolean) => {
 					getControlled().invulnerable = value;
+				},
+				tileAt: (worldX: number, worldY: number) =>
+					world.getTileAt(worldX, worldY),
+				openAdmin: () => {
+					if (isPlaygroundEnabled()) openAdminWindow();
+				},
+				closeAdmin: () => {
+					if (adminWindow) {
+						screenManager.closeWindow(adminWindow);
+						adminWindow = null;
+					}
 				},
 				journalUnlocked: () => journal.getUnlocked(),
 				forceDeath: () => {

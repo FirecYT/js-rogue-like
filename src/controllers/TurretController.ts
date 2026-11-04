@@ -29,7 +29,7 @@ export class TurretController implements IController {
 	 */
 	constructor(
 		private readonly getTarget: () => Entity,
-		private readonly profile: AiProfile
+		public readonly profile: AiProfile
 	) {}
 
 	/**

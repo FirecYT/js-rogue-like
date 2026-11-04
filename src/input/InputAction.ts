@@ -12,4 +12,5 @@ export enum InputAction {
 	Interact = 'interact',
 	Inventory = 'inventory',
 	Fullscreen = 'fullscreen',
+	Admin = 'admin',
 }

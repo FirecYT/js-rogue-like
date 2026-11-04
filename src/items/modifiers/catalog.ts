@@ -12,9 +12,11 @@ export class DamagePlusModifier implements Modifier {
 	name = 'Урон +3';
 	type = 'modifier' as const;
 	description = 'Снаряд оружия получает +3 к урону.';
+	/** Прибавка урона (настраивается админ-панелью полигона). */
+	public bonus = 3;
 
 	applyToCast(state: CastState): void {
-		state.damageAdd += 3;
+		state.damageAdd += this.bonus;
 	}
 }
 
@@ -24,9 +26,11 @@ export class DamageMultModifier implements Modifier {
 	name = 'Урон ×2';
 	type = 'modifier' as const;
 	description = 'Урон снаряда оружия удваивается.';
+	/** Множитель урона (настраивается админ-панелью полигона). */
+	public factor = 2;
 
 	applyToCast(state: CastState): void {
-		state.damageMult *= 2;
+		state.damageMult *= this.factor;
 	}
 }
 
@@ -48,9 +52,13 @@ export class SinusoidalModifier implements Modifier {
 	name = 'Синусоида';
 	type = 'modifier' as const;
 	description = 'Траектория снаряда колеблется перпендикулярно курсу.';
+	/** Амплитуда волны, px (настраивается админ-панелью полигона). */
+	public amplitude = 24;
+	/** Частота волны (настраивается админ-панелью полигона). */
+	public frequency = 0.15;
 
 	applyToCast(state: CastState): void {
-		state.wave = { amplitude: 24, frequency: 0.15 };
+		state.wave = { amplitude: this.amplitude, frequency: this.frequency };
 	}
 }
 
@@ -121,9 +129,13 @@ export class SplitModifier implements Modifier {
 	name = 'Расщепление';
 	type = 'modifier' as const;
 	description = 'Снаряд расщепляется на три копии в широком веере.';
+	/** Число копий (настраивается админ-панелью полигона). */
+	public count = 3;
+	/** Разброс веера, радианы (настраивается админ-панелью полигона). */
+	public spread = 1.4;
 
 	applyToCast(state: CastState): void {
-		state.copies *= 3;
-		state.spread += 1.4;
+		state.copies *= this.count;
+		state.spread += this.spread;
 	}
 }

@@ -40,6 +40,7 @@ export class InputMapper {
 			[InputAction.Interact, ['KeyE']],
 			[InputAction.Inventory, ['Tab']],
 			[InputAction.Fullscreen, ['F12']],
+			[InputAction.Admin, ['F9']],
 		]);
 	}
 

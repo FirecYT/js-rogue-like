@@ -53,7 +53,7 @@ export class EnemyFsmController implements IController {
 	constructor(
 		private readonly getTarget: () => Entity,
 		private readonly pathfinder: Pathfinder,
-		private readonly profile: AiProfile,
+		public readonly profile: AiProfile,
 		private readonly effectSystem?: EffectSystem
 	) {}
 

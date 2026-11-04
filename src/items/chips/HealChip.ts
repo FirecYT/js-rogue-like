@@ -15,12 +15,14 @@ export class HealChip implements Chip {
 	type = 'chip' as const;
 	isActive = true;
 	cooldown = new Cooldown(900);
+	/** Объём восстановления (настраивается админ-панелью полигона). */
+	public amount = HEAL_AMOUNT;
 
 	/**
 	 * Восстанавливает HP сущности.
 	 * @param entity - Носитель чипа
 	 */
 	use(entity: Entity): void {
-		entity.heal(HEAL_AMOUNT);
+		entity.heal(this.amount);
 	}
 }

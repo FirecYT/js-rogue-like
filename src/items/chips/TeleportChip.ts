@@ -11,6 +11,8 @@ export class TeleportChip implements Chip {
 	type = 'chip' as const;
 	isActive = true;
 	cooldown = new Cooldown(120);
+	/** Дальность прыжка в пикселях (настраивается админ-панелью полигона). */
+	public distance = 100;
 
 	/**
 	 * Телепортирует сущность на 100 единиц в случайном направлении.
@@ -18,7 +20,7 @@ export class TeleportChip implements Chip {
 	 */
 	use(entity: Entity): void {
 		const angle = Math.random() * Math.PI * 2;
-		entity.x += Math.cos(angle) * 100;
-		entity.y += Math.sin(angle) * 100;
+		entity.x += Math.cos(angle) * this.distance;
+		entity.y += Math.sin(angle) * this.distance;
 	}
 }

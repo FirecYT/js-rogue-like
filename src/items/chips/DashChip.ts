@@ -3,7 +3,7 @@ import Entity from '../../entities/Entity';
 import { Chip } from '../Chip';
 
 /**
- * Множитель скорости при активном рывке.
+ * Множитель скорости при активном рывке (по умолчанию).
  */
 const DASH_SPEED_MULTIPLIER = 3;
 
@@ -19,6 +19,8 @@ export class DashChip implements Chip {
 	type = 'chip' as const;
 	isActive = true;
 	cooldown = new Cooldown(60);
+	/** Множитель скорости рывка (настраивается админ-панелью полигона). */
+	public multiplier = DASH_SPEED_MULTIPLIER;
 	/** Таймер активной фазы рывка. */
 	public activeCooldown = new Cooldown(30);
 	/** Применён ли множитель (для парного снятия). */
@@ -30,7 +32,7 @@ export class DashChip implements Chip {
 	 */
 	onUpdate(_entity: Entity): void {
 		if (this.boostedEntity && this.activeCooldown.isReady()) {
-			this.boostedEntity.speedMultiplier /= DASH_SPEED_MULTIPLIER;
+			this.boostedEntity.speedMultiplier /= this.multiplier;
 			this.boostedEntity = null;
 		}
 		this.activeCooldown.update();
@@ -43,7 +45,7 @@ export class DashChip implements Chip {
 	use(entity: Entity): void {
 		this.cooldown?.start();
 		this.activeCooldown.start();
-		entity.speedMultiplier *= DASH_SPEED_MULTIPLIER;
+		entity.speedMultiplier *= this.multiplier;
 		this.boostedEntity = entity;
 	}
 
@@ -53,7 +55,7 @@ export class DashChip implements Chip {
 	 */
 	onUnequip(_entity: Entity): void {
 		if (this.boostedEntity) {
-			this.boostedEntity.speedMultiplier /= DASH_SPEED_MULTIPLIER;
+			this.boostedEntity.speedMultiplier /= this.multiplier;
 			this.boostedEntity = null;
 		}
 	}

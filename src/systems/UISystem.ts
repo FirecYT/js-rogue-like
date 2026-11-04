@@ -28,6 +28,7 @@ export class UISystem implements ISystem {
 	 * @param screenManager - Менеджер экранов для открытия/закрытия окон
 	 * @param engine - Движок для изменения размеров канваса и фуллскрина
 	 * @param floatingTextSystem - Система всплывающих текстов для сообщений о выброшенных предметах
+	 * @param adminToggle - Открытие/закрытие админ-панели (только debug-сцена полигона)
 	 */
 	constructor(
 		private readonly getControlled: () => Entity,
@@ -35,7 +36,8 @@ export class UISystem implements ISystem {
 		private readonly input: InputMapper,
 		private readonly screenManager: ScreenManager,
 		private readonly engine: Engine,
-		private readonly floatingTextSystem: FloatingTextSystem
+		private readonly floatingTextSystem: FloatingTextSystem,
+		private readonly adminToggle?: () => void
 	) {}
 
 	/**
@@ -44,6 +46,15 @@ export class UISystem implements ISystem {
 	update(): void {
 		this.handleInventory();
 		this.handleFullscreen();
+		this.handleAdmin();
+	}
+
+	/**
+	 * Открывает/закрывает админ-панель по F9 (только debug-сцена полигона).
+	 */
+	private handleAdmin(): void {
+		if (!this.adminToggle) return;
+		if (this.input.isPressed(InputAction.Admin)) this.adminToggle();
 	}
 
 	/**
